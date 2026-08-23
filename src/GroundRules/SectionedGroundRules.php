@@ -83,7 +83,7 @@ class SectionedGroundRules implements GroundRules
     {
         $authored = rtrim($authored);
 
-        if (! config('mcp-kit.instructions.append_footer', true)) {
+        if (! config('mcp-kit.instructions.append_footer', true) || ! ($this->servers->get($server)?->shared ?? true)) {
             return $authored;
         }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace HeiHallo\McpKit\Docs;
 
 use HeiHallo\McpKit\Contracts\AbilityCatalogue;
+use HeiHallo\McpKit\Contracts\DocsRenderer;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Attributes\Name;
@@ -26,9 +27,14 @@ class ToolReference
 
     public const END_MARKER = '<!-- generated:tools:end -->';
 
+    public const ABILITIES_START_MARKER = '<!-- generated:abilities:start -->';
+
+    public const ABILITIES_END_MARKER = '<!-- generated:abilities:end -->';
+
     public function __construct(
         protected ServerRegistry $servers,
         protected AbilityCatalogue $catalogue,
+        protected DocsRenderer $renderer,
     ) {}
 
     public function path(): string
@@ -48,72 +54,27 @@ class ToolReference
 
     public function render(string $document): string
     {
-        $block = self::START_MARKER."\n\n".$this->generatedBody()."\n".self::END_MARKER;
+        $document = $this->replaceBlock($document, self::START_MARKER, self::END_MARKER, $this->renderer->toolsBlock($this->tools()), append: true);
 
-        $start = strpos($document, self::START_MARKER);
-        $end = strpos($document, self::END_MARKER);
-
-        if ($start === false || $end === false) {
-            return rtrim($document)."\n\n".$block."\n";
+        if (str_contains($document, self::ABILITIES_START_MARKER) && str_contains($document, self::ABILITIES_END_MARKER)) {
+            $document = $this->replaceBlock($document, self::ABILITIES_START_MARKER, self::ABILITIES_END_MARKER, $this->renderer->abilitiesBlock(), append: false);
         }
 
-        return substr($document, 0, $start).$block.substr($document, $end + strlen(self::END_MARKER));
+        return $document;
     }
 
-    protected function generatedBody(): string
+    protected function replaceBlock(string $document, string $startMarker, string $endMarker, string $body, bool $append): string
     {
-        $tools = $this->tools();
-        $writes = array_values(array_filter($tools, static fn (array $tool): bool => $tool['writes']));
-        $serviceWrites = array_map('strval', (array) config('mcp-kit.catalogue.service_client_writes', []));
+        $block = $startMarker."\n\n".rtrim($body)."\n".$endMarker;
 
-        $lines = [];
-        $lines[] = '## Tool summary (generated)';
-        $lines[] = '';
-        $lines[] = sprintf(
-            '%d tools across %d server%s. %d read, %d write. Every tool checks a token ability (see `config/mcp-kit.php`) before executing.',
-            count($tools),
-            count($this->servers->all()),
-            count($this->servers->all()) === 1 ? '' : 's',
-            count($tools) - count($writes),
-            count($writes),
-        );
-        $lines[] = '';
-        $lines[] = '| # | Tool | Server | Domain | Ability | Type |';
-        $lines[] = '|---|------|--------|--------|---------|------|';
+        $start = strpos($document, $startMarker);
+        $end = strpos($document, $endMarker);
 
-        foreach ($tools as $i => $tool) {
-            $lines[] = sprintf(
-                '| %d | `%s` | %s | %s | `%s` | %s |',
-                $i + 1,
-                $tool['name'],
-                $tool['server'],
-                $tool['domain'],
-                $tool['ability'] ?? '—',
-                $tool['writes'] ? '**Write**' : 'Read',
-            );
+        if ($start === false || $end === false || $end < $start) {
+            return $append ? rtrim($document)."\n\n".$block."\n" : $document;
         }
 
-        $lines[] = '';
-        $lines[] = '## Write tools (generated)';
-        $lines[] = '';
-        $lines[] = 'These modify data. Unless noted, each previews without `confirm=true` and executes with it.'
-            .($serviceWrites === [] ? ' Service-client tokens are refused on every write.' : ' Service-client tokens are refused on every write except those behind '.implode(', ', array_map(static fn (string $a): string => "`{$a}`", $serviceWrites)).'.');
-        $lines[] = '';
-        $lines[] = '| Tool | Server | Ability | Annotations | What it does |';
-        $lines[] = '|------|--------|---------|-------------|--------------|';
-
-        foreach ($writes as $tool) {
-            $lines[] = sprintf(
-                '| `%s` | %s | `%s` | %s | %s |',
-                $tool['name'],
-                $tool['server'],
-                $tool['ability'] ?? '—',
-                $tool['annotations'] === [] ? '—' : implode(', ', $tool['annotations']),
-                $this->firstSentence($tool['description']),
-            );
-        }
-
-        return implode("\n", $lines)."\n";
+        return substr($document, 0, $start).$block.substr($document, $end + strlen($endMarker));
     }
 
     /**
@@ -291,13 +252,5 @@ class ToolReference
         sort($abilities);
 
         return $abilities;
-    }
-
-    protected function firstSentence(string $description): string
-    {
-        $description = trim(preg_replace('/\s+/', ' ', $description) ?? '');
-        $cut = strpos($description, '. ');
-
-        return $cut === false ? $description : substr($description, 0, $cut + 1);
     }
 }

@@ -7,6 +7,7 @@ use HeiHallo\McpKit\Activity\DefaultChannelResolver;
 use HeiHallo\McpKit\Activity\NullSourceResolver;
 use HeiHallo\McpKit\Audit\ActivityLogAuditWriter;
 use HeiHallo\McpKit\Describe\AutoDescriber;
+use HeiHallo\McpKit\Docs\DefaultDocsRenderer;
 use HeiHallo\McpKit\GroundRules\SectionedGroundRules;
 use HeiHallo\McpKit\Links\NullLinks;
 use HeiHallo\McpKit\Mcp\Prompts\GettingStartedPrompt;
@@ -127,9 +128,10 @@ return [
     |--------------------------------------------------------------------------
     |
     | key => [class, path, label, wildcard, client_name, requires_staff,
-    | service_clients, presets, color, icon, description]. presets=false keeps
-    | a server's abilities out of the token presets (a customer-facing server
-    | whose tokens are minted elsewhere). Every entry is registered
+    | service_clients, presets, shared, color, icon, description]. presets=false
+    | keeps a server's abilities out of the token presets and shared=false keeps
+    | the shared primitives (me, remember_about_me, getting_started) and the
+    | footer off it — both for a customer-facing server. Every entry is registered
     | at boot through McpKit::server() with the full guard stack. Two servers
     | may share one wildcard.
     |
@@ -260,6 +262,8 @@ return [
     'docs' => [
         'path' => 'docs/mcp/tools/index.md',
         'inventory' => 'tests/Feature/Mcp/tool-inventory.json',
+        // Renders the generated blocks; swap for a different layout.
+        'renderer' => DefaultDocsRenderer::class,
     ],
 
     'instructions' => [

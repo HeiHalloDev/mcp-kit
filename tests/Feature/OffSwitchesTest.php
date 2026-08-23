@@ -34,3 +34,17 @@ test('the tokens page and the memory UI are off by default', function () {
         ->and(config('mcp-kit.onboarding.ui'))->toBeFalse()
         ->and(config('mcp-kit.me.expose_as_tool'))->toBeFalse();
 });
+
+test('a server with shared=false gets no shared primitives and no footer', function () {
+    config()->set('mcp-kit.servers.reports.shared', false);
+    $token = acmeToken(acmeAdmin(), ['reports:*']);
+
+    Mcp::listTools($token, '/mcp/reports')->assertSuccessful()->assertDontSee('remember_about_me');
+    expect(Mcp::rpc($token, '/mcp/reports', 'resources/list')->assertSuccessful()->json('result.resources'))->toBe([]);
+
+    $instructions = Mcp::rpc($token, '/mcp/reports', 'initialize', [
+        'protocolVersion' => '2025-06-18', 'capabilities' => (object) [], 'clientInfo' => ['name' => 'h', 'version' => '1'],
+    ])->json('result.instructions');
+
+    expect($instructions)->toBe('Aggregate numbers only.');
+});

@@ -9,7 +9,7 @@ it('ships neutral defaults', function () {
     expect($defaults['scheme'])->toBe('app')
         ->and($defaults['servers'])->toBe([])
         ->and($defaults['catalogue']['abilities'])->toBe([])
-        ->and($defaults['tokens'])->toBe(['name_prefix' => 'mcp: ', 'default_days' => 90, 'max_days' => 365, 'default_preset' => 'work'])
+        ->and($defaults['tokens'])->toBe(['name_prefix' => 'mcp: ', 'default_days' => 90, 'max_days' => 365, 'default_preset' => 'work', 'staff_only' => false])
         ->and($defaults['routes']['enforce'])->toBeTrue()
         ->and($defaults['read_only'])->toBeFalse()
         ->and(array_keys($defaults['token_presets']))->toBe(['read', 'work', 'full'])

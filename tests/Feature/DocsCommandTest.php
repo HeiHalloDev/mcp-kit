@@ -49,3 +49,16 @@ test('mcp:docs writes between the markers, keeps prose and --check fails when st
 
     $this->artisan('mcp:docs', ['--check' => true])->expectsOutputToContain('up to date')->assertSuccessful();
 });
+
+test('an abilities block is rendered when the document has its markers', function () {
+    $path = config('mcp-kit.docs.path');
+    file_put_contents($path, "# Tools\n\n<!-- generated:abilities:start -->\n<!-- generated:abilities:end -->\n\n<!-- generated:tools:start -->\n<!-- generated:tools:end -->\n");
+
+    $this->artisan('mcp:docs')->assertSuccessful();
+
+    expect((string) file_get_contents($path))
+        ->toContain('| `acme:things:read` | acme | things | Search and view things |')
+        ->toContain('| `acme:*` | acme | any user |')
+        ->toContain('| `acme:admin` | admin | Change what other people may do |')
+        ->toContain('| `old:things:read` | `acme:things:read` |');
+});

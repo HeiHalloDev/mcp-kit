@@ -10,6 +10,7 @@ use HeiHallo\McpKit\Activity\PruneMcpActivityCommand;
 use HeiHallo\McpKit\Audit\McpCallContext;
 use HeiHallo\McpKit\Contracts\AbilityCatalogue;
 use HeiHallo\McpKit\Contracts\AuditWriter;
+use HeiHallo\McpKit\Contracts\DocsRenderer;
 use HeiHallo\McpKit\Contracts\GroundRules;
 use HeiHallo\McpKit\Contracts\Links;
 use HeiHallo\McpKit\Contracts\MemoryPolicy;
@@ -53,6 +54,7 @@ class McpKitServiceProvider extends ServiceProvider
         Links::class => 'mcp-kit.links',
         UserDescriber::class => 'mcp-kit.describer',
         AuditWriter::class => 'mcp-kit.audit',
+        DocsRenderer::class => 'mcp-kit.docs.renderer',
         GroundRules::class => 'mcp-kit.ground_rules.class',
         MemoryStore::class => 'mcp-kit.memory.store',
         MemoryPolicy::class => 'mcp-kit.memory.policy',

@@ -25,7 +25,11 @@ abstract class StaffServer extends Server
 
     protected function boot(): void
     {
-        $this->appendShared();
+        $definition = app(ServerRegistry::class)->forClass(static::class);
+
+        if ($definition?->shared ?? true) {
+            $this->appendShared();
+        }
 
         if (config('mcp-kit.read_only', false)) {
             $this->tools = ReadOnlyFilter::apply($this->tools);
