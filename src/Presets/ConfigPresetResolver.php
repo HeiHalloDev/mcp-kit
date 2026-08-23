@@ -8,6 +8,7 @@ use HeiHallo\McpKit\Contracts\AbilityCatalogue;
 use HeiHallo\McpKit\Contracts\PermissionChecker;
 use HeiHallo\McpKit\Contracts\PresetResolver;
 use HeiHallo\McpKit\Contracts\PrincipalResolver;
+use HeiHallo\McpKit\Servers\ServerRegistry;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository;
 
@@ -24,6 +25,7 @@ class ConfigPresetResolver implements PresetResolver
         protected AbilityCatalogue $catalogue,
         protected PermissionChecker $permissions,
         protected PrincipalResolver $principals,
+        protected ServerRegistry $servers,
     ) {}
 
     /**
@@ -56,10 +58,24 @@ class ConfigPresetResolver implements PresetResolver
             return [];
         }
 
+        // Presets are for staff: a customer with a login gets none when
+        // mcp-kit.tokens.staff_only is on.
+        if ($this->config->get('mcp-kit.tokens.staff_only', false) && ! $principal->staff) {
+            return [];
+        }
+
         return array_values(array_filter(
             array_keys($this->catalogue->all()),
             function (string $ability) use ($user): bool {
                 if ($this->catalogue->isWildcard($ability)) {
+                    return false;
+                }
+
+                // Abilities of a server that opted out of presets (a
+                // customer-facing server) are never offered on the staff page.
+                $server = $this->catalogue->serverFor($ability);
+
+                if ($server !== null && ! ($this->servers->get($server)?->presets ?? true)) {
                     return false;
                 }
 
@@ -117,7 +133,15 @@ class ConfigPresetResolver implements PresetResolver
             return [];
         }
 
-        $wildcards = $this->catalogue->serverWildcards();
+        $wildcards = [];
+
+        foreach ($this->servers->all() as $definition) {
+            if ($definition->presets && $definition->wildcard !== null) {
+                $wildcards[] = $definition->wildcard;
+            }
+        }
+
+        $wildcards = array_values(array_unique($wildcards));
 
         if ($wildcards === [] && ($super = $this->config->get('mcp-kit.catalogue.super_wildcard')) !== null) {
             return [(string) $super];

@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use HeiHallo\McpKit\Contracts\PresetResolver;
+use HeiHallo\McpKit\Presets\ConfigPresetResolver;
+use HeiHallo\McpKit\Tests\Fixtures\Mcp\Servers\AcmeReportsServer;
 
 it('filters presets by the person\'s permissions', function () {
     $presets = app(PresetResolver::class);
@@ -50,4 +52,25 @@ it('labels stored abilities back to a preset', function () {
         ->and($presets->grantsWrite(['acme:things:write']))->toBeTrue()
         ->and($presets->grantsExplicitOnly(['acme:admin']))->toBeTrue()
         ->and($presets->expiresDaysFor('read'))->toBeNull();
+});
+
+it('keeps a server that opted out of presets off the staff page and can require staff', function () {
+    config()->set('mcp-kit.servers.customer', [
+        'class' => AcmeReportsServer::class,
+        'path' => '/mcp/customer',
+        'wildcard' => 'customer:*',
+        'requires_staff' => false,
+        'presets' => false,
+    ]);
+    config()->set('mcp-kit.catalogue.abilities.customer:team:read', ['See your team', null, 'customer']);
+    $presets = app()->make(ConfigPresetResolver::class);
+    $admin = acmeAdmin();
+
+    expect($presets->grantableFor($admin))->not->toContain('customer:team:read')
+        ->and($presets->abilitiesFor($admin, 'full'))->toBe(['acme:*', 'reports:*']);
+
+    config()->set('mcp-kit.tokens.staff_only', true);
+
+    expect($presets->grantableFor(acmeUser(['things'])))->toBe([])
+        ->and($presets->grantableFor(acmeUser(['staff', 'things'])))->not->toBe([]);
 });

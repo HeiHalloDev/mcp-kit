@@ -127,7 +127,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | key => [class, path, label, wildcard, client_name, requires_staff,
-    | service_clients, color, icon, description]. Every entry is registered
+    | service_clients, presets, color, icon, description]. presets=false keeps
+    | a server's abilities out of the token presets (a customer-facing server
+    | whose tokens are minted elsewhere). Every entry is registered
     | at boot through McpKit::server() with the full guard stack. Two servers
     | may share one wildcard.
     |
@@ -205,6 +207,9 @@ return [
         'default_days' => 90,
         'max_days' => 365,
         'default_preset' => 'work',
+        // Presets and the tokens page are for staff only (people the permission
+        // checker calls staff); customers with a login get no presets.
+        'staff_only' => false,
     ],
 
     /*
