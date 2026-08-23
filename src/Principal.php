@@ -46,12 +46,34 @@ final class Principal
      */
     public function abilities(): array
     {
-        return array_values(array_filter((array) ($this->token?->abilities ?? []), 'is_string'));
+        $abilities = $this->token?->abilities;
+
+        return is_array($abilities) ? array_values(array_filter($abilities, 'is_string')) : [];
     }
 
+    /**
+     * Tolerant of test doubles (Sanctum::actingAs hands out a mock whose
+     * properties answer false).
+     */
     public function tokenName(): ?string
     {
-        return $this->token?->name;
+        $name = $this->token?->name;
+
+        return is_string($name) && $name !== '' ? $name : null;
+    }
+
+    public function tokenId(): int|string|null
+    {
+        $id = $this->token?->id;
+
+        return is_int($id) || is_string($id) ? $id : null;
+    }
+
+    public function tokenExpiresAt(): ?\DateTimeInterface
+    {
+        $expires = $this->token?->expires_at;
+
+        return $expires instanceof \DateTimeInterface ? $expires : null;
     }
 
     /**

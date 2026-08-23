@@ -66,7 +66,7 @@ class ActivityLogAuditWriter implements AuditWriter
                     'call_id' => $record->callId,
                     'request_id' => $record->requestId,
                     'client' => $record->client,
-                    'token_id' => $record->principal?->token?->id,
+                    'token_id' => $record->principal?->tokenId(),
                     ...$this->principalProperties($record->principal),
                 ]);
 
@@ -94,7 +94,7 @@ class ActivityLogAuditWriter implements AuditWriter
                     'status' => McpCallContext::STATUS_EXECUTED,
                     'call_id' => $record->callId,
                     'client' => app(McpCallContext::class)->client(),
-                    'token_id' => $record->principal->token?->id,
+                    'token_id' => $record->principal->tokenId(),
                     ...$this->principalProperties($record->principal),
                 ]);
 

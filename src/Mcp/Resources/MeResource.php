@@ -85,7 +85,7 @@ class MeResource extends Resource
             'recent' => app(RecentActivity::class)->for($principal->tokenable),
             'invite' => $invite,
             'memoryUrl' => config('mcp-kit.ui.memory_url'),
-            'expiresAt' => $principal->token?->expires_at,
+            'expiresAt' => $principal->tokenExpiresAt(),
         ])->render();
     }
 
