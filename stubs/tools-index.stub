@@ -1,0 +1,12 @@
+---
+nav_title: MCP tools
+---
+
+# MCP tools
+
+Staff tools for {{ app }} over the Model Context Protocol. Every token belongs to a person; every call is logged in their name. Writes preview without `confirm=true` and execute with it.
+
+Connect: `php artisan mcp:token you@example.com` prints the lines to paste into Claude Code.
+
+<!-- generated:tools:start -->
+<!-- generated:tools:end -->

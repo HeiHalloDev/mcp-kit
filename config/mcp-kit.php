@@ -1,0 +1,350 @@
+<?php
+
+declare(strict_types=1);
+
+use HeiHallo\McpKit\Abilities\ConfigAbilityCatalogue;
+use HeiHallo\McpKit\Activity\DefaultChannelResolver;
+use HeiHallo\McpKit\Activity\NullSourceResolver;
+use HeiHallo\McpKit\Audit\ActivityLogAuditWriter;
+use HeiHallo\McpKit\Describe\AutoDescriber;
+use HeiHallo\McpKit\GroundRules\SectionedGroundRules;
+use HeiHallo\McpKit\Links\NullLinks;
+use HeiHallo\McpKit\Mcp\Prompts\GettingStartedPrompt;
+use HeiHallo\McpKit\Mcp\Resources\GroundRulesResource;
+use HeiHallo\McpKit\Mcp\Resources\MeResource;
+use HeiHallo\McpKit\Mcp\Tools\RememberAboutMeTool;
+use HeiHallo\McpKit\Memory\ColumnMemoryStore;
+use HeiHallo\McpKit\Memory\DefaultMemoryPolicy;
+use HeiHallo\McpKit\Models\ServiceClient;
+use HeiHallo\McpKit\Onboarding\ConfigSuggestions;
+use HeiHallo\McpKit\Onboarding\DefaultQuestions;
+use HeiHallo\McpKit\Permissions\GatePermissionChecker;
+use HeiHallo\McpKit\Presets\ConfigPresetResolver;
+use HeiHallo\McpKit\Principals\DefaultPrincipalResolver;
+use HeiHallo\McpKit\Tokens\DefaultTokenPolicy;
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Read-only mode
+    |--------------------------------------------------------------------------
+    |
+    | When on, every server hides the tools that are not annotated
+    | #[IsReadOnly] and previewOrExecute() refuses confirm=true. Useful on
+    | a staging copy, or while a migration is in flight.
+    |
+    */
+
+    'read_only' => (bool) env('MCP_READ_ONLY', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Resource URI scheme
+    |--------------------------------------------------------------------------
+    |
+    | The shared resources live at {scheme}://ground-rules and {scheme}://me.
+    | Pick something short that names the app (crm, flex, shop).
+    |
+    */
+
+    'scheme' => env('MCP_KIT_SCHEME', 'app'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Models
+    |--------------------------------------------------------------------------
+    |
+    | The service-client model: a tokenable with no person behind it (another
+    | system calling in). null disables service clients entirely. The class
+    | must implement HeiHallo\McpKit\Contracts\ServiceClient and use Sanctum's
+    | HasApiTokens. The users model comes from auth.providers.users.model.
+    |
+    */
+
+    'models' => [
+        'service_client' => ServiceClient::class,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Extension points
+    |--------------------------------------------------------------------------
+    |
+    | Every replaceable behaviour is a contract bound from one of these keys.
+    | Point a key at your own class (or re-bind the contract in your provider)
+    | to swap the behaviour; never edit a package file.
+    |
+    */
+
+    'principal' => DefaultPrincipalResolver::class,
+    'permissions' => GatePermissionChecker::class,
+    'abilities' => ConfigAbilityCatalogue::class,
+    'presets' => ConfigPresetResolver::class,
+    'token_policy' => DefaultTokenPolicy::class,
+    'links' => NullLinks::class,
+    'describer' => AutoDescriber::class,
+    'audit' => ActivityLogAuditWriter::class,
+
+    'ground_rules' => [
+        'class' => SectionedGroundRules::class,
+        // First section of the ground rules. null renders "What this app is: {app.name}."
+        'intro' => null,
+        // Extra sections after the package ones: 'heading' => markdown | 'view:name' | Section::class
+        'sections' => [],
+        // Package sections to drop: intro, safety, tokens, names_and_links, replies, memory
+        'remove' => [],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Permission rules
+    |--------------------------------------------------------------------------
+    |
+    | How the permission checker decides who is staff and who is privileged.
+    | staff_permission: the permission everyone reaching a requires_staff
+    | server must hold (null = any authenticated user is staff).
+    | privileged_roles / privileged_permission: who may hold explicit-only
+    | abilities and wildcards, and see other people's tokens and memory.
+    | known / known_from: the permissions the catalogue may reference
+    | (a list, or a config key whose array keys are the permissions).
+    |
+    */
+
+    'permission_rules' => [
+        'staff_permission' => null,
+        'privileged_roles' => [],
+        'privileged_permission' => null,
+        'privileged_label' => 'a privileged role',
+        'ask_label' => 'ask an administrator',
+        'known' => null,
+        'known_from' => null,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Servers
+    |--------------------------------------------------------------------------
+    |
+    | key => [class, path, label, wildcard, client_name, requires_staff,
+    | service_clients, color, icon, description]. Every entry is registered
+    | at boot through McpKit::server() with the full guard stack. Two servers
+    | may share one wildcard.
+    |
+    */
+
+    'servers' => [
+        // 'app' => [
+        //     'class' => YourApp\Mcp\Servers\AppServer::class,
+        //     'path' => '/mcp/app',
+        //     'label' => 'App',
+        //     'wildcard' => 'app:*',
+        //     'client_name' => 'app',
+        //     'requires_staff' => true,
+        //     'service_clients' => true,
+        //     'color' => 'zinc',
+        //     'icon' => 'wrench-screwdriver',
+        //     'description' => 'Staff tools.',
+        // ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ability catalogue
+    |--------------------------------------------------------------------------
+    |
+    | abilities: 'prefix:area:read' => [description, permission|'a|b'|null, server]
+    | explicit_only: never granted by a wildcard; only a privileged owner may hold them
+    | service_client_writes: writes a service client may still perform
+    | aliases: legacy ability => canonical ability (honoured, never minted)
+    | super_wildcard: one ability that grants everything but explicit-only
+    | read_abilities: abilities that do not end in :read but are reads
+    |
+    */
+
+    'catalogue' => [
+        'abilities' => [],
+        'explicit_only' => [],
+        'service_client_writes' => [],
+        'aliases' => [],
+        'super_wildcard' => null,
+        'read_abilities' => [],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Token presets
+    |--------------------------------------------------------------------------
+    |
+    | grant: 'reads' | 'grantable' | 'wildcards' | a list of abilities.
+    | privileged: only privileged owners get the preset.
+    |
+    */
+
+    'token_presets' => [
+        'read' => [
+            'label' => 'Read only',
+            'description' => 'Look things up in every area you have access to. Nothing can be changed.',
+            'grant' => 'reads',
+        ],
+        'work' => [
+            'label' => 'Work',
+            'description' => 'Read everywhere you have access, and change what you may change. Explicit-only abilities still have to be granted separately.',
+            'grant' => 'grantable',
+        ],
+        'full' => [
+            'label' => 'Full',
+            'description' => 'Every ability on every server. Only privileged users can hold this. Explicit-only abilities still have to be granted separately.',
+            'grant' => 'wildcards',
+            'privileged' => true,
+        ],
+    ],
+
+    'tokens' => [
+        'name_prefix' => 'mcp: ',
+        'default_days' => 90,
+        'max_days' => 365,
+        'default_preset' => 'work',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Routes
+    |--------------------------------------------------------------------------
+    |
+    | Extra middleware appended to every server route. throttle: requests per
+    | minute per token (null disables). enforce: refuse to boot when an
+    | Mcp::web route lacks the kit's guards; allow_unguarded lists route URIs
+    | that may stay unguarded (public demo servers).
+    |
+    */
+
+    'routes' => [
+        'middleware' => [],
+        'throttle' => 120,
+        'enforce' => true,
+        'allow_unguarded' => [],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Optional UI (Livewire + Flux)
+    |--------------------------------------------------------------------------
+    */
+
+    'ui' => [
+        'enabled' => (bool) env('MCP_KIT_UI', false),
+        'layout' => null,
+        'check_dependencies' => true,
+        'tokens_page' => [
+            'enabled' => (bool) env('MCP_KIT_TOKENS_PAGE', false),
+            'path' => 'settings/tokens',
+            'middleware' => ['web', 'auth'],
+            'name' => 'mcp-kit.tokens',
+        ],
+        // Where the assistant-memory section lives, for the link in {scheme}://me
+        'memory_url' => null,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Docs and inventory
+    |--------------------------------------------------------------------------
+    */
+
+    'docs' => [
+        'path' => 'docs/mcp/tools/index.md',
+        'inventory' => 'tests/Feature/Mcp/tool-inventory.json',
+    ],
+
+    'instructions' => [
+        'append_footer' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Shared primitives
+    |--------------------------------------------------------------------------
+    |
+    | Appended to every StaffServer. Remove one to drop it everywhere.
+    |
+    */
+
+    'shared' => [
+        'resources' => [GroundRulesResource::class, MeResource::class],
+        'tools' => [RememberAboutMeTool::class],
+        'prompts' => [GettingStartedPrompt::class],
+    ],
+
+    'me' => [
+        'expose_as_tool' => false,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Assistant memory
+    |--------------------------------------------------------------------------
+    */
+
+    'memory' => [
+        'table' => null, // defaults to the users model's table
+        'column' => 'assistant_memory',
+        'store' => ColumnMemoryStore::class,
+        'policy' => DefaultMemoryPolicy::class,
+        'max_bytes' => 8192,
+        'limits' => [
+            'routines' => 12,
+            'handoffs' => 12,
+            'notes' => 20,
+            'item_chars' => 240,
+            'role_chars' => 280,
+        ],
+    ],
+
+    'describer_options' => [
+        'privileged_roles' => [],
+        'permission_labels' => [],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Activity (spatie/laravel-activitylog)
+    |--------------------------------------------------------------------------
+    |
+    | log_name: the log every tool call lands in. default_source: the product
+    | stamped on rows when no source resolver answers (null leaves the column
+    | alone). retain_days: mcp-kit:prune deletes older mcp rows.
+    |
+    */
+
+    'activity' => [
+        'log_name' => 'mcp',
+        'log_methods' => ['tools/call'],
+        'retain_days' => 90,
+        'recent_days' => 14,
+        'recent_cache_seconds' => 300,
+        'default_source' => null,
+        'channel_resolver' => DefaultChannelResolver::class,
+        'source_resolver' => NullSourceResolver::class,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Onboarding (the getting_started prompt)
+    |--------------------------------------------------------------------------
+    */
+
+    'onboarding' => [
+        'questions' => DefaultQuestions::class,
+        'max_questions' => 3,
+        // Abilities whose holders write to customers: triggers the tone question
+        'customer_facing_abilities' => [],
+        'ui' => false,
+    ],
+
+    'suggestions_class' => ConfigSuggestions::class,
+
+    // ability => list of things to try, shown to people whose token holds it
+    'suggestions' => [],
+
+];

@@ -1,0 +1,13 @@
+<?php
+
+declare(strict_types=1);
+
+use HeiHallo\McpKit\Testing\Guards;
+
+/*
+ * The kit's guard tests: abilities, schemas, access, inventory, docs,
+ * presets, the token command, ground rules and `me`. Keep the inventory
+ * snapshot next to this file; update it deliberately when a tool is added,
+ * renamed or removed. The actors are registered in tests/Pest.php.
+ */
+Guards::all(inventory: __DIR__.'/tool-inventory.json');

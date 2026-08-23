@@ -1,0 +1,41 @@
+<?php
+
+declare(strict_types=1);
+
+namespace HeiHallo\McpKit\Tests\Fixtures\Mcp\Tools;
+
+use HeiHallo\McpKit\Tests\Fixtures\Models\Thing;
+use HeiHallo\McpKit\Tools\StaffTool;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
+
+#[IsReadOnly]
+class ListThingsTool extends StaffTool
+{
+    protected string $name = 'list_things';
+
+    protected string $description = 'List things. Optionally filter by name.';
+
+    protected array $inputSchema = [
+        'type' => 'object',
+        'properties' => [
+            'query' => ['type' => 'string', 'description' => 'Part of a name'],
+        ],
+    ];
+
+    public function handle(Request $request): Response
+    {
+        if ($denied = $this->requireAbility($request, 'acme:things:read')) {
+            return $denied;
+        }
+
+        $things = Thing::query()
+            ->when($request->get('query'), fn ($q, $query) => $q->where('name', 'ilike', "%{$query}%"))
+            ->get()
+            ->map(fn (Thing $thing): array => $this->withAdminUrl(['id' => $thing->id, 'name' => $thing->name], $thing))
+            ->all();
+
+        return Response::json($this->withListAdminUrl(['things' => $things], 'things', ['query' => $request->get('query')]));
+    }
+}

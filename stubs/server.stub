@@ -1,0 +1,37 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace }}\Mcp\Servers;
+
+use HeiHallo\McpKit\Servers\StaffServer;
+use Laravel\Mcp\Server\Attributes\Instructions;
+use Laravel\Mcp\Server\Attributes\Name;
+
+#[Name('{{ label }}')]
+#[Instructions(<<<'MARKDOWN'
+    Staff tools for {{ label }}. Read the `{{ scheme }}://ground-rules` resource before changing anything.
+    MARKDOWN)]
+class {{ class }} extends StaffServer
+{
+    /**
+     * @var array<int, class-string<\Laravel\Mcp\Server\Tool>>
+     */
+    protected array $tools = [
+        //
+    ];
+
+    /**
+     * @var array<int, class-string<\Laravel\Mcp\Server\Resource>>
+     */
+    protected array $resources = [
+        //
+    ];
+
+    /**
+     * @var array<int, class-string<\Laravel\Mcp\Server\Prompt>>
+     */
+    protected array $prompts = [
+        //
+    ];
+}

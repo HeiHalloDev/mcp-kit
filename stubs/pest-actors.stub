@@ -1,0 +1,11 @@
+
+/*
+ * Actors for the mcp-kit guard tests (tests/Feature/Mcp/KitGuardsTest.php).
+ * Each closure returns a fresh tokenable; the kit mints tokens on it.
+ */
+\HeiHallo\McpKit\Testing\Guards::actors(
+    staff: fn () => \{{ namespace }}\Models\User::factory()->create(),
+    privileged: fn () => \{{ namespace }}\Models\User::factory()->create(), // TODO: give this user the privileged role
+    blocked: fn () => \{{ namespace }}\Models\User::factory()->create(), // TODO: block this user (blocked_at, is_active = false, …)
+    serviceClient: null, // fn () => \HeiHallo\McpKit\Models\ServiceClient::query()->create(['name' => 'harness', 'slug' => 'harness'])
+);

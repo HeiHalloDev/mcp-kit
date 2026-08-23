@@ -1,0 +1,37 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace }}\Mcp\Tools;
+
+use HeiHallo\McpKit\Tools\StaffTool;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
+
+#[IsReadOnly]
+class {{ class }} extends StaffTool
+{
+    protected string $name = '{{ name }}';
+
+    protected string $description = 'What it does, in one sentence. Then how to use it.';
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $inputSchema = [
+        'type' => 'object',
+        'properties' => [
+            'query' => ['type' => 'string', 'description' => 'Free text'],
+        ],
+    ];
+
+    public function handle(Request $request): Response
+    {
+        if ($denied = $this->requireAbility($request, '{{ ability }}')) {
+            return $denied;
+        }
+
+        return Response::json(['results' => []]);
+    }
+}

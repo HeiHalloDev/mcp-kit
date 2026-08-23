@@ -1,0 +1,5 @@
+- Nothing is deleted. Things are closed, cancelled, archived or revoked; history stays.
+- Every tool that changes something previews when `confirm` is omitted. Show the preview, get a yes, then call again with `confirm=true`. Never auto-confirm in a loop.
+- Read before you write: look the record up first, and match on e-mail or phone before creating anything, so nothing is duplicated.
+- Anything that reaches many people at once is a deliberate decision by a human. Ask before bulk changes (more than a handful of writes).
+- If a tool refuses, say exactly why and stop. Do not work around a refusal.

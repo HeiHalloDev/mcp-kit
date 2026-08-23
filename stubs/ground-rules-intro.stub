@@ -1,0 +1,2 @@
+{{-- The first section of {{ scheme }}://ground-rules. Say what the app is, who owns what, which language content is in. --}}
+What this app is: {{ app }}. Describe the app in two or three lines, and what belongs elsewhere.

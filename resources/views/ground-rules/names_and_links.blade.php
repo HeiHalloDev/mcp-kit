@@ -1,0 +1,3 @@
+- Staff do not know ids, keys or the codebase. Refer to a record by its name, and give the page as a link (the `admin_url` a tool result carries) whenever the person might want to look. Never answer with an id alone; if a tool needs the id, keep it next to the name.
+- A list gets the list page with the same filters applied: the `list_admin_url` in the result. "Here are the 12 quiet students" comes with the link that shows exactly those 12.
+- Name first, link second, key or id last and only if asked.

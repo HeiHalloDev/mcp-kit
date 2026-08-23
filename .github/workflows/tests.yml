@@ -1,0 +1,55 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
+        laravel: ['12', '13']
+        activitylog: ['4', '5']
+
+    name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }} · activitylog ${{ matrix.activitylog }}
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: mcp_kit_testbench
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U root"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_pgsql, mbstring, intl
+          coverage: none
+
+      - name: Install
+        run: |
+          composer require "laravel/framework:^${{ matrix.laravel }}.0" "spatie/laravel-activitylog:^${{ matrix.activitylog }}.0" --no-interaction --no-update
+          if [ "${{ matrix.laravel }}" = "12" ]; then composer require "orchestra/testbench:^10.0" --dev --no-interaction --no-update; else composer require "orchestra/testbench:^11.0" --dev --no-interaction --no-update; fi
+          composer update --prefer-dist --no-interaction --no-progress
+
+      - name: Lint
+        run: vendor/bin/pint --test
+
+      - name: Test
+        env:
+          DB_PASSWORD: secret
+        run: vendor/bin/pest --ci
