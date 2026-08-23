@@ -334,7 +334,7 @@ final class Guards
             Mcp::listTools($token, $definition->path)->assertForbidden();
         });
 
-        test('a privileged owner with the full preset reaches every server', function () {
+        test('a privileged owner with the full preset reaches every server in the presets', function () {
             if (! Actors::has('privileged')) {
                 test()->markTestSkipped('No privileged actor registered (Guards::actors).');
             }
@@ -345,9 +345,19 @@ final class Guards
             expect($abilities)->not->toBe([], 'The full preset resolves to nothing for the privileged actor.');
 
             $token = Mcp::token($user, $abilities);
+            $reached = app(AbilityCatalogue::class)->serversFor($abilities);
 
-            foreach (app(ServerRegistry::class)->all() as $definition) {
-                Mcp::listTools($token, $definition->path)->assertSuccessful();
+            foreach (app(ServerRegistry::class)->all() as $key => $definition) {
+                $response = Mcp::listTools($token, $definition->path);
+
+                // A server that opted out of presets (customer-facing) is not
+                // in the full preset and must turn the token away.
+                if (in_array($key, $reached, true)) {
+                    $response->assertSuccessful();
+                } else {
+                    expect($definition->presets)->toBeFalse("The full preset does not reach {$key}.");
+                    $response->assertForbidden();
+                }
             }
         });
 
