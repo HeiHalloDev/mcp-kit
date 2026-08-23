@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.0 — 2026-08-23
+
+- `ConfirmsWrites` opens the call context itself when no HTTP middleware did (in-app agents on the web guard, direct invocations, tests), so domain rows written during a confirmed write always share the `call_id`; the channel is `chat` when the caller has no personal token.
+- `ConfirmsWrites::recordWrite()` and `writeWasRecorded()` are available to base classes that make the audit unconditional; `withinCall()` wraps any execution in a context.
+- `McpCallContext` carries the channel; `DefaultChannelResolver` and the stamper read it. The audit writer no longer forces columns on its rows — the stamper fills them like on every other row.
+
 ## v0.1.0 — 2026-08-23
 
 First release. One package for the staff-tooling foundation every HeiHallo app used to copy by hand.

@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace HeiHallo\McpKit\Audit;
 
-use HeiHallo\McpKit\Activity\ActivityStamper;
 use HeiHallo\McpKit\Contracts\AuditWriter;
-use HeiHallo\McpKit\Enums\ActivityChannel;
 use HeiHallo\McpKit\Principal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -193,10 +191,10 @@ class ActivityLogAuditWriter implements AuditWriter
     }
 
     /**
-     * The causer, and the kit's own columns set outright: an audit row is
-     * always channel=mcp, whatever the surrounding request looks like.
-     * Untyped on purpose: v4 has Spatie\Activitylog\ActivityLogger, v5 moved
-     * it to Spatie\Activitylog\Support\ActivityLogger.
+     * The causer. channel, token_name and call_id are stamped by the
+     * ActivityStamper from the call context, like any other row. Untyped on
+     * purpose: v4 has Spatie\Activitylog\ActivityLogger, v5 moved it to
+     * Spatie\Activitylog\Support\ActivityLogger.
      *
      * @param  object  $activity  the logger returned by activity()
      */
@@ -205,16 +203,6 @@ class ActivityLogAuditWriter implements AuditWriter
         if ($principal?->tokenable instanceof Model) {
             $activity->causedBy($principal->tokenable);
         }
-
-        $activity->tap(function (Model $row) use ($principal): void {
-            if (ActivityStamper::columnExists($row, 'channel')) {
-                $row->setAttribute('channel', ActivityChannel::Mcp->value);
-            }
-
-            if ($principal?->tokenName() !== null && ActivityStamper::columnExists($row, 'token_name')) {
-                $row->setAttribute('token_name', $principal->tokenName());
-            }
-        });
     }
 
     protected function finishRow(CallRecord $record): void

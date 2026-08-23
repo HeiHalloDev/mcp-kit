@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HeiHallo\McpKit\Audit;
 
+use HeiHallo\McpKit\Enums\ActivityChannel;
 use HeiHallo\McpKit\Principal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -44,6 +45,8 @@ class McpCallContext
 
     protected ?string $requestId = null;
 
+    protected ActivityChannel $channel = ActivityChannel::Mcp;
+
     protected ?string $status = null;
 
     protected ?string $action = null;
@@ -67,8 +70,10 @@ class McpCallContext
         ?string $server,
         ?string $client,
         ?string $requestId,
+        ActivityChannel $channel = ActivityChannel::Mcp,
     ): void {
         $this->active = true;
+        $this->channel = $channel;
         $this->callId = (string) Str::uuid();
         $this->method = $method;
         $this->tool = $tool;
@@ -136,6 +141,15 @@ class McpCallContext
     public function requestId(): ?string
     {
         return $this->requestId;
+    }
+
+    /**
+     * The surface the call came in on: mcp over HTTP, chat when an in-app
+     * agent runs the tool on the web guard.
+     */
+    public function channel(): ActivityChannel
+    {
+        return $this->channel;
     }
 
     public function previewed(string $action): void

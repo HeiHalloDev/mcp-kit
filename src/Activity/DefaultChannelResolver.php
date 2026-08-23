@@ -12,7 +12,8 @@ use Laravel\Sanctum\PersonalAccessToken;
 use Throwable;
 
 /**
- * An active tool call → mcp; a request with a personal token → api; a
+ * An active tool call → its channel (mcp, or chat for an in-app agent); a
+ * request with a personal token → api; a
  * request with a session user → web; console → cli; otherwise system.
  */
 class DefaultChannelResolver implements ResolvesActivityChannel
@@ -22,7 +23,7 @@ class DefaultChannelResolver implements ResolvesActivityChannel
     public function channel(): ActivityChannel
     {
         if ($this->context->isActive()) {
-            return ActivityChannel::Mcp;
+            return $this->context->channel();
         }
 
         if ($this->app->runningInConsole()) {
