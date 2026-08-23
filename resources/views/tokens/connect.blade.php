@@ -44,7 +44,7 @@
     <flux:field>
         <flux:label>{{ __('First message to the assistant') }}</flux:label>
         <flux:description>{{ __('Paste as the first message of a new session after setup — it connects, reads who you are and explains what it can help with.') }}</flux:description>
-        <pre class="mt-2 overflow-x-auto rounded-lg bg-zinc-900 p-4 text-xs text-zinc-100"><code>{{ __("Help me work in :app. The tools are in the MCP connection. Read :scheme://me and :scheme://ground-rules first, then tell me briefly what you can help with. Always preview and confirm with me before changing anything, and never delete — close, cancel or archive instead.", ['app' => config('app.name'), 'scheme' => config('mcp-kit.scheme')]) }}</code></pre>
+        <pre class="mt-2 overflow-x-auto rounded-lg bg-zinc-900 p-4 text-xs text-zinc-100"><code>@include('mcp-kit::tokens.first-message')</code></pre>
     </flux:field>
 
     <flux:callout icon="exclamation-triangle" variant="warning">

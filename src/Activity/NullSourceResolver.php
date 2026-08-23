@@ -12,7 +12,7 @@ use HeiHallo\McpKit\Principal;
  */
 class NullSourceResolver implements ResolvesActivitySource
 {
-    public function source(?Principal $principal): ?string
+    public function source(?Principal $principal, ?object $activity = null): ?string
     {
         $default = config('mcp-kit.activity.default_source');
 

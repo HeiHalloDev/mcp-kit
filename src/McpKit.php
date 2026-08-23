@@ -87,9 +87,9 @@ class McpKit
     }
 
     /**
-     * The product stamped on activity rows: fn (?Principal $p) => 'shop'.
+     * The product stamped on activity rows: fn (?Principal $p, ?object $row) => 'shop'.
      *
-     * @param  Closure(?Principal): ?string  $callback
+     * @param  Closure(?Principal, ?object): ?string  $callback
      */
     public static function resolveSourceUsing(Closure $callback): void
     {

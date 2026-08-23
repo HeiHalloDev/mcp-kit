@@ -14,12 +14,12 @@ use HeiHallo\McpKit\Principal;
 final class CallbackSourceResolver implements ResolvesActivitySource
 {
     /**
-     * @param  Closure(?Principal): ?string  $callback
+     * @param  Closure(?Principal, ?object): ?string  $callback
      */
     public function __construct(private Closure $callback) {}
 
-    public function source(?Principal $principal): ?string
+    public function source(?Principal $principal, ?object $activity = null): ?string
     {
-        return ($this->callback)($principal);
+        return ($this->callback)($principal, $activity);
     }
 }

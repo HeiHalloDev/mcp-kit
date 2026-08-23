@@ -46,7 +46,7 @@ class ActivityStamper
         }
 
         if ($this->hasColumn($activity, 'source') && $activity->getAttribute('source') === null) {
-            $source = $this->sources->source($principal);
+            $source = $this->sources->source($principal, $activity);
 
             if ($source !== null) {
                 $activity->setAttribute('source', $source);

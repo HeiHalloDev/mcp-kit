@@ -1,0 +1,2 @@
+{{-- Override this view (resources/views/vendor/mcp-kit/tokens/first-message.blade.php) with the opening message in your staff's language. --}}
+{{ __("Help me work in :app. The tools are in the MCP connection. Read :scheme://me and :scheme://ground-rules first, then tell me briefly what you can help with. Always preview and confirm with me before changing anything, and never delete — close, cancel or archive instead.", ['app' => config('app.name'), 'scheme' => config('mcp-kit.scheme')]) }}
