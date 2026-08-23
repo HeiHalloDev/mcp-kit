@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.3 — 2026-08-23
+
+- Tokens page: the lifetime is a choice list (30/90/180/365 days, capped by `tokens.max_days`, the default marked "recommended") instead of a number field.
+
 ## v0.3.2 — 2026-08-23
 
 - Channel resolution outside a call: a signed-in user stamps `web`, a personal token `api`, an artisan command `cli`, everything unattended (jobs, webhooks, tests) `system`.

@@ -46,7 +46,7 @@ class TokensPage extends Component
     public function mount(): void
     {
         $this->preset = array_key_first($this->presets) ?? '';
-        $this->expiresDays = app(TokenPolicy::class)->defaultDays();
+        $this->expiresDays = app(TokenPolicy::class)->defaultDays() ?? array_key_first($this->expiryOptions);
     }
 
     #[Computed]
@@ -71,6 +71,38 @@ class TokensPage extends Component
     public function extraOptions(): array
     {
         return app(PresetResolver::class)->extrasFor(auth()->user());
+    }
+
+    /**
+     * Lifetimes to pick from: the usual four, capped by the policy's maximum,
+     * with the default always present and marked.
+     *
+     * @return array<int, string>
+     */
+    #[Computed]
+    public function expiryOptions(): array
+    {
+        $policy = app(TokenPolicy::class);
+        $max = $policy->maxDays();
+        $default = $policy->defaultDays();
+        $days = array_filter([30, 90, 180, 365], fn (int $d): bool => $max === null || $d <= $max);
+
+        if ($default !== null && $default > 0) {
+            $days[] = $default;
+        }
+
+        $days = array_values(array_unique($days));
+        sort($days);
+
+        $options = [];
+
+        foreach ($days as $d) {
+            $options[$d] = $d === $default
+                ? __(':days days (recommended)', ['days' => $d])
+                : __(':days days', ['days' => $d]);
+        }
+
+        return $options;
     }
 
     #[Computed]
@@ -110,6 +142,7 @@ class TokensPage extends Component
         $this->validate();
 
         abort_unless(array_key_exists($this->preset, $this->presets), 403);
+        abort_unless(array_key_exists((int) $this->expiresDays, $this->expiryOptions), 422);
 
         $abilities = $this->presets[$this->preset]['abilities'];
 
@@ -195,7 +228,6 @@ class TokensPage extends Component
     {
         $view = view('mcp-kit::livewire.tokens-page', [
             'tokenPlaceholder' => $this->plainTextToken ?? '<your-token>',
-            'maxDays' => app(TokenPolicy::class)->maxDays(),
         ]);
 
         $layout = config('mcp-kit.ui.layout');

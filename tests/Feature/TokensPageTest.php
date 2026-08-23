@@ -112,3 +112,27 @@ test('the UI refuses to boot without Livewire and Flux when dependencies are che
     expect(fn () => (fn () => $this->registerUi())->call($provider))
         ->toThrow(UiDependenciesMissing::class);
 });
+
+test('the expiry is a choice list capped by the policy, defaulting to the recommended lifetime', function () {
+    bootUi();
+    config()->set('mcp-kit.tokens.max_days', 180);
+    config()->set('mcp-kit.tokens.default_days', 60);
+    $user = acmeUser();
+    $this->actingAs($user);
+
+    $component = Livewire::test(TokensPage::class)
+        ->assertSet('expiresDays', 60)
+        ->assertSee('60 days (recommended)')
+        ->assertSee('180 days')
+        ->assertDontSee('365 days');
+
+    expect(array_keys($component->instance()->expiryOptions))->toBe([30, 60, 90, 180]);
+
+    Livewire::test(TokensPage::class)->set('name', 'Laptop')->set('preset', 'read')->set('expiresDays', 999)->call('create')->assertStatus(422);
+
+    expect($user->tokens()->count())->toBe(0);
+
+    Livewire::test(TokensPage::class)->set('name', 'Laptop')->set('preset', 'read')->set('expiresDays', 30)->call('create')->assertHasNoErrors();
+
+    expect($user->tokens()->sole()->expires_at->toDateString())->toBe(now()->addDays(30)->toDateString());
+});

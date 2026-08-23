@@ -21,7 +21,11 @@
                 </flux:checkbox.group>
             @endif
 
-            <flux:input type="number" wire:model="expiresDays" :label="__('Expires after (days)')" min="1" :max="$maxDays" :description="$maxDays ? __('At most :max days.', ['max' => $maxDays]) : ''" />
+            <flux:select wire:model="expiresDays" :label="__('Expires after')" :description="__('An expired token stops working; create a new one when that happens.')">
+                @foreach ($this->expiryOptions as $days => $label)
+                    <flux:select.option value="{{ $days }}">{{ $label }}</flux:select.option>
+                @endforeach
+            </flux:select>
 
             <flux:button type="submit" variant="primary">{{ __('Create token') }}</flux:button>
         </form>
