@@ -22,7 +22,7 @@ it('skips the service-client table when the app brings its own model', function 
     config()->set('mcp-kit.models.service_client', User::class);
     Schema::dropIfExists('mcp_service_clients');
 
-    $migration = require dirname(__DIR__, 2).'/database/migrations/2026_01_01_000001_create_mcp_service_clients_table.php';
+    $migration = require dirname(__DIR__, 2).'/database/migrations/2026_08_23_000001_create_mcp_service_clients_table.php';
     $migration->up();
 
     expect(Schema::hasTable('mcp_service_clients'))->toBeFalse();

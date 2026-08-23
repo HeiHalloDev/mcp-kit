@@ -163,6 +163,8 @@ final class Guards
         test('legacy aliases resolve to known abilities', function () {
             $catalogue = app(AbilityCatalogue::class);
 
+            expect((array) config('mcp-kit.catalogue.aliases', []))->toBeArray();
+
             foreach ((array) config('mcp-kit.catalogue.aliases', []) as $legacy => $canonical) {
                 expect($catalogue->exists((string) $canonical))->toBeTrue("Alias {$legacy} points at unknown ability {$canonical}.")
                     ->and($catalogue->canonical((string) $legacy))->toBe((string) $canonical);
