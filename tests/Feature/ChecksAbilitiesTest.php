@@ -54,7 +54,7 @@ test('a tool refuses an owner who lost the permission behind the ability', funct
     $user = actingWith(acmeUser(['staff']), ['acme:*']);
 
     AcmeServer::actingAs($user)->tool(ListThingsTool::class, [])
-        ->assertSee("no longer holds the 'things' permission")
+        ->assertSee("does not hold the 'things' permission")
         ->assertSee('ask an administrator');
 });
 

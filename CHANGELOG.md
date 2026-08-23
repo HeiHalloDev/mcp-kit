@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.2 — 2026-08-23
+
+- Channel resolution outside a call: a signed-in user stamps `web`, a personal token `api`, an artisan command `cli`, everything unattended (jobs, webhooks, tests) `system`.
+- `ActivityChannel::color()`.
+- The lost-permission refusal reads "does not hold the '…' permission".
+- Guards: the full preset need not reach a server that opted out of presets (v0.3.1).
+
 ## v0.3.0 — 2026-08-23
 
 - `mcp-kit.docs.renderer`: the generated docs blocks come from a `DocsRenderer`; the default adds an ability matrix between `generated:abilities` markers when a document has them.

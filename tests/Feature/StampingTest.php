@@ -14,8 +14,8 @@ test('rows written outside a call are stamped by surface', function () {
 
     $row = Activity::query()->where('log_name', 'things')->sole();
 
-    // The suite runs in the console.
-    expect($row->channel)->toBe('cli')->and($row->token_name)->toBeNull()->and($row->source)->toBeNull();
+    // Tests count as unattended: no user, no artisan command → system.
+    expect($row->channel)->toBe('system')->and($row->token_name)->toBeNull()->and($row->source)->toBeNull();
 });
 
 test('a default source is stamped when configured and never overwrites an explicit one', function () {
@@ -37,12 +37,26 @@ test('the package model is used when the app left the plain spatie model, with s
     activity('mcp')->log('call');
 
     expect(KitActivity::query()->mcp()->count())->toBe(1)
-        ->and(KitActivity::query()->channel(ActivityChannel::Cli)->count())->toBe(2)
-        ->and(KitActivity::query()->first()->channel)->toBe(ActivityChannel::Cli);
+        ->and(KitActivity::query()->channel(ActivityChannel::System)->count())->toBe(2)
+        ->and(KitActivity::query()->first()->channel)->toBe(ActivityChannel::System);
 });
 
 test('the channel enum is rich', function () {
     foreach (ActivityChannel::cases() as $channel) {
-        expect($channel->label())->toBeString()->and($channel->icon())->toBeString();
+        expect($channel->label())->toBeString()->and($channel->icon())->toBeString()->and($channel->color())->toBeString();
     }
+
+    expect(ActivityChannel::options())->toHaveKey('mcp');
+});
+
+test('a signed-in user stamps web, a personal token outside a call stamps api', function () {
+    $user = acmeUser();
+    $this->actingAs($user);
+    activity('things')->log('web change');
+
+    $this->actingAs(actingWith(acmeUser(attributes: ['email' => 'api@example.test']), ['acme:things:read']));
+    activity('things')->log('api change');
+
+    expect(Activity::query()->where('description', 'web change')->sole()->channel)->toBe('web')
+        ->and(Activity::query()->where('description', 'api change')->sole()->channel)->toBe('api');
 });

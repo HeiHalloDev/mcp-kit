@@ -126,7 +126,7 @@ trait ChecksAbilities
             $label = implode("' or '", $permissions);
             $ask = (string) config('mcp-kit.permission_rules.ask_label', 'ask an administrator');
 
-            return "Your account no longer holds the '{$label}' permission — {$ask}.";
+            return "Your account does not hold the '{$label}' permission — {$ask}.";
         }
 
         return null;

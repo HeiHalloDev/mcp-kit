@@ -43,6 +43,18 @@ enum ActivityChannel: string
         return $options;
     }
 
+    public function color(): string
+    {
+        return match ($this) {
+            self::Web => 'zinc',
+            self::Mcp => 'amber',
+            self::Api => 'violet',
+            self::Cli => 'sky',
+            self::Chat => 'emerald',
+            self::System => 'lime',
+        };
+    }
+
     public function icon(): string
     {
         return match ($this) {

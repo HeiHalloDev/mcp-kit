@@ -26,26 +26,22 @@ class DefaultChannelResolver implements ResolvesActivityChannel
             return $this->context->channel();
         }
 
-        if ($this->app->runningInConsole()) {
-            return ActivityChannel::Cli;
-        }
-
         try {
             $user = $this->app->make('auth')->user();
         } catch (Throwable) {
-            return ActivityChannel::System;
+            $user = null;
         }
 
-        if ($user === null) {
-            return ActivityChannel::System;
+        if ($user !== null) {
+            $token = method_exists($user, 'currentAccessToken') ? $user->currentAccessToken() : null;
+
+            return $token instanceof PersonalAccessToken ? ActivityChannel::Api : ActivityChannel::Web;
         }
 
-        $token = method_exists($user, 'currentAccessToken') ? $user->currentAccessToken() : null;
-
-        if ($token instanceof PersonalAccessToken) {
-            return ActivityChannel::Api;
+        if ($this->app->runningInConsole() && ! $this->app->runningUnitTests()) {
+            return ActivityChannel::Cli;
         }
 
-        return ActivityChannel::Web;
+        return ActivityChannel::System;
     }
 }
