@@ -94,7 +94,12 @@ class TokenMinter
                 throw new TokenRefused("Unknown ability '{$ability}'. Known: ".implode(', ', $this->catalogue->names()).'.');
             }
 
-            if (($ability === '*' || $this->catalogue->isExplicitOnly($ability) || $this->catalogue->isWildcard($ability)) && ! $principal->privileged) {
+            $wildcardsNeedPrivilege = (bool) config('mcp-kit.tokens.wildcards_require_privileged', true);
+            $needsPrivilege = $ability === '*'
+                || $this->catalogue->isExplicitOnly($ability)
+                || ($wildcardsNeedPrivilege && $this->catalogue->isWildcard($ability));
+
+            if ($needsPrivilege && ! $principal->privileged) {
                 $label = (string) config('mcp-kit.permission_rules.privileged_label', 'a privileged role');
 
                 throw new TokenRefused("{$ability} can only be held by someone with {$label} — {$principal->name} is not.");

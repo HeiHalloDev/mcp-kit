@@ -212,6 +212,9 @@ return [
         // Presets and the tokens page are for staff only (people the permission
         // checker calls staff); customers with a login get no presets.
         'staff_only' => false,
+        // Wildcard abilities need a privileged owner. Turn off when every
+        // staff member may hold the server wildcard.
+        'wildcards_require_privileged' => true,
     ],
 
     /*

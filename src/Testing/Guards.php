@@ -27,6 +27,31 @@ use Laravel\Mcp\Server\Registrar;
 final class Guards
 {
     /**
+     * The app's preset key with this grant kind, so the guards follow
+     * read/support/admin as well as read/work/full.
+     */
+    public static function presetKeyOfGrant(string $grant): ?string
+    {
+        foreach ((array) config('mcp-kit.token_presets', []) as $key => $preset) {
+            if (($preset['grant'] ?? 'grantable') === $grant) {
+                return (string) $key;
+            }
+        }
+
+        return null;
+    }
+
+    public static function readsPresetKey(): string
+    {
+        return self::presetKeyOfGrant('reads') ?? 'read';
+    }
+
+    public static function wildcardsPresetKey(): string
+    {
+        return self::presetKeyOfGrant('wildcards') ?? 'full';
+    }
+
+    /**
      * @param  (Closure(): Authenticatable)|null  $staff
      * @param  (Closure(): Authenticatable)|null  $privileged
      * @param  (Closure(): Authenticatable)|null  $blocked
@@ -301,7 +326,7 @@ final class Guards
             $catalogue = app(AbilityCatalogue::class);
             $presets = app(PresetResolver::class);
             $user = Actors::make('staff');
-            $abilities = $presets->abilitiesFor($user, 'read');
+            $abilities = $presets->abilitiesFor($user, Guards::readsPresetKey());
 
             if ($abilities === []) {
                 test()->markTestSkipped('The read preset resolves to nothing for the staff actor — give it a permission.');
@@ -334,13 +359,13 @@ final class Guards
             Mcp::listTools($token, $definition->path)->assertForbidden();
         });
 
-        test('a privileged owner with the full preset reaches every server in the presets', function () {
+        test('a privileged owner with the wildcards preset reaches every server in the presets', function () {
             if (! Actors::has('privileged')) {
                 test()->markTestSkipped('No privileged actor registered (Guards::actors).');
             }
 
             $user = Actors::make('privileged');
-            $abilities = app(PresetResolver::class)->abilitiesFor($user, 'full');
+            $abilities = app(PresetResolver::class)->abilitiesFor($user, Guards::wildcardsPresetKey());
 
             expect($abilities)->not->toBe([], 'The full preset resolves to nothing for the privileged actor.');
 
@@ -438,19 +463,22 @@ final class Guards
 
     public static function presets(): void
     {
-        test('the read preset grants no write and the full preset is privileged-only', function () {
+        test('the reads preset grants no write and the wildcards preset follows the privilege rule', function () {
             $presets = app(PresetResolver::class);
 
             if (Actors::has('staff')) {
                 $staff = Actors::make('staff');
 
-                expect($presets->grantsWrite($presets->abilitiesFor($staff, 'read')))->toBeFalse()
-                    ->and($presets->abilitiesFor($staff, 'full'))->toBe([]);
+                expect($presets->grantsWrite($presets->abilitiesFor($staff, Guards::readsPresetKey())))->toBeFalse();
+
+                if (config('mcp-kit.tokens.wildcards_require_privileged', true)) {
+                    expect($presets->abilitiesFor($staff, Guards::wildcardsPresetKey()))->toBe([]);
+                }
             }
 
             if (Actors::has('privileged')) {
                 $privileged = Actors::make('privileged');
-                $full = $presets->abilitiesFor($privileged, 'full');
+                $full = $presets->abilitiesFor($privileged, Guards::wildcardsPresetKey());
 
                 expect($full)->not->toBe([])
                     ->and($presets->grantsWrite($full))->toBeTrue()
@@ -486,13 +514,13 @@ final class Guards
             }
 
             $user = Actors::make('staff');
-            $abilities = app(PresetResolver::class)->abilitiesFor($user, 'read');
+            $abilities = app(PresetResolver::class)->abilitiesFor($user, Guards::readsPresetKey());
 
             if ($abilities === []) {
                 test()->markTestSkipped('The read preset resolves to nothing for the staff actor.');
             }
 
-            $command = test()->artisan('mcp:token', ['email' => $user->email, '--preset' => 'read', '--name' => 'guard-test'])
+            $command = test()->artisan('mcp:token', ['email' => $user->email, '--preset' => Guards::readsPresetKey(), '--name' => 'guard-test'])
                 ->assertSuccessful();
 
             foreach (app(AbilityCatalogue::class)->serversFor($abilities) as $key) {
@@ -522,7 +550,7 @@ final class Guards
 
             $scheme = config('mcp-kit.scheme');
             $user = Actors::make('staff');
-            $abilities = app(PresetResolver::class)->abilitiesFor($user, 'read');
+            $abilities = app(PresetResolver::class)->abilitiesFor($user, Guards::readsPresetKey());
 
             if ($abilities === []) {
                 test()->markTestSkipped('The read preset resolves to nothing for the staff actor.');
@@ -557,7 +585,7 @@ final class Guards
 
             $scheme = config('mcp-kit.scheme');
             $user = Actors::make('staff');
-            $abilities = app(PresetResolver::class)->abilitiesFor($user, 'read');
+            $abilities = app(PresetResolver::class)->abilitiesFor($user, Guards::readsPresetKey());
 
             if ($abilities === []) {
                 test()->markTestSkipped('The read preset resolves to nothing for the staff actor.');

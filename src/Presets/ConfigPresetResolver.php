@@ -120,8 +120,9 @@ class ConfigPresetResolver implements PresetResolver
     }
 
     /**
-     * The server wildcards (or the super wildcard) — only for privileged,
-     * unblocked owners, and only over servers the person may reach.
+     * The server wildcards (or the super wildcard). Privileged owners only
+     * unless mcp-kit.tokens.wildcards_require_privileged is off; never for
+     * servers that opted out of presets.
      *
      * @return list<string>
      */
@@ -129,7 +130,11 @@ class ConfigPresetResolver implements PresetResolver
     {
         $principal = $this->principals->resolve($user);
 
-        if ($principal === null || ! $principal->privileged || $principal->blocked) {
+        if ($principal === null || $principal->blocked) {
+            return [];
+        }
+
+        if ($this->config->get('mcp-kit.tokens.wildcards_require_privileged', true) && ! $principal->privileged) {
             return [];
         }
 

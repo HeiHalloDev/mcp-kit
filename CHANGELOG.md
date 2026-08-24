@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.5 — 2026-08-24
+
+- `tokens.wildcards_require_privileged` (default true): turn off when every staff member may hold the server wildcard.
+- The guard tests find the reads/wildcards presets by grant kind instead of assuming the keys read/full.
+
 ## v0.3.4 — 2026-08-24
 
 - Token labels follow the app's own preset names: the wildcard label comes from the first `wildcards` preset, the read label from the first `reads` preset, and so on — read/support/admin works as well as read/work/full.
