@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.0 — 2026-08-24
+
+Stable. The CRM, TrustMe, flex, io, studies and L5 all run on the kit.
+
+- The `note` alias in preview responses is gone; read `next`.
+- Since 0.3: preset-driven labels and guards (0.3.4/0.3.5/0.3.8), the wildcard-privilege knob (0.3.5), staff refusals name the missing permission (0.3.7).
+
 ## v0.3.5 — 2026-08-24
 
 - `tokens.wildcards_require_privileged` (default true): turn off when every staff member may hold the server wildcard.

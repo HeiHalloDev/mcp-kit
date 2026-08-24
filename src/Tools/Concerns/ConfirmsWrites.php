@@ -65,8 +65,6 @@ trait ConfirmsWrites
             $payload = ['preview' => true, 'action' => $action, ...$preview];
             $payload['by'] = $principal->signature();
             $payload['next'] ??= self::NEXT_STEP;
-            // Pre-1.0 alias of `next`; dropped in v1.0.
-            $payload['note'] ??= $payload['next'];
 
             return Response::json($payload);
         }

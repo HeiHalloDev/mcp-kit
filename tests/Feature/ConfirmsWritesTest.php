@@ -24,7 +24,7 @@ test('the bare call previews in one shape and changes nothing', function () {
     expect($response)->toBePreview('Rename thing');
     $response->assertSee('"by":"Kari Nordmann (mcp: laptop)"')
         ->assertSee('"next":"Nothing has changed. Show this to the person and call again with confirm=true."')
-        ->assertSee('"note":"Nothing has changed.');
+        ->assertDontSee('"note":');
 
     expect($thing->fresh()->name)->toBe('Widget')
         ->and(Activity::query()->where('log_name', 'mcp')->count())->toBe(0);
