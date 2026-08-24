@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.4 — 2026-08-24
+
+- Token labels follow the app's own preset names: the wildcard label comes from the first `wildcards` preset, the read label from the first `reads` preset, and so on — read/support/admin works as well as read/work/full.
+
 ## v0.3.3 — 2026-08-23
 
 - Tokens page: the lifetime is a choice list (30/90/180/365 days, capped by `tokens.max_days`, the default marked "recommended") instead of a number field.

@@ -190,14 +190,13 @@ class ConfigPresetResolver implements PresetResolver
         $explicit = array_keys($this->catalogue->explicitOnly());
         $extras = array_values(array_intersect($abilities, $explicit));
         $base = array_values(array_diff($abilities, $explicit));
-        $labels = $this->all();
 
         $label = match (true) {
             $base === [] => 'None',
-            $this->holdsWildcard($base) => $labels['full']['label'] ?? 'Full',
+            $this->holdsWildcard($base) => $this->labelOfGrant('wildcards') ?? 'Full',
             $this->matchesListPreset($base) !== null => $this->matchesListPreset($base),
-            array_filter($base, fn (string $ability): bool => $this->catalogue->isWrite($ability)) === [] => $labels['read']['label'] ?? 'Read only',
-            default => $labels['work']['label'] ?? 'Work',
+            array_filter($base, fn (string $ability): bool => $this->catalogue->isWrite($ability)) === [] => $this->labelOfGrant('reads') ?? 'Read only',
+            default => $this->labelOfGrant('grantable') ?? 'Work',
         };
 
         if ($extras !== []) {
@@ -208,6 +207,22 @@ class ConfigPresetResolver implements PresetResolver
         }
 
         return $label;
+    }
+
+    /**
+     * The label of the first preset with this grant kind, so labels follow
+     * the app's own preset names (read/support/admin as much as
+     * read/work/full).
+     */
+    protected function labelOfGrant(string $grant): ?string
+    {
+        foreach ($this->definitions() as $key => $preset) {
+            if (($preset['grant'] ?? 'grantable') === $grant) {
+                return (string) ($preset['label'] ?? $key);
+            }
+        }
+
+        return null;
     }
 
     /**
