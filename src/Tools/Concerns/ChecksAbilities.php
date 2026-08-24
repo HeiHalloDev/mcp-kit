@@ -111,7 +111,11 @@ trait ChecksAbilities
         $definition = $server !== null ? app(ServerRegistry::class)->get($server) : null;
 
         if ($definition?->requiresStaff && ! $principal->staff) {
-            return 'Your account is no longer staff, so this token cannot be used for staff tools.';
+            $staffPermission = config('mcp-kit.permission_rules.staff_permission');
+
+            return is_string($staffPermission) && $staffPermission !== ''
+                ? "Your account is no longer staff (missing the '{$staffPermission}' permission), so this token cannot be used for staff tools."
+                : 'Your account is no longer staff, so this token cannot be used for staff tools.';
         }
 
         if ($explicitOnly && ! $principal->privileged) {
