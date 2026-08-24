@@ -8,6 +8,7 @@ use Closure;
 use HeiHallo\McpKit\Contracts\AbilityCatalogue;
 use HeiHallo\McpKit\Contracts\PermissionChecker;
 use HeiHallo\McpKit\Contracts\PresetResolver;
+use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Docs\ToolReference;
 use HeiHallo\McpKit\Http\Middleware\EnsureMcpAccess;
 use HeiHallo\McpKit\Servers\ServerRegistry;
@@ -471,7 +472,9 @@ final class Guards
 
                 expect($presets->grantsWrite($presets->abilitiesFor($staff, Guards::readsPresetKey())))->toBeFalse();
 
-                if (config('mcp-kit.tokens.wildcards_require_privileged', true)) {
+                $staffIsPrivileged = (bool) app(PrincipalResolver::class)->resolve($staff)?->privileged;
+
+                if (config('mcp-kit.tokens.wildcards_require_privileged', true) && ! $staffIsPrivileged) {
                     expect($presets->abilitiesFor($staff, Guards::wildcardsPresetKey()))->toBe([]);
                 }
             }
