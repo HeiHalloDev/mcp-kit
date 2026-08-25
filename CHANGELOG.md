@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2.1 — 2026-08-25
+
+- A playbook may not take a built-in prompt's name: `getting_started` is refused at save time rather than leaving the client with two prompts of that name.
+
 ## v1.2.0 — 2026-08-25
 
 Playbooks: a person saves the way they worked something out, and their client offers it back by name.
