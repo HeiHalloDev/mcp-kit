@@ -126,6 +126,13 @@ abstract class TestCase extends Orchestra
             'acme:things:write' => ['Rename a thing, preview first.'],
             'reports:read' => ['Ask for the monthly numbers.'],
         ]);
+        // A fresh clone has no tests/tmp — git does not carry empty directories,
+        // so CI failed here while every machine that had run the suite once
+        // passed.
+        if (! is_dir(__DIR__.'/tmp')) {
+            mkdir(__DIR__.'/tmp', 0755, true);
+        }
+
         $config->set('mcp-kit.docs.path', __DIR__.'/tmp/tools.md');
         $config->set('mcp-kit.docs.inventory', __DIR__.'/tmp/tool-inventory.json');
         $config->set('mcp-kit.ui.check_dependencies', false);

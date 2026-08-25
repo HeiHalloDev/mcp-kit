@@ -43,6 +43,12 @@ class DocsCommand extends Command
             return self::FAILURE;
         }
 
+        // The docs folder may not exist yet in an app generating this for the
+        // first time.
+        if (! is_dir(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
         file_put_contents($path, $expected);
         $this->info('Regenerated '.count($reference->tools()).' tools in '.str_replace(base_path().'/', '', $path).'.');
 

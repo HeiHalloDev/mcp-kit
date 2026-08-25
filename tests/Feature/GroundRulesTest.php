@@ -56,7 +56,9 @@ test('a package partial can be overridden as a vendor view', function () {
 });
 
 test('the class can be replaced and the resource serves it', function () {
-    config()->set('mcp-kit.ground_rules.class', new class implements GroundRules
+    // Assigned first rather than `new class {}::class`, which only parses on
+    // PHP 8.4 and broke the 8.3 leg of the matrix.
+    $rules = new class implements GroundRules
     {
         public function sections(?Principal $principal, ?string $server): array
         {
@@ -72,7 +74,9 @@ test('the class can be replaced and the resource serves it', function () {
         {
             return $authored.' [custom]';
         }
-    }::class);
+    };
+
+    config()->set('mcp-kit.ground_rules.class', $rules::class);
     app()->forgetInstance(GroundRules::class);
 
     $user = actingWith(acmeUser(), ['acme:things:read']);
