@@ -53,5 +53,14 @@
     "What the assistant remembers about you": "What the assistant remembers about you",
     "Your account has no permissions to put in a token yet. Ask an administrator to grant you access to the areas you work in.": "Your account has no permissions to put in a token yet. Ask an administrator to grant you access to the areas you work in.",
     "Your new token — shown only once": "Your new token — shown only once",
-    "e.g. Claude Code on the laptop": "e.g. Claude Code on the laptop"
+    "e.g. Claude Code on the laptop": "e.g. Claude Code on the laptop",
+    "Run once in the terminal — all servers at once:": "Run once in the terminal — all servers at once:",
+    "Copy all": "Copy all",
+    "Copy": "Copy",
+    "One server at a time": "One server at a time",
+    "Remove a connection": "Remove a connection",
+    "Removing a connection only forgets it on this machine — it does not revoke the token. Revoke it in the list above.": "Removing a connection only forgets it on this machine — it does not revoke the token. Revoke it in the list above.",
+    "Add token": "Add token",
+    "Cancel": "Cancel",
+    "Copied": "Copied"
 }

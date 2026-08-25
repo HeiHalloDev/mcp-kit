@@ -26,14 +26,18 @@ class ConnectSnippets
     }
 
     /**
+     * One line per server, keyed by the name the client will know it as, so a
+     * page can offer them one at a time as well as all at once.
+     *
      * @param  list<string>  $serverKeys
+     * @return array<string, string>
      */
-    public function claudeCode(array $serverKeys, string $token): string
+    public function claudeCodeLines(array $serverKeys, string $token): array
     {
         $lines = [];
 
         foreach ($this->definitions($serverKeys) as $server) {
-            $lines[] = sprintf(
+            $lines[$server->clientName] = sprintf(
                 'claude mcp add %s --scope user --transport http %s --header "Authorization: Bearer %s"',
                 $server->clientName,
                 $server->url(),
@@ -41,7 +45,41 @@ class ConnectSnippets
             );
         }
 
-        return implode("\n", $lines);
+        return $lines;
+    }
+
+    /**
+     * @param  list<string>  $serverKeys
+     */
+    public function claudeCode(array $serverKeys, string $token): string
+    {
+        return implode("\n", $this->claudeCodeLines($serverKeys, $token));
+    }
+
+    /**
+     * Undo for the lines above. Removal is by name, so it carries no token and
+     * is safe to show whether or not a token has just been minted.
+     *
+     * @param  list<string>  $serverKeys
+     * @return array<string, string>
+     */
+    public function claudeCodeRemoveLines(array $serverKeys): array
+    {
+        $lines = [];
+
+        foreach ($this->definitions($serverKeys) as $server) {
+            $lines[$server->clientName] = sprintf('claude mcp remove %s', $server->clientName);
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param  list<string>  $serverKeys
+     */
+    public function claudeCodeRemove(array $serverKeys): string
+    {
+        return implode("\n", $this->claudeCodeRemoveLines($serverKeys));
     }
 
     /**
@@ -64,16 +102,48 @@ class ConnectSnippets
 
     /**
      * @param  list<string>  $serverKeys
+     * @return array<string, string>
      */
-    public function codex(array $serverKeys, string $token): string
+    public function codexLines(array $serverKeys, string $token): array
     {
         $lines = [];
 
         foreach ($this->definitions($serverKeys) as $server) {
-            $lines[] = sprintf('codex mcp add %s --url %s --bearer-token "%s"', $server->clientName, $server->url(), $token);
+            $lines[$server->clientName] = sprintf('codex mcp add %s --url %s --bearer-token "%s"', $server->clientName, $server->url(), $token);
         }
 
-        return implode("\n", $lines);
+        return $lines;
+    }
+
+    /**
+     * @param  list<string>  $serverKeys
+     */
+    public function codex(array $serverKeys, string $token): string
+    {
+        return implode("\n", $this->codexLines($serverKeys, $token));
+    }
+
+    /**
+     * @param  list<string>  $serverKeys
+     * @return array<string, string>
+     */
+    public function codexRemoveLines(array $serverKeys): array
+    {
+        $lines = [];
+
+        foreach ($this->definitions($serverKeys) as $server) {
+            $lines[$server->clientName] = sprintf('codex mcp remove %s', $server->clientName);
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param  list<string>  $serverKeys
+     */
+    public function codexRemove(array $serverKeys): string
+    {
+        return implode("\n", $this->codexRemoveLines($serverKeys));
     }
 
     /**

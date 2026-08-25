@@ -122,6 +122,8 @@ test('the expiry is a choice list capped by the policy, defaulting to the recomm
 
     $component = Livewire::test(TokensPage::class)
         ->assertSet('expiresDays', 60)
+        // The choices live in the mint form, which opens on demand.
+        ->call('toggleForm')
         ->assertSee('60 days (recommended)')
         ->assertSee('180 days')
         ->assertDontSee('365 days');
@@ -135,4 +137,58 @@ test('the expiry is a choice list capped by the policy, defaulting to the recomm
     Livewire::test(TokensPage::class)->set('name', 'Laptop')->set('preset', 'read')->set('expiresDays', 30)->call('create')->assertHasNoErrors();
 
     expect($user->tokens()->sole()->expires_at->toDateString())->toBe(now()->addDays(30)->toDateString());
+});
+
+test('the mint form stays behind an Add button and closes again after minting', function () {
+    bootUi();
+    $this->actingAs(acmeAdmin());
+
+    Livewire::test(TokensPage::class)
+        ->assertSet('showForm', false)
+        ->assertSee('Add token')
+        ->assertDontSee('Name it after where it lives')
+        ->call('toggleForm')
+        ->assertSet('showForm', true)
+        ->assertSee('Name it after where it lives')
+        ->set('name', 'Laptop')
+        ->call('create')
+        ->assertHasNoErrors()
+        // Closing on success puts the fresh token, not an empty form, in front
+        // of the person who just minted it.
+        ->assertSet('showForm', false)
+        ->assertSee('shown only once');
+});
+
+test('cancelling the form forgets what was typed', function () {
+    bootUi();
+    $this->actingAs(acmeAdmin());
+
+    Livewire::test(TokensPage::class)
+        ->call('toggleForm')
+        ->set('name', 'half typed')
+        ->call('create')
+        ->call('toggleForm')
+        ->assertSet('name', '')
+        ->assertHasNoErrors();
+});
+
+test('the connect snippets offer every server at once, one at a time, and a way out', function () {
+    bootUi();
+    $this->actingAs(acmeAdmin());
+
+    Livewire::test(TokensPage::class)
+        ->call('toggleForm')
+        ->set('name', 'Laptop')
+        ->set('preset', 'full')
+        ->call('create')
+        // All servers in one block, and each on its own so a person can add
+        // just the one they need.
+        ->assertSee('One server at a time')
+        ->assertSee('claude mcp add acme ')
+        ->assertSee('claude mcp add acme-reports ')
+        ->assertSee('codex mcp add acme ')
+        // Removal is by name and carries no token.
+        ->assertSee('claude mcp remove acme')
+        ->assertSee('codex mcp remove acme')
+        ->assertSee('Remove a connection');
 });

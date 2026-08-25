@@ -40,8 +40,21 @@ class TokensPage extends Component
 
     public ?string $plainTextToken = null;
 
+    /** Minting is deliberate rather than the first thing on the page. */
+    public bool $showForm = false;
+
     /** @var list<string> */
     public array $mintedAbilities = [];
+
+    public function toggleForm(): void
+    {
+        $this->showForm = ! $this->showForm;
+
+        if (! $this->showForm) {
+            $this->reset('name', 'extras');
+            $this->resetErrorBag();
+        }
+    }
 
     public function mount(): void
     {
@@ -161,6 +174,7 @@ class TokensPage extends Component
 
         $this->plainTextToken = $token->plainTextToken;
         $this->mintedAbilities = $abilities;
+        $this->showForm = false;
         $this->reset('name', 'extras');
         unset($this->tokens, $this->servers);
 
