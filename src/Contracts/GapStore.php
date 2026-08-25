@@ -27,4 +27,15 @@ interface GapStore
     public function list(array $statuses = [Gap::OPEN], ?string $server = null, int $limit = 50): array;
 
     public function put(Gap $gap): Gap;
+
+    /**
+     * Gaps this person reported that have been settled since they last
+     * heard. Reading them is what marks them heard, so each answer is
+     * given once.
+     *
+     * @return list<Gap>
+     */
+    public function settledFor(string $name): array;
+
+    public function markHeard(Gap $gap, string $name): void;
 }

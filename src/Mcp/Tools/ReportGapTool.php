@@ -20,7 +20,7 @@ class ReportGapTool extends StaffTool
 {
     protected string $name = 'report_gap';
 
-    protected string $description = 'File something the person needed that this app cannot do. Not for refusals: if a tool said an ability or permission was missing, that is a permissions question with a named fix, not a gap. Read {scheme}://gaps first — if it is already there, this adds their voice to it instead of filing a duplicate. Previews without confirm=true. Privileged staff may set status.';
+    protected string $description = 'File something the person needed that this app cannot do. Not for refusals: if a tool said an ability or permission was missing, that is a permissions question with a named fix, not a gap. A repeat of something already reported joins it instead of duplicating, so just file it. Previews without confirm=true. Privileged staff may set status.';
 
     /**
      * @var array<string, mixed>

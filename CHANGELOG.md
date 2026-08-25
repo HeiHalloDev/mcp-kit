@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.3.1 — 2026-08-25
+
+Gap reports are a developer's list, not a staff one — and the people who report get an answer.
+
+- `{scheme}://gaps` is privileged. Staff report with `report_gap`; reading what everybody reported, with names and their notes, is for whoever builds the app. Before this any token that reached a server could read the lot, including a narrow one held by somebody outside the team.
+- The person who reported a gap hears what came of it: `{scheme}://me` shows the ones since built, planned or turned down, with the reason — once, then never again. The ground rules say pass it on in a line, not as the topic of the session.
+- The ground rules no longer send the assistant to read the gap list first; the tool merges a repeat report on its own.
+
 ## v1.3.0 — 2026-08-25
 
 Gap reports: when the app cannot do what someone needs, the assistant files it instead of the person having to remember afterwards.

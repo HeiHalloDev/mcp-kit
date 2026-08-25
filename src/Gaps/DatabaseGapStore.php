@@ -71,6 +71,47 @@ class DatabaseGapStore implements GapStore
         return $this->toGap($row);
     }
 
+    public function settledFor(string $name): array
+    {
+        $rows = $this->model()->newQuery()
+            ->whereIn('status', [Gap::DONE, Gap::DECLINED, Gap::PLANNED])
+            ->orderByDesc('resolved_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $settled = [];
+
+        foreach ($rows as $row) {
+            foreach ($row->reporters ?? [] as $reporter) {
+                if (($reporter['name'] ?? null) === $name && ! ($reporter['heard'] ?? false)) {
+                    $settled[] = $this->toGap($row);
+
+                    break;
+                }
+            }
+        }
+
+        return $settled;
+    }
+
+    public function markHeard(Gap $gap, string $name): void
+    {
+        $row = $this->model()->newQuery()->find($gap->id);
+
+        if ($row === null) {
+            return;
+        }
+
+        $reporters = array_map(
+            static fn (array $reporter): array => ($reporter['name'] ?? null) === $name
+                ? [...$reporter, 'heard' => true]
+                : $reporter,
+            array_filter((array) ($row->reporters ?? []), 'is_array'),
+        );
+
+        $row->forceFill(['reporters' => array_values($reporters)])->saveQuietly();
+    }
+
     protected function toGap(GapReport $row): Gap
     {
         return new Gap(

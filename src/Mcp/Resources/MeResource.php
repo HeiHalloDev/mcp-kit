@@ -6,15 +6,18 @@ namespace HeiHallo\McpKit\Mcp\Resources;
 
 use HeiHallo\McpKit\Activity\RecentActivity;
 use HeiHallo\McpKit\Contracts\AbilityCatalogue;
+use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Contracts\MemoryStore;
 use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Contracts\UserDescriber;
 use HeiHallo\McpKit\Events\OnboardingOffered;
+use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Memory\AssistantMemory;
 use HeiHallo\McpKit\Principal;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Resource;
+use Throwable;
 
 /**
  * Who the assistant is talking to: the person, where they work, what the
@@ -75,6 +78,7 @@ class MeResource extends Resource
         return view('mcp-kit::resources.me', [
             'principal' => $principal,
             'service' => false,
+            'settled' => static::settledGaps($principal),
             'scheme' => config('mcp-kit.scheme', 'app'),
             'description' => app(UserDescriber::class)->describe($principal),
             'memory' => $memory,
@@ -87,6 +91,36 @@ class MeResource extends Resource
             'memoryUrl' => config('mcp-kit.ui.memory_url'),
             'expiresAt' => $principal->tokenExpiresAt(),
         ])->render();
+    }
+
+    /**
+     * Answers waiting for this person: gaps they reported that have since
+     * been built, planned or turned down. Reading them here is what marks
+     * them heard, so each answer is given once and never nags.
+     *
+     * @return list<Gap>
+     */
+    protected static function settledGaps(Principal $principal): array
+    {
+        if (! config('mcp-kit.gaps.enabled', true)) {
+            return [];
+        }
+
+        try {
+            $store = app(GapStore::class);
+            $settled = $store->settledFor($principal->name);
+
+            foreach ($settled as $gap) {
+                $store->markHeard($gap, $principal->name);
+            }
+
+            return $settled;
+        } catch (Throwable $e) {
+            // An app that has not migrated yet still gets its profile.
+            report($e);
+
+            return [];
+        }
     }
 
     public static function memoryFor(Principal $principal): AssistantMemory

@@ -8,6 +8,7 @@ use HeiHallo\McpKit\Events\GapReported;
 use HeiHallo\McpKit\Events\GapStatusChanged;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Mcp\Resources\GapsResource;
+use HeiHallo\McpKit\Mcp\Resources\MeResource;
 use HeiHallo\McpKit\Mcp\Tools\ReportGapTool;
 use HeiHallo\McpKit\Models\ServiceClient;
 use HeiHallo\McpKit\Testing\Mcp;
@@ -206,10 +207,36 @@ test('a closed gap does not swallow the next report of the same thing', function
         ->and(app(GapStore::class)->list([Gap::DECLINED]))->toHaveCount(1);
 });
 
-test('the resource ranks blocking and most-reported first, and shows what was settled', function () {
-    $user = actingWith(acmeUser(), ['acme:things:read']);
+test('the list is for whoever builds the app, not for the staff who report', function () {
+    $staff = actingWith(acmeUser(), ['acme:things:read']);
 
-    AcmeServer::actingAs($user)->resource(GapsResource::class)->assertSee('Nothing open');
+    AcmeServer::actingAs($staff)->tool(ReportGapTool::class, gapArguments([
+        'note' => 'Doing it by hand every Monday.',
+        'confirm' => true,
+    ]));
+
+    // Staff may report. Reading what everybody reported is a developer's job:
+    // a narrow token can belong to somebody outside the team entirely.
+    AcmeServer::actingAs($staff)
+        ->resource(GapsResource::class)
+        ->assertHasErrors()
+        ->assertSee("developer's job")
+        ->assertDontSee('Doing it by hand every Monday.');
+
+    $client = Mcp::token(
+        ServiceClient::query()->create(['name' => 'Reporting', 'slug' => 'reporting']),
+        ['acme:things:read'],
+        'service',
+    );
+
+    Mcp::readResource($client, '/mcp/acme', 'acme://gaps')
+        ->assertDontSee('Doing it by hand every Monday.');
+});
+
+test('the resource ranks blocking and most-reported first, and shows what was settled', function () {
+    $user = actingWith(acmeAdmin(), ['acme:things:read']);
+
+    AcmeServer::actingAs($user)->resource(GapsResource::class)->assertSee('Nothing reported');
 
     AcmeServer::actingAs($user)->tool(ReportGapTool::class, gapArguments(['confirm' => true]));
     AcmeServer::actingAs($user)->tool(ReportGapTool::class, gapArguments([
@@ -257,4 +284,40 @@ test('turning gaps off removes the tool, the resource and the section', function
 
     expect(app(GroundRules::class)->sections(null, 'acme'))
         ->not->toHaveKey('What this app cannot do');
+});
+
+test('the person who reported a gap hears what came of it, once', function () {
+    $staff = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($staff)->tool(ReportGapTool::class, gapArguments(['confirm' => true]));
+
+    // Nothing has happened to it yet, so there is nothing to pass on.
+    AcmeServer::actingAs($staff)
+        ->resource(MeResource::class)
+        ->assertDontSee('What came of what you asked for');
+
+    $admin = actingWith(acmeAdmin(), ['acme:things:read']);
+    $id = app(GapStore::class)->list()[0]->id;
+
+    AcmeServer::actingAs($admin)->tool(ReportGapTool::class, [
+        'gap' => $id,
+        'status' => 'done',
+        'resolution' => 'move_signup now takes a target study.',
+        'confirm' => true,
+    ]);
+
+    // The admin never reported it, so it is not their answer to hear.
+    AcmeServer::actingAs($admin)
+        ->resource(MeResource::class)
+        ->assertDontSee('What came of what you asked for');
+
+    AcmeServer::actingAs($staff)
+        ->resource(MeResource::class)
+        ->assertSee('What came of what you asked for')
+        ->assertSee('move_signup now takes a target study.');
+
+    // Said once. A profile that repeats an answer every session is a nag.
+    AcmeServer::actingAs($staff)
+        ->resource(MeResource::class)
+        ->assertDontSee('What came of what you asked for');
 });

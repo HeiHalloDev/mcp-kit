@@ -1,7 +1,7 @@
 # Gaps
 @if ($open === [])
 
-Nothing open. When someone needs something this app cannot do, `report_gap` puts it in front of the people who build it.
+Nothing reported. When somebody needs what this app cannot do, `report_gap` lands it here.
 @else
 
 ## Open — most wanted first
@@ -27,7 +27,8 @@ Nothing open. When someone needs something this app cannot do, `report_gap` puts
 @endforeach
 @endif
 
-## Before you file one
-- A refusal that named a missing ability or permission is not a gap: the app can do it, this token may not. Say who to ask instead.
-- If it is already open above, `report_gap` with the same title adds this person to it. Do not write a second one.
-- Only after the person confirms. Their words, not a rewrite of them.
+## Triaging these
+- Ranked by whether it stopped someone, then by how many people hit it. That order is the argument for what to build next.
+- The same gap reported again joins the open one rather than duplicating, so a high count is real weight, not noise. Two rows describing the same thing means people phrased it differently — worth merging by hand.
+- Moving one is `report_gap` with `gap` (the id above) and `status`. Closing it as done or declined needs a `resolution`: the people who reported it read that, and a silent close tells them nothing.
+- A gap that turns out to be a permissions problem is `declined` with the reason — the app could do it all along.

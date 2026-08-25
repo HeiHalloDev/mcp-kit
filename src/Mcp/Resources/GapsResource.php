@@ -13,15 +13,17 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Resource;
 
 /**
- * What people have already said this app cannot do. Read before filing
- * anything: a gap that is already open wants another voice behind it,
- * not a second row.
+ * The reported gaps, for whoever builds this app. Staff report; reading
+ * the list and deciding what to do about it is a developer's job, so it
+ * is privileged — a narrow token may belong to somebody outside the team
+ * entirely, and what a colleague said about their own work is not theirs
+ * to read.
  */
 class GapsResource extends Resource
 {
     protected string $name = 'gaps';
 
-    protected string $description = 'What people have reported that this app cannot do yet, most-wanted first, with what was decided about the ones already closed. Read this before report_gap so the same gap gathers weight instead of duplicating.';
+    protected string $description = 'For whoever builds this app: what people have reported it cannot do yet, most-wanted first, with who asked and what was decided about the ones already closed. Privileged staff only.';
 
     protected string $mimeType = 'text/markdown';
 
@@ -42,6 +44,10 @@ class GapsResource extends Resource
 
         if ($principal === null) {
             return Response::error('Authentication required.');
+        }
+
+        if (! $principal->privileged) {
+            return Response::error('The gap list is for whoever builds this app. You can report one with report_gap; reading what everybody reported is a developer\'s job.');
         }
 
         $store = app(GapStore::class);
