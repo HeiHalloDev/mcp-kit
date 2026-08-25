@@ -27,6 +27,9 @@ class PlaybookFactory
     public function make(array $input, ?Playbook $existing = null): Playbook
     {
         $name = Playbook::slug((string) ($input['name'] ?? $existing?->name ?? ''));
+
+        $this->assertNameIsFree($name);
+
         $body = $this->text($input, 'body', $existing?->body ?? '', $this->limits->bodyChars, 'The steps');
 
         if ($body === '') {
@@ -174,6 +177,28 @@ class PlaybookFactory
                 count($missing) === 1 ? 'it is' : 'they are',
                 count($missing) === 1 ? 'it' : 'them',
             ));
+        }
+    }
+
+    /**
+     * A playbook is registered next to the kit's own prompts, so it may not
+     * take one of their names — two prompts called getting_started would
+     * simply confuse the client.
+     */
+    protected function assertNameIsFree(string $name): void
+    {
+        $prefix = (string) config('mcp-kit.playbooks.prefix', '');
+
+        foreach ((array) config('mcp-kit.shared.prompts', []) as $class) {
+            if (! is_string($class) || ! class_exists($class)) {
+                continue;
+            }
+
+            $taken = app($class)->name();
+
+            if ($taken === $prefix.$name) {
+                throw new InvalidArgumentException("'{$name}' is the name of a built-in prompt. Pick another.");
+            }
         }
     }
 

@@ -297,3 +297,17 @@ test('turning playbooks off removes the tool, the resource and the section', fun
     expect(app(GroundRules::class)->sections(null, 'acme'))
         ->not->toHaveKey('Playbooks');
 });
+
+test('a playbook may not take a built-in prompt name', function () {
+    $user = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($user)
+        ->tool(SavePlaybookTool::class, [
+            'name' => 'getting started',
+            'description' => 'Mine.',
+            'body' => 'Do it my way.',
+            'confirm' => true,
+        ])
+        ->assertHasErrors()
+        ->assertSee('built-in prompt');
+});
