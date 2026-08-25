@@ -14,6 +14,10 @@ jobs:
         php: ['8.3', '8.4']
         laravel: ['12', '13']
         activitylog: ['4', '5']
+        exclude:
+          # activitylog 5 requires PHP 8.4, so this pair can never install.
+          - php: '8.3'
+            activitylog: '5'
 
     name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }} · activitylog ${{ matrix.activitylog }}
 
