@@ -13,42 +13,48 @@
             <flux:tab name="prompts">{{ __('Examples') }}</flux:tab>
         </flux:tabs>
 
-        <flux:tab.panel name="claude-code" class="space-y-4">
+        <flux:tab.panel name="claude-code" class="space-y-5">
             @php($claudeLines = $this->snippets()->claudeCodeLines($this->servers, $tokenPlaceholder))
-
-            @include('mcp-kit::tokens.snippet', [
-                'code' => implode("\n", $claudeLines),
-                'label' => count($claudeLines) > 1 ? __('Run once in the terminal — all servers at once:') : __('Run once in the terminal:'),
-                'copyLabel' => count($claudeLines) > 1 ? __('Copy all') : __('Copy'),
-            ])
+            @php($claudeRemove = $this->snippets()->claudeCodeRemoveLines($this->servers))
 
             @if (count($claudeLines) > 1)
-                <flux:accordion>
-                    <flux:accordion.item>
-                        <flux:accordion.heading>{{ __('One server at a time') }}</flux:accordion.heading>
-                        <flux:accordion.content class="space-y-3">
-                            @foreach ($claudeLines as $name => $line)
-                                @include('mcp-kit::tokens.snippet', ['code' => $line, 'label' => $name])
-                            @endforeach
-                        </flux:accordion.content>
-                    </flux:accordion.item>
-                </flux:accordion>
+                @include('mcp-kit::tokens.snippet', [
+                    'code' => implode("\n", $claudeLines),
+                    'label' => __('Run once in the terminal — all servers at once:'),
+                    'copyLabel' => __('Copy all'),
+                ])
+
+                <div class="space-y-3">
+                    <flux:text size="sm">{{ __('One server at a time') }}</flux:text>
+                    @foreach ($claudeLines as $name => $line)
+                        @include('mcp-kit::tokens.snippet', ['code' => $line, 'label' => $name])
+                    @endforeach
+                </div>
+            @else
+                @include('mcp-kit::tokens.snippet', [
+                    'code' => implode("\n", $claudeLines),
+                    'label' => __('Run once in the terminal:'),
+                ])
             @endif
 
-            <flux:accordion>
-                <flux:accordion.item>
-                    <flux:accordion.heading>{{ __('Remove a connection') }}</flux:accordion.heading>
-                    <flux:accordion.content class="space-y-3">
-                        <flux:text size="sm">{{ __('Removing a connection only forgets it on this machine — it does not revoke the token. Revoke it in the list above.') }}</flux:text>
-                        @include('mcp-kit::tokens.snippet', [
-                            'code' => $this->snippets()->claudeCodeRemove($this->servers),
-                            'copyLabel' => count($claudeLines) > 1 ? __('Copy all') : __('Copy'),
-                        ])
-                    </flux:accordion.content>
-                </flux:accordion.item>
-            </flux:accordion>
-
             <flux:text size="sm">{{ __('--scope user makes the connection available from every folder; without it, it only works in the folder you ran the command from.') }}</flux:text>
+
+            <div class="space-y-3">
+                <flux:text size="sm">{{ __('Remove a connection') }}</flux:text>
+                <flux:text size="sm" class="opacity-70">{{ __('Removing a connection only forgets it on this machine — it does not revoke the token. Revoke it in the list above.') }}</flux:text>
+
+                @if (count($claudeRemove) > 1)
+                    @include('mcp-kit::tokens.snippet', [
+                        'code' => implode("\n", $claudeRemove),
+                        'copyLabel' => __('Copy all'),
+                    ])
+                    @foreach ($claudeRemove as $name => $line)
+                        @include('mcp-kit::tokens.snippet', ['code' => $line, 'label' => $name])
+                    @endforeach
+                @else
+                    @include('mcp-kit::tokens.snippet', ['code' => implode("\n", $claudeRemove)])
+                @endif
+            </div>
         </flux:tab.panel>
 
         <flux:tab.panel name="claude-desktop">
@@ -58,26 +64,28 @@
             ])
         </flux:tab.panel>
 
-        <flux:tab.panel name="codex" class="space-y-4">
+        <flux:tab.panel name="codex" class="space-y-5">
             @php($codexLines = $this->snippets()->codexLines($this->servers, $tokenPlaceholder))
-
-            @include('mcp-kit::tokens.snippet', [
-                'code' => implode("\n", $codexLines),
-                'label' => count($codexLines) > 1 ? __('Run once in the terminal — all servers at once:') : __('Run once in the terminal:'),
-                'copyLabel' => count($codexLines) > 1 ? __('Copy all') : __('Copy'),
-            ])
+            @php($codexRemove = $this->snippets()->codexRemoveLines($this->servers))
 
             @if (count($codexLines) > 1)
-                <flux:accordion>
-                    <flux:accordion.item>
-                        <flux:accordion.heading>{{ __('One server at a time') }}</flux:accordion.heading>
-                        <flux:accordion.content class="space-y-3">
-                            @foreach ($codexLines as $name => $line)
-                                @include('mcp-kit::tokens.snippet', ['code' => $line, 'label' => $name])
-                            @endforeach
-                        </flux:accordion.content>
-                    </flux:accordion.item>
-                </flux:accordion>
+                @include('mcp-kit::tokens.snippet', [
+                    'code' => implode("\n", $codexLines),
+                    'label' => __('Run once in the terminal — all servers at once:'),
+                    'copyLabel' => __('Copy all'),
+                ])
+
+                <div class="space-y-3">
+                    <flux:text size="sm">{{ __('One server at a time') }}</flux:text>
+                    @foreach ($codexLines as $name => $line)
+                        @include('mcp-kit::tokens.snippet', ['code' => $line, 'label' => $name])
+                    @endforeach
+                </div>
+            @else
+                @include('mcp-kit::tokens.snippet', [
+                    'code' => implode("\n", $codexLines),
+                    'label' => __('Run once in the terminal:'),
+                ])
             @endif
 
             @include('mcp-kit::tokens.snippet', [
@@ -85,17 +93,13 @@
                 'label' => __('Or in ~/.codex/config.toml:'),
             ])
 
-            <flux:accordion>
-                <flux:accordion.item>
-                    <flux:accordion.heading>{{ __('Remove a connection') }}</flux:accordion.heading>
-                    <flux:accordion.content>
-                        @include('mcp-kit::tokens.snippet', [
-                            'code' => $this->snippets()->codexRemove($this->servers),
-                            'copyLabel' => count($codexLines) > 1 ? __('Copy all') : __('Copy'),
-                        ])
-                    </flux:accordion.content>
-                </flux:accordion.item>
-            </flux:accordion>
+            <div class="space-y-3">
+                <flux:text size="sm">{{ __('Remove a connection') }}</flux:text>
+                @include('mcp-kit::tokens.snippet', [
+                    'code' => implode("\n", $codexRemove),
+                    'copyLabel' => count($codexRemove) > 1 ? __('Copy all') : __('Copy'),
+                ])
+            </div>
         </flux:tab.panel>
 
         <flux:tab.panel name="curl">
