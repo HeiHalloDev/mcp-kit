@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.4.1 — 2026-08-25
+
+- `learning.enabled` reads `MCP_LEARNING_ENABLED`, the way `read_only` already reads `MCP_READ_ONLY`. The point of the switch is running it for a fortnight and turning it off again; that should not need a deploy.
+
 ## v1.4.0 — 2026-08-25
 
 Task frames: the call log finally knows what the work was *for*, and whether it worked. Off by default — it records what your colleagues do all day, so turning it on is a decision.

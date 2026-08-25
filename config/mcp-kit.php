@@ -384,11 +384,13 @@ return [
     | it. Off by default: it records what your colleagues do all day, so
     | turning it on is a decision, and `{scheme}://me` tells them plainly
     | that it is on. Reading the result is privileged, like the gap list.
+    | Env-driven so it can be run for a fortnight and turned off again
+    | without a deploy.
     |
     */
 
     'learning' => [
-        'enabled' => false,
+        'enabled' => (bool) env('MCP_LEARNING_ENABLED', false),
         'table' => 'mcp_tasks',
         'model' => TaskModel::class,
         'store' => DatabaseTaskStore::class,
