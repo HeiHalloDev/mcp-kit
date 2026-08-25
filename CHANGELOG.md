@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.2.0 — 2026-08-25
+
+Playbooks: a person saves the way they worked something out, and their client offers it back by name.
+
+- `save_playbook` stores a recipe — title, one-line description, the steps, named `{{ placeholders }}` — under a name the person picks. Previews without `confirm=true` like every other write; `delete=true` removes one. Credentials are refused, a placeholder nobody declared is refused, and the cap is 30 per person.
+- Each saved playbook is appended to every server the caller reaches as an MCP prompt, so Claude Code lists it as a slash command. Scope one to certain servers with `servers`, and to certain abilities with `abilities` — a token that cannot run it never sees it.
+- `{scheme}://playbooks` lists what the person saved and what colleagues shared, with the steps, for reading rather than running.
+- Sharing a playbook with everyone is privileged by default (`mcp-kit.playbooks.policy`). A shared playbook is read-only to colleagues: they save their own under another name.
+- New table `mcp_playbooks`, new ground-rules section (offer once, never save without a yes), new events `PlaybookSaved` and `PlaybookForgotten`. Turn the whole thing off with `mcp-kit.playbooks.enabled`.
+
+## v1.1.2 — 2026-08-25
+
+- The connect snippet styles itself instead of trusting the host's Tailwind: a package view is only scanned when the app lists it in `@source`, so the copy button was landing on top of the code.
+
+## v1.1.1 — 2026-08-25
+
+- The copy button sits in the corner of the code block, and every server gets its own block as well as the combined one.
+
+## v1.1.0 — 2026-08-25
+
+- Tokens page: minting moved behind an "Add token" button that closes on success, every connect snippet became a code block with a copy button, and `claude mcp remove` lines joined the `claude mcp add` ones.
+
 ## v1.0.0 — 2026-08-24
 
 Stable. The CRM, TrustMe, flex, io, studies and L5 all run on the kit.

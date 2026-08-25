@@ -6,6 +6,7 @@ namespace HeiHallo\McpKit\Servers;
 
 use HeiHallo\McpKit\Contracts\GroundRules;
 use HeiHallo\McpKit\Mcp\Tools\WhoAmITool;
+use HeiHallo\McpKit\Playbooks\PlaybookPrompts;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\ServerContext;
@@ -29,6 +30,7 @@ abstract class StaffServer extends Server
 
         if ($definition?->shared ?? true) {
             $this->appendShared();
+            $this->appendPlaybooks($definition?->key);
         }
 
         if (config('mcp-kit.read_only', false)) {
@@ -45,6 +47,17 @@ abstract class StaffServer extends Server
         $context->instructions = app(GroundRules::class)->instructions($definition?->key ?? '', $authored);
 
         return $context;
+    }
+
+    /**
+     * The caller's own saved playbooks, as prompts. Built per request, so
+     * two people on the same server see different lists.
+     */
+    protected function appendPlaybooks(?string $server): void
+    {
+        foreach (app(PlaybookPrompts::class)->for($server) as $prompt) {
+            $this->prompts[] = $prompt;
+        }
     }
 
     protected function appendShared(): void

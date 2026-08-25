@@ -1,6 +1,6 @@
 # heihallo/mcp-kit
 
-Staff tooling over MCP for Laravel apps, as a package: the ability catalogue, per-person tokens, access and audit middleware, preview/confirm writes, ground rules, a `me` resource with per-user assistant memory, and a short optional onboarding. Every app that exposes tools to Claude, Codex or another assistant needs the same foundation; this is it, once.
+Staff tooling over MCP for Laravel apps, as a package: the ability catalogue, per-person tokens, access and audit middleware, preview/confirm writes, ground rules, a `me` resource with per-user assistant memory, saved playbooks, and a short optional onboarding. Every app that exposes tools to Claude, Codex or another assistant needs the same foundation; this is it, once.
 
 Requires PHP 8.3+, Laravel 12 or 13, [laravel/mcp](https://github.com/laravel/mcp) 0.9, [Sanctum](https://laravel.com/docs/sanctum) 4 and [spatie/laravel-activitylog](https://github.com/spatie/laravel-activitylog) 4.9 or 5. Postgres first; other databases work for everything but the JSONB memory column.
 
@@ -11,6 +11,7 @@ Requires PHP 8.3+, Laravel 12 or 13, [laravel/mcp](https://github.com/laravel/mc
 - **One write shape.** `previewOrExecute()` previews without `confirm=true` and executes with it. Every confirmed write and every tool call becomes an `activity_log` row in the `mcp` log, in the person's name, with the sanitised arguments and a `call_id` shared by the domain rows written during the call.
 - **`{scheme}://me`** tells the assistant who it is talking to: role, team, what this token may do, how the person usually works, what was remembered. A hint, not a mode.
 - **`remember_about_me`** saves what the person confirms, in a JSON column on `users`. **`getting_started`** asks only for what the app does not already know, at most three questions, and is offered once.
+- **Playbooks.** `save_playbook` keeps a way of working the person wants back, and every one they saved is offered as an MCP prompt — a slash command in Claude Code. Scope one to certain servers or abilities; privileged staff may share one with everybody. `{scheme}://playbooks` lists them.
 - **Commands**: `mcp:install`, `mcp:token`, `mcp:client-token`, `mcp:docs`, `mcp:audit-tokens`, `mcp-kit:prune`.
 - **Tests for free.** `Guards::all()` gives an app the ability, schema, access, inventory, docs, preset, token-command, ground-rules and `me` checks in one line.
 

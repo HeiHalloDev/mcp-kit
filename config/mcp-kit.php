@@ -13,13 +13,18 @@ use HeiHallo\McpKit\Links\NullLinks;
 use HeiHallo\McpKit\Mcp\Prompts\GettingStartedPrompt;
 use HeiHallo\McpKit\Mcp\Resources\GroundRulesResource;
 use HeiHallo\McpKit\Mcp\Resources\MeResource;
+use HeiHallo\McpKit\Mcp\Resources\PlaybooksResource;
 use HeiHallo\McpKit\Mcp\Tools\RememberAboutMeTool;
+use HeiHallo\McpKit\Mcp\Tools\SavePlaybookTool;
 use HeiHallo\McpKit\Memory\ColumnMemoryStore;
 use HeiHallo\McpKit\Memory\DefaultMemoryPolicy;
+use HeiHallo\McpKit\Models\Playbook as PlaybookModel;
 use HeiHallo\McpKit\Models\ServiceClient;
 use HeiHallo\McpKit\Onboarding\ConfigSuggestions;
 use HeiHallo\McpKit\Onboarding\DefaultQuestions;
 use HeiHallo\McpKit\Permissions\GatePermissionChecker;
+use HeiHallo\McpKit\Playbooks\DatabasePlaybookStore;
+use HeiHallo\McpKit\Playbooks\DefaultPlaybookPolicy;
 use HeiHallo\McpKit\Presets\ConfigPresetResolver;
 use HeiHallo\McpKit\Principals\DefaultPrincipalResolver;
 use HeiHallo\McpKit\Tokens\DefaultTokenPolicy;
@@ -283,8 +288,8 @@ return [
     */
 
     'shared' => [
-        'resources' => [GroundRulesResource::class, MeResource::class],
-        'tools' => [RememberAboutMeTool::class],
+        'resources' => [GroundRulesResource::class, MeResource::class, PlaybooksResource::class],
+        'tools' => [RememberAboutMeTool::class, SavePlaybookTool::class],
         'prompts' => [GettingStartedPrompt::class],
     ],
 
@@ -310,6 +315,35 @@ return [
             'notes' => 20,
             'item_chars' => 240,
             'role_chars' => 280,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Playbooks
+    |--------------------------------------------------------------------------
+    |
+    | A saved way of working, kept per person and offered as a prompt so a
+    | client lists it the way it lists any other. prefix goes in front of
+    | every prompt name when the app wants them grouped (e.g. 'pb_').
+    | Sharing one with the whole team is privileged by default; point
+    | policy at your own class to change who may.
+    |
+    */
+
+    'playbooks' => [
+        'enabled' => true,
+        'table' => 'mcp_playbooks',
+        'model' => PlaybookModel::class,
+        'store' => DatabasePlaybookStore::class,
+        'policy' => DefaultPlaybookPolicy::class,
+        'prefix' => '',
+        'limits' => [
+            'per_person' => 30,
+            'body_chars' => 4000,
+            'title_chars' => 80,
+            'description_chars' => 200,
+            'arguments' => 8,
         ],
     ],
 

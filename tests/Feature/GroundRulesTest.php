@@ -10,10 +10,10 @@ use HeiHallo\McpKit\Tests\Fixtures\Mcp\Servers\AcmeServer;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\View;
 
-test('the default order is intro, safety, tokens, names and links, replies, memory', function () {
+test('the default order is intro, safety, tokens, names and links, replies, memory, playbooks', function () {
     $sections = app(GroundRules::class)->sections(null, 'acme');
 
-    expect(array_keys($sections))->toBe(['What this is', 'Safety', 'People and tokens', 'Names and links', 'Replies', 'The person you are helping'])
+    expect(array_keys($sections))->toBe(['What this is', 'Safety', 'People and tokens', 'Names and links', 'Replies', 'The person you are helping', 'Playbooks'])
         ->and($sections['What this is'])->toContain('What this app is: Acme.')
         ->and($sections['What this is'])->toContain('**Acme** (`acme`): Things and events.')
         ->and($sections['People and tokens'])->toContain('`acme:admin`')
