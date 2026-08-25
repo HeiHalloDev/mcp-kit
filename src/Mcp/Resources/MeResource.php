@@ -79,6 +79,8 @@ class MeResource extends Resource
             'principal' => $principal,
             'service' => false,
             'settled' => static::settledGaps($principal),
+            'recording' => (bool) config('mcp-kit.learning.enabled', false),
+            'recordingDays' => (int) (config('mcp-kit.learning.retain_days') ?? config('mcp-kit.activity.retain_days', 90)),
             'scheme' => config('mcp-kit.scheme', 'app'),
             'description' => app(UserDescriber::class)->describe($principal),
             'memory' => $memory,

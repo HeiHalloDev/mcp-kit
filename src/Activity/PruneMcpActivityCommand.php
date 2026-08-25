@@ -4,17 +4,42 @@ declare(strict_types=1);
 
 namespace HeiHallo\McpKit\Activity;
 
+use HeiHallo\McpKit\Contracts\TaskStore;
 use Illuminate\Console\Command;
 use Spatie\Activitylog\Models\Activity;
 
 /**
- * Deletes `mcp` rows older than the retention window, in chunks.
+ * Deletes `mcp` rows older than the retention window, in chunks, and
+ * the task frames that described them.
  */
 class PruneMcpActivityCommand extends Command
 {
     protected $signature = 'mcp-kit:prune {--days= : Override mcp-kit.activity.retain_days} {--chunk=1000}';
 
     protected $description = 'Delete old MCP tool-call rows from the activity log';
+
+    /**
+     * Task frames age out with the calls they describe: a purpose whose
+     * activity rows are gone tells nobody anything.
+     */
+    protected function pruneTasks(): void
+    {
+        if (! config('mcp-kit.learning.enabled', false)) {
+            return;
+        }
+
+        $days = (int) ($this->option('days')
+            ?: config('mcp-kit.learning.retain_days')
+            ?? config('mcp-kit.activity.retain_days', 90));
+
+        if ($days <= 0) {
+            return;
+        }
+
+        $deleted = app(TaskStore::class)->prune($days);
+
+        $this->info("Pruned {$deleted} task frame(s) older than {$days} days.");
+    }
 
     public function handle(): int
     {
@@ -41,6 +66,8 @@ class PruneMcpActivityCommand extends Command
         } while ($batch === $chunk);
 
         $this->info("Pruned {$deleted} MCP activity row(s) older than {$days} days.");
+
+        $this->pruneTasks();
 
         return self::SUCCESS;
     }

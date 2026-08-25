@@ -10,20 +10,24 @@ use HeiHallo\McpKit\Describe\AutoDescriber;
 use HeiHallo\McpKit\Docs\DefaultDocsRenderer;
 use HeiHallo\McpKit\Gaps\DatabaseGapStore;
 use HeiHallo\McpKit\GroundRules\SectionedGroundRules;
+use HeiHallo\McpKit\Learning\DatabaseTaskStore;
 use HeiHallo\McpKit\Links\NullLinks;
 use HeiHallo\McpKit\Mcp\Prompts\GettingStartedPrompt;
 use HeiHallo\McpKit\Mcp\Resources\GapsResource;
 use HeiHallo\McpKit\Mcp\Resources\GroundRulesResource;
 use HeiHallo\McpKit\Mcp\Resources\MeResource;
 use HeiHallo\McpKit\Mcp\Resources\PlaybooksResource;
+use HeiHallo\McpKit\Mcp\Resources\UsageResource;
 use HeiHallo\McpKit\Mcp\Tools\RememberAboutMeTool;
 use HeiHallo\McpKit\Mcp\Tools\ReportGapTool;
 use HeiHallo\McpKit\Mcp\Tools\SavePlaybookTool;
+use HeiHallo\McpKit\Mcp\Tools\WorkingOnTool;
 use HeiHallo\McpKit\Memory\ColumnMemoryStore;
 use HeiHallo\McpKit\Memory\DefaultMemoryPolicy;
 use HeiHallo\McpKit\Models\GapReport;
 use HeiHallo\McpKit\Models\Playbook as PlaybookModel;
 use HeiHallo\McpKit\Models\ServiceClient;
+use HeiHallo\McpKit\Models\Task as TaskModel;
 use HeiHallo\McpKit\Onboarding\ConfigSuggestions;
 use HeiHallo\McpKit\Onboarding\DefaultQuestions;
 use HeiHallo\McpKit\Permissions\GatePermissionChecker;
@@ -292,8 +296,8 @@ return [
     */
 
     'shared' => [
-        'resources' => [GroundRulesResource::class, MeResource::class, PlaybooksResource::class, GapsResource::class],
-        'tools' => [RememberAboutMeTool::class, SavePlaybookTool::class, ReportGapTool::class],
+        'resources' => [GroundRulesResource::class, MeResource::class, PlaybooksResource::class, GapsResource::class, UsageResource::class],
+        'tools' => [RememberAboutMeTool::class, SavePlaybookTool::class, ReportGapTool::class, WorkingOnTool::class],
         'prompts' => [GettingStartedPrompt::class],
     ],
 
@@ -367,6 +371,37 @@ return [
         'table' => 'mcp_gap_reports',
         'model' => GapReport::class,
         'store' => DatabaseGapStore::class,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Learning: what the tools are used for
+    |--------------------------------------------------------------------------
+    |
+    | The call log knows which tools ran, never what for. With this on, the
+    | assistant opens a one-line task frame before substantial work and
+    | closes it with an outcome, and every call in between is stamped with
+    | it. Off by default: it records what your colleagues do all day, so
+    | turning it on is a decision, and `{scheme}://me` tells them plainly
+    | that it is on. Reading the result is privileged, like the gap list.
+    |
+    */
+
+    'learning' => [
+        'enabled' => false,
+        'table' => 'mcp_tasks',
+        'model' => TaskModel::class,
+        'store' => DatabaseTaskStore::class,
+
+        // An open frame this old is closed as unknown rather than counted
+        // as a success nobody vouched for.
+        'lifetime_hours' => 4,
+
+        'recent_days' => 30,
+        'recent_limit' => 100,
+
+        // null follows activity.retain_days.
+        'retain_days' => null,
     ],
 
     'describer_options' => [

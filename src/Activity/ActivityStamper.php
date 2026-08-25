@@ -7,12 +7,14 @@ namespace HeiHallo\McpKit\Activity;
 use HeiHallo\McpKit\Audit\McpCallContext;
 use HeiHallo\McpKit\Contracts\ResolvesActivityChannel;
 use HeiHallo\McpKit\Contracts\ResolvesActivitySource;
+use HeiHallo\McpKit\Learning\CurrentTask;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
- * Fills `channel`, `source`, `token_name` and properties.call_id on every
+ * Fills `channel`, `source`, `token_name`, properties.call_id and the
+ * open task on every
  * activity row as it is created, only where they are still null. Hooks
  * eloquent.creating on whatever activitylog.activity_model is, so apps keep
  * their own model and v4/v5 both work.
@@ -26,6 +28,7 @@ class ActivityStamper
         protected ResolvesActivityChannel $channels,
         protected ResolvesActivitySource $sources,
         protected McpCallContext $context,
+        protected CurrentTask $tasks,
     ) {}
 
     public function __invoke(Model $activity): void
@@ -59,9 +62,25 @@ class ActivityStamper
 
         if ($this->context->isActive()) {
             $properties = collect($activity->getAttribute('properties') ?? [])->toArray();
+            $changed = false;
 
             if (! array_key_exists('call_id', $properties)) {
                 $properties['call_id'] = $this->context->callId();
+                $changed = true;
+            }
+
+            // The frame the caller opened, so a row can be read back as part
+            // of a piece of work rather than as a lone tool name.
+            if (! array_key_exists('task', $properties)) {
+                $task = $this->tasks->for($principal);
+
+                if ($task !== null) {
+                    $properties['task'] = (string) $task->id;
+                    $changed = true;
+                }
+            }
+
+            if ($changed) {
                 $activity->setAttribute('properties', $properties);
             }
         }

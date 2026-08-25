@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.4.0 — 2026-08-25
+
+Task frames: the call log finally knows what the work was *for*, and whether it worked. Off by default — it records what your colleagues do all day, so turning it on is a decision.
+
+- `working_on` opens a frame with one line on what the person wants, and closes it with an outcome: done, partly or failed. Every call in between is stamped with it by the existing activity stamper, so no tool needed a new parameter and no schema changed.
+- Closing honestly is enforced where it matters: a `partly` or `failed` without saying what got in the way is refused. Those rows are the point of the feature.
+- Opening a second frame closes an abandoned one as `unknown` rather than counting it as a success nobody vouched for; a frame older than `lifetime_hours` (4) ages out the same way. Frames belong to a token, so two people never share one.
+- `{scheme}://usage` shows what people came to do lately and whether they got it, shortfalls first — privileged, like the gap list, because it is a record of colleagues' work. A repeat shortfall that is not on the gap list is the strongest signal in the kit.
+- `{scheme}://me` tells the person plainly that this is on, what is kept and for how long. Recording what staff do without telling them is a different product.
+- New table `mcp_tasks`, events `TaskOpened` and `TaskClosed` (`$task->fellShort()` is the one to listen for), and `mcp-kit:prune` takes frames with the calls they describe. Turn it on with `mcp-kit.learning.enabled`.
+
 ## v1.3.1 — 2026-08-25
 
 Gap reports are a developer's list, not a staff one — and the people who report get an answer.

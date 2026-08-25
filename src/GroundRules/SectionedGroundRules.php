@@ -13,7 +13,7 @@ use Illuminate\Contracts\View\Factory as View;
 
 /**
  * The package partials (intro, safety, tokens, names_and_links, replies,
- * memory, playbooks, gaps) followed by the app's mcp-kit.ground_rules.sections, minus
+ * memory, playbooks, gaps, learning) followed by the app's mcp-kit.ground_rules.sections, minus
  * mcp-kit.ground_rules.remove. Any partial can be overridden as a vendor
  * view (resources/views/vendor/mcp-kit/ground-rules/{name}.blade.php).
  */
@@ -28,6 +28,7 @@ class SectionedGroundRules implements GroundRules
         'memory' => 'The person you are helping',
         'playbooks' => 'Playbooks',
         'gaps' => 'What this app cannot do',
+        'learning' => 'Recording what the work was for',
     ];
 
     public function __construct(

@@ -12,6 +12,7 @@ This token belongs to the service client **{{ $principal->name }}**. There is no
 @include('mcp-kit::resources.me.notes')
 @include('mcp-kit::resources.me.asked')
 @include('mcp-kit::resources.me.recently')
+@include('mcp-kit::resources.me.recorded')
 @include('mcp-kit::resources.me.memory')
 @include('mcp-kit::resources.me.footer')
 @endif
