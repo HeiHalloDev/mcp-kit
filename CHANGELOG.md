@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.3.0 — 2026-08-25
+
+Gap reports: when the app cannot do what someone needs, the assistant files it instead of the person having to remember afterwards.
+
+- `report_gap` records what they were trying to do, what was missing, and whether it stopped the work. Previews without `confirm=true`; credentials refused; service clients have none.
+- The same gap reported again gathers weight instead of duplicating: a matching open gap gains the second person and their note, and one person blocked makes the whole gap blocking. Reporting your own gap twice is refused.
+- Privileged staff move a gap through open → planned → done/declined. Closing one without saying what was decided is refused — the people who reported it get nothing from a silent close.
+- `{scheme}://gaps` lists what is open, blocking and most-reported first, with what was settled recently. The ground rules tell the assistant to read it before filing.
+- The kit stores; the app routes. Listen for `GapReported` and open whatever your team actually reads — a task, an issue, a message. `GapStatusChanged` fires on a move.
+- The distinction the ground rules insist on: a tool that refused because the token lacks an ability is **not** a gap — the app can do it and the fix is asking whoever grants it. Only a tool that does not exist is.
+- New table `mcp_gap_reports`. Turn it off with `mcp-kit.gaps.enabled`.
+
 ## v1.2.1 — 2026-08-25
 
 - A playbook may not take a built-in prompt's name: `getting_started` is refused at save time rather than leaving the client with two prompts of that name.

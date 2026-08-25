@@ -11,6 +11,7 @@ use HeiHallo\McpKit\Audit\McpCallContext;
 use HeiHallo\McpKit\Contracts\AbilityCatalogue;
 use HeiHallo\McpKit\Contracts\AuditWriter;
 use HeiHallo\McpKit\Contracts\DocsRenderer;
+use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Contracts\GroundRules;
 use HeiHallo\McpKit\Contracts\Links;
 use HeiHallo\McpKit\Contracts\MemoryPolicy;
@@ -62,6 +63,7 @@ class McpKitServiceProvider extends ServiceProvider
         GroundRules::class => 'mcp-kit.ground_rules.class',
         MemoryStore::class => 'mcp-kit.memory.store',
         MemoryPolicy::class => 'mcp-kit.memory.policy',
+        GapStore::class => 'mcp-kit.gaps.store',
         PlaybookStore::class => 'mcp-kit.playbooks.store',
         PlaybookPolicy::class => 'mcp-kit.playbooks.policy',
         OnboardingQuestions::class => 'mcp-kit.onboarding.questions',
@@ -109,7 +111,7 @@ class McpKitServiceProvider extends ServiceProvider
         $defaults = require __DIR__.'/../config/mcp-kit.php';
         $config = $this->app['config'];
 
-        foreach (['catalogue', 'tokens', 'routes', 'permission_rules', 'memory', 'activity', 'onboarding', 'docs', 'shared', 'ground_rules', 'me', 'instructions', 'describer_options', 'playbooks'] as $section) {
+        foreach (['catalogue', 'tokens', 'routes', 'permission_rules', 'memory', 'activity', 'onboarding', 'docs', 'shared', 'ground_rules', 'me', 'instructions', 'describer_options', 'playbooks', 'gaps'] as $section) {
             $config->set("mcp-kit.{$section}", array_merge($defaults[$section], (array) $config->get("mcp-kit.{$section}", [])));
         }
 

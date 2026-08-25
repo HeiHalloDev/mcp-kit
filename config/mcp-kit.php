@@ -8,16 +8,20 @@ use HeiHallo\McpKit\Activity\NullSourceResolver;
 use HeiHallo\McpKit\Audit\ActivityLogAuditWriter;
 use HeiHallo\McpKit\Describe\AutoDescriber;
 use HeiHallo\McpKit\Docs\DefaultDocsRenderer;
+use HeiHallo\McpKit\Gaps\DatabaseGapStore;
 use HeiHallo\McpKit\GroundRules\SectionedGroundRules;
 use HeiHallo\McpKit\Links\NullLinks;
 use HeiHallo\McpKit\Mcp\Prompts\GettingStartedPrompt;
+use HeiHallo\McpKit\Mcp\Resources\GapsResource;
 use HeiHallo\McpKit\Mcp\Resources\GroundRulesResource;
 use HeiHallo\McpKit\Mcp\Resources\MeResource;
 use HeiHallo\McpKit\Mcp\Resources\PlaybooksResource;
 use HeiHallo\McpKit\Mcp\Tools\RememberAboutMeTool;
+use HeiHallo\McpKit\Mcp\Tools\ReportGapTool;
 use HeiHallo\McpKit\Mcp\Tools\SavePlaybookTool;
 use HeiHallo\McpKit\Memory\ColumnMemoryStore;
 use HeiHallo\McpKit\Memory\DefaultMemoryPolicy;
+use HeiHallo\McpKit\Models\GapReport;
 use HeiHallo\McpKit\Models\Playbook as PlaybookModel;
 use HeiHallo\McpKit\Models\ServiceClient;
 use HeiHallo\McpKit\Onboarding\ConfigSuggestions;
@@ -288,8 +292,8 @@ return [
     */
 
     'shared' => [
-        'resources' => [GroundRulesResource::class, MeResource::class, PlaybooksResource::class],
-        'tools' => [RememberAboutMeTool::class, SavePlaybookTool::class],
+        'resources' => [GroundRulesResource::class, MeResource::class, PlaybooksResource::class, GapsResource::class],
+        'tools' => [RememberAboutMeTool::class, SavePlaybookTool::class, ReportGapTool::class],
         'prompts' => [GettingStartedPrompt::class],
     ],
 
@@ -345,6 +349,24 @@ return [
             'description_chars' => 200,
             'arguments' => 8,
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Gap reports
+    |--------------------------------------------------------------------------
+    |
+    | What people needed and the app could not do. The kit stores them and
+    | fires GapReported; routing is yours — listen for it and open a task,
+    | an issue, a message, whatever your team actually reads.
+    |
+    */
+
+    'gaps' => [
+        'enabled' => true,
+        'table' => 'mcp_gap_reports',
+        'model' => GapReport::class,
+        'store' => DatabaseGapStore::class,
     ],
 
     'describer_options' => [
