@@ -123,6 +123,7 @@ class McpKitServiceProvider extends ServiceProvider
         $config->set('mcp-kit.playbooks.limits', array_merge($defaults['playbooks']['limits'], (array) $config->get('mcp-kit.playbooks.limits', [])));
         $config->set('mcp-kit.ui', array_merge($defaults['ui'], (array) $config->get('mcp-kit.ui', [])));
         $config->set('mcp-kit.ui.tokens_page', array_merge($defaults['ui']['tokens_page'], (array) $config->get('mcp-kit.ui.tokens_page', [])));
+        $config->set('mcp-kit.ui.usage_page', array_merge($defaults['ui']['usage_page'], (array) $config->get('mcp-kit.ui.usage_page', [])));
     }
 
     /**
@@ -244,8 +245,9 @@ class McpKitServiceProvider extends ServiceProvider
 
         \Livewire\Livewire::component('mcp-kit.tokens-page', $this->livewireComponent('McpTokensPage', Livewire\TokensPage::class));
         \Livewire\Livewire::component('mcp-kit.assistant-memory', $this->livewireComponent('AssistantMemory', Livewire\AssistantMemory::class));
+        \Livewire\Livewire::component('mcp-kit.usage-page', $this->livewireComponent('McpUsagePage', Livewire\UsagePage::class));
 
-        if ($config->get('mcp-kit.ui.tokens_page.enabled')) {
+        if ($config->get('mcp-kit.ui.tokens_page.enabled') || $config->get('mcp-kit.ui.usage_page.enabled')) {
             $this->loadRoutesFrom(__DIR__.'/../routes/ui.php');
         }
     }

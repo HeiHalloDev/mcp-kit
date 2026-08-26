@@ -80,6 +80,47 @@ final class Gap
     }
 
     /**
+     * Decided: it is planned, built, or turned down. The resolution is what
+     * the people who reported it will read, so it is never optional — a gap
+     * that changes status without a reason tells them less than silence did.
+     *
+     * Everybody who reported it is marked unheard again: planned and done
+     * are two separate pieces of news, and each is owed once.
+     */
+    public function settled(string $status, string $resolution, string $by): self
+    {
+        if (! in_array($status, [self::PLANNED, self::DONE, self::DECLINED], true)) {
+            throw new InvalidArgumentException('A gap is settled as planned, done or declined.');
+        }
+
+        if (trim($resolution) === '') {
+            throw new InvalidArgumentException('Say what was decided. It is what the people who reported this will read.');
+        }
+
+        return new self(
+            key: $this->key,
+            title: $this->title,
+            need: $this->need,
+            missing: $this->missing,
+            server: $this->server,
+            tool: $this->tool,
+            blocking: $this->blocking,
+            status: $status,
+            reporters: array_map(static function (array $reporter): array {
+                unset($reporter['heard']);
+
+                return $reporter;
+            }, $this->reporters),
+            reports: $this->reports,
+            resolution: trim($resolution),
+            resolvedBy: $by,
+            resolvedAt: now(),
+            reportedAt: $this->reportedAt,
+            id: $this->id,
+        );
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array

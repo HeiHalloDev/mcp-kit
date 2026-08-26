@@ -31,6 +31,7 @@ test('a shared primitive can be dropped everywhere', function () {
 test('the tokens page and the memory UI are off by default', function () {
     expect(config('mcp-kit.ui.enabled'))->toBeFalse()
         ->and(config('mcp-kit.ui.tokens_page.enabled'))->toBeFalse()
+        ->and(config('mcp-kit.ui.usage_page.enabled'))->toBeFalse()
         ->and(config('mcp-kit.onboarding.ui'))->toBeFalse()
         ->and(config('mcp-kit.me.expose_as_tool'))->toBeFalse();
 });

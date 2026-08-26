@@ -136,6 +136,8 @@ The kit standardises on spatie/laravel-activitylog and adds three columns to its
 
 With Livewire 4 and Flux installed, set `mcp-kit.ui.enabled` and `ui.tokens_page.enabled` (or run `mcp:install --with-tokens-page`). The page at `settings/tokens` mints tokens with a preset filtered by the person's own permissions, lists and revokes them, shows the connect snippets for Claude Code, Claude Desktop, Codex and cURL, and ends with what the assistant remembers about the person. The table and tabs are Flux Pro components. Add the package views to Tailwind: `@source '../../vendor/heihallo/mcp-kit/resources/views';`.
 
+`ui.usage_page.enabled` adds a second page at `settings/mcp-usage`: what the tools were used for and what people needed and could not get — the browser twin of `{scheme}://usage` and `{scheme}://gaps`. It refuses anybody who is not privileged, because it is a record of colleagues' work. A gap is decided from here (planned, built, or turned down) with a line saying why; everybody who reported it reads that line the next time they read `{scheme}://me`.
+
 ## Testing in your app
 
 ```php

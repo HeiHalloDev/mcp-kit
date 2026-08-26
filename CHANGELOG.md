@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.6.0 — 2026-08-26
+
+The two records you could only read through an MCP client now have a page.
+
+- **New page at `settings/mcp-usage`** (`ui.usage_page.enabled`, off by default): what the work was for, what fell short, what worked but fought back, and what nobody named — plus the gap list. Privileged only, like the resources it mirrors. It leads with the share of frames that got a purpose, which is the one number that measures whether anybody is naming their work.
+- **A gap can finally be decided.** `Gap::PLANNED`, `DONE` and `DECLINED`, `settledFor()` and `markHeard()` all existed and nothing could reach them, so every reported gap stayed open forever and no reporter ever heard back. The page settles one with a required line saying what was decided; `GapStatusChanged` — which also already existed and was never dispatched — now fires, and everybody who reported it is marked unheard again, so planned and built are two separate pieces of news.
+
 ## v1.5.0 — 2026-08-26
 
 Frames open themselves, and closing one carries a judgement of how hard it was.

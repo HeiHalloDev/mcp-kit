@@ -265,6 +265,15 @@ return [
             'middleware' => ['web', 'auth'],
             'name' => 'mcp-kit.tokens',
         ],
+
+        // What the tools were used for and what people could not get.
+        // Privileged only — the component refuses anybody else.
+        'usage_page' => [
+            'enabled' => (bool) env('MCP_KIT_USAGE_PAGE', false),
+            'path' => 'settings/mcp-usage',
+            'middleware' => ['web', 'auth'],
+            'name' => 'mcp-kit.usage',
+        ],
         // Where the assistant-memory section lives, for the link in {scheme}://me
         'memory_url' => null,
     ],
