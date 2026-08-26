@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.7.0 — 2026-08-26
+
+Servers can merge without stranding their clients, and presets know who they are for.
+
+- **`alias_of` on a server entry.** When two servers merge, every client configured against the absorbed server's path is one deploy from an outage. An alias entry keeps the old path registered, serves the target's class, and makes every access decision against the target's key — a token passes at the alias exactly when it would pass at the server it points to, blocked-owner and staff gates included. Aliases are routing, not servers: the registry's new `canonical()` excludes them, and the catalogue, docs, inventory and summary counts reason over canonical servers only. Nothing offers an alias to a new client.
+- **`roles` on a preset.** Permissions alone cannot separate two roles that hold the same key but deserve different token shapes — an owner and an external analyst may both hold `reports`. A preset may now name the roles it is for, matched through the same role reading the permission rules already use (spatie, enum-backed or string `role` attributes). No list means offered to everyone; privileged owners bypass every list — minting the narrower presets is how they test them.
+- **The tokens page opens on the configured default preset.** `mount()` took the first key of the resolved presets and ignored `tokens.default_preset` — every app that configured `work` as its default was opening the picker on `read`. Behavior note: pages whose configured default differs from their first preset key open on a different radio after this; that is the configuration finally being honoured.
+- The extended checkboxes label themselves with a readable name ("Users Admin") instead of the raw ability string, which moves into the description.
+
+Compatibility: verified against the full suites of flex.afpt, io.afpt, studies.afpt, frontend.l5 and frontend.trustme with no config changes.
+
 ## v1.6.0 — 2026-08-26
 
 The two records you could only read through an MCP client now have a page.
