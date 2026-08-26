@@ -92,7 +92,17 @@ class SectionedGroundRules implements GroundRules
 
         $scheme = (string) config('mcp-kit.scheme', 'app');
 
-        return $authored."\n\nStart a new session by reading `{$scheme}://me` and `{$scheme}://ground-rules`. Writes preview without `confirm=true` and execute with it.";
+        $footer = "\n\nStart a new session by reading `{$scheme}://me` and `{$scheme}://ground-rules`. Writes preview without `confirm=true` and execute with it.";
+
+        // A frame has to be opened before the work, so the instruction
+        // cannot live only in the ground-rules resource — that is read
+        // late, or not at all. This string reaches every client at
+        // connect. Only apps that record pay for the extra sentence.
+        if (config('mcp-kit.learning.enabled', false)) {
+            $footer .= ' Before work that is more than a lookup, call `working_on` with what it is for, and call it again with an outcome when it is done.';
+        }
+
+        return $authored.$footer;
     }
 
     /**

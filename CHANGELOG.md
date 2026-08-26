@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.4.2 — 2026-08-26
+
+- The instruction to open a task frame moved into the connect-time instructions, gated on `learning.enabled`. It had lived only in the ground-rules resource, which an assistant reads late or not at all — so CRM recorded 28 tool calls and zero frames overnight. A frame has to be opened *before* the work, so the instruction has to arrive before the work too. Apps that do not record are unaffected.
+
 ## v1.4.1 — 2026-08-25
 
 - `learning.enabled` reads `MCP_LEARNING_ENABLED`, the way `read_only` already reads `MCP_READ_ONLY`. The point of the switch is running it for a fortnight and turning it off again; that should not need a deploy.

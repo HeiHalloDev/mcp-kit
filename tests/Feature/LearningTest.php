@@ -232,3 +232,20 @@ test('the tool is unavailable to a service client', function () {
 
     expect(app(TaskStore::class)->recent())->toBe([]);
 });
+
+test('the connect instructions tell the assistant to open a frame, and only where recording is on', function () {
+    $rules = app(GroundRules::class);
+
+    // The ground-rules resource is read late or not at all, so the one
+    // thing that must happen before the work is said at connect.
+    expect($rules->instructions('acme', 'Staff tools.'))
+        ->toContain('working_on')
+        ->toContain('an outcome');
+
+    config()->set('mcp-kit.learning.enabled', false);
+
+    expect($rules->instructions('acme', 'Staff tools.'))
+        ->not->toContain('working_on')
+        // The rest of the footer is untouched for apps that do not record.
+        ->toContain('acme://ground-rules');
+});
