@@ -113,6 +113,10 @@ class ToolReference
         $classes = [];
 
         foreach ($this->servers->all() as $definition) {
+            if ($definition->aliasOf !== null) {
+                continue;
+            }
+
             array_push($classes, ...$this->toolClassesFor($definition->class));
         }
 
@@ -129,6 +133,10 @@ class ToolReference
         $inventory = [];
 
         foreach ($this->servers->all() as $key => $definition) {
+            if ($definition->aliasOf !== null) {
+                continue;
+            }
+
             $names = array_map(fn (string $class): string => $this->toolName($class), $this->toolClassesFor($definition->class));
             sort($names);
             $inventory[$key] = array_values($names);
@@ -164,6 +172,10 @@ class ToolReference
         $tools = [];
 
         foreach ($this->servers->all() as $serverKey => $definition) {
+            if ($definition->aliasOf !== null) {
+                continue;
+            }
+
             foreach ($this->toolClassesFor($definition->class) as $class) {
                 $reflection = new ReflectionClass($class);
                 $defaults = $reflection->getDefaultProperties();

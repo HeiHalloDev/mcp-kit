@@ -32,6 +32,18 @@ class ServerRegistry
     }
 
     /**
+     * The servers that are servers in their own right — an alias entry only
+     * keeps an old path answering for its target and is never an ability
+     * namespace, a docs section, or an inventory key.
+     *
+     * @return array<string, ServerDefinition>
+     */
+    public function canonical(): array
+    {
+        return array_filter($this->all(), fn (ServerDefinition $definition): bool => $definition->aliasOf === null);
+    }
+
+    /**
      * @return list<string>
      */
     public function keys(): array

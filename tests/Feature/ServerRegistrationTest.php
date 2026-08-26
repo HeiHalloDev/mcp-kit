@@ -12,7 +12,10 @@ test('the registry reads the configured servers with defaults filled in', functi
     $acme = $registry->get('acme');
     $reports = $registry->get('reports');
 
-    expect($registry->keys())->toBe(['acme', 'reports'])
+    expect($registry->keys())->toBe(['acme', 'reports', 'legacy'])
+        ->and(array_keys($registry->canonical()))->toBe(['acme', 'reports'])
+        ->and($registry->get('legacy')->effectiveKey())->toBe('acme')
+        ->and($acme->effectiveKey())->toBe('acme')
         ->and($acme->class)->toBe(AcmeServer::class)
         ->and($acme->path)->toBe('/mcp/acme')
         ->and($acme->uri())->toBe('mcp/acme')

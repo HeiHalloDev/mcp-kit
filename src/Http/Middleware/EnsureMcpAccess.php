@@ -73,8 +73,12 @@ class EnsureMcpAccess
         $definition = $this->servers->forRoute($request->route());
 
         if ($definition !== null) {
-            if (! in_array($definition->key, $this->catalogue->serversFor($principal->abilities()), true)) {
-                return $this->deny($request, $principal, "Token carries no ability for the {$definition->key} server.");
+            // An alias route answers for its target: the gate asks whether the
+            // token reaches the server this path is an alias of, so a merged
+            // server's old path keeps working for exactly the tokens that may
+            // use the merged server.
+            if (! in_array($definition->effectiveKey(), $this->catalogue->serversFor($principal->abilities()), true)) {
+                return $this->deny($request, $principal, "Token carries no ability for the {$definition->effectiveKey()} server.");
             }
 
             if ($principal->isService() && ! $definition->serviceClients) {

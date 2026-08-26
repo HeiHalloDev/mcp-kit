@@ -31,8 +31,8 @@ class DefaultDocsRenderer implements DocsRenderer
         $lines[] = sprintf(
             '%d tools across %d server%s. %d read, %d write. Every tool checks a token ability (see `config/mcp-kit.php`) before executing.',
             count($tools),
-            count($this->servers->all()),
-            count($this->servers->all()) === 1 ? '' : 's',
+            count($this->servers->canonical()),
+            count($this->servers->canonical()) === 1 ? '' : 's',
             count($tools) - count($writes),
             count($writes),
         );

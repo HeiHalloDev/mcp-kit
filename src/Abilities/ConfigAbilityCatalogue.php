@@ -331,7 +331,7 @@ class ConfigAbilityCatalogue implements AbilityCatalogue
     public function serversFor(array $abilities): array
     {
         $reached = [];
-        $order = array_keys($this->servers->all());
+        $order = array_keys($this->servers->canonical());
 
         foreach ($abilities as $ability) {
             if (! is_string($ability)) {
@@ -376,13 +376,13 @@ class ConfigAbilityCatalogue implements AbilityCatalogue
             }
         }
 
-        foreach ($this->servers->all() as $key => $definition) {
+        foreach ($this->servers->canonical() as $key => $definition) {
             if ($definition->wildcard === $wildcard) {
                 $servers[] = $key;
             }
         }
 
-        return array_values(array_intersect(array_keys($this->servers->all()), array_unique(array_filter($servers))));
+        return array_values(array_intersect(array_keys($this->servers->canonical()), array_unique(array_filter($servers))));
     }
 
     public function referencedPermissions(): array

@@ -28,6 +28,7 @@ final class ServerDefinition
         public readonly string $color,
         public readonly string $icon,
         public readonly string $description,
+        public readonly ?string $aliasOf = null,
     ) {}
 
     /**
@@ -49,7 +50,18 @@ final class ServerDefinition
             color: (string) ($config['color'] ?? 'zinc'),
             icon: (string) ($config['icon'] ?? 'wrench-screwdriver'),
             description: (string) ($config['description'] ?? ''),
+            aliasOf: isset($config['alias_of']) ? (string) $config['alias_of'] : null,
         );
+    }
+
+    /**
+     * The server this route answers for. An alias entry keeps an old path
+     * alive after a merge: it serves the target's class, and every access
+     * decision is made as if the caller had hit the target's own route.
+     */
+    public function effectiveKey(): string
+    {
+        return $this->aliasOf ?? $this->key;
     }
 
     public function routeName(): string

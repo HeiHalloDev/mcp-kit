@@ -339,7 +339,7 @@ final class Guards
             foreach (app(ServerRegistry::class)->all() as $key => $definition) {
                 $response = Mcp::listTools($token, $definition->path);
 
-                $allowed = in_array($key, $reached, true) && (! $definition->requiresStaff || app(PermissionChecker::class)->isStaff($user));
+                $allowed = in_array($definition->effectiveKey(), $reached, true) && (! $definition->requiresStaff || app(PermissionChecker::class)->isStaff($user));
 
                 if ($allowed) {
                     $response->assertSuccessful();
@@ -378,7 +378,7 @@ final class Guards
 
                 // A server that opted out of presets (customer-facing) is not
                 // in the full preset and must turn the token away.
-                if (in_array($key, $reached, true)) {
+                if (in_array($definition->effectiveKey(), $reached, true)) {
                     $response->assertSuccessful();
                 } else {
                     expect($definition->presets)->toBeFalse("The full preset does not reach {$key}.");
@@ -405,7 +405,7 @@ final class Guards
             foreach (app(ServerRegistry::class)->all() as $key => $definition) {
                 $response = Mcp::listTools($token, $definition->path);
 
-                if ($definition->serviceClients && in_array($key, $reached, true)) {
+                if ($definition->serviceClients && in_array($definition->effectiveKey(), $reached, true)) {
                     $response->assertSuccessful();
                 } else {
                     $response->assertForbidden();

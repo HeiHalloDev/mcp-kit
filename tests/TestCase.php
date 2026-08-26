@@ -100,6 +100,16 @@ abstract class TestCase extends Orchestra
                 'requires_staff' => false,
                 'service_clients' => false,
             ],
+            // The path a merged-away server used to answer on. Serves the
+            // target's class; access is decided as if the caller hit /mcp/acme.
+            'legacy' => [
+                'class' => AcmeServer::class,
+                'path' => '/mcp/legacy',
+                'alias_of' => 'acme',
+                'label' => 'Legacy (alias)',
+                'client_name' => 'acme-legacy',
+                'presets' => false,
+            ],
         ]);
         $config->set('mcp-kit.catalogue', [
             'abilities' => [
