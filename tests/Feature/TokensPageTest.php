@@ -25,7 +25,8 @@ test('the tokens page mints with a preset and extras, lists, and revokes', funct
 
     $component = Livewire::test(TokensPage::class)
         ->assertSee('API tokens')
-        ->assertSet('preset', 'read')
+        // The configured default (work), not whatever preset happens to list first.
+        ->assertSet('preset', 'work')
         ->set('name', 'Laptop')
         ->set('preset', 'full')
         ->set('extras', ['acme:admin'])
@@ -191,4 +192,31 @@ test('the connect snippets offer every server at once, one at a time, and a way 
         ->assertSee('claude mcp remove acme')
         ->assertSee('codex mcp remove acme')
         ->assertSee('Remove a connection');
+});
+
+test('the default radio honours tokens.default_preset instead of listing order', function () {
+    config()->set('mcp-kit.tokens.default_preset', 'work');
+
+    $user = acmeUser(['staff', 'things']);
+    $this->actingAs($user);
+
+    // 'read' sorts first in the resolved presets; the page must still open on 'work'.
+    Livewire::test(TokensPage::class)->assertSet('preset', 'work');
+});
+
+test('the default falls back to the first preset the person can actually mint', function () {
+    config()->set('mcp-kit.tokens.default_preset', 'work');
+
+    // Only `reports`: work resolves to reports:read, but suppose the default
+    // pointed at a preset this person cannot mint — the page must not open on
+    // an empty radio.
+    config()->set('mcp-kit.tokens.default_preset', 'no_such_preset');
+
+    $user = acmeUser(['staff', 'things']);
+    $this->actingAs($user);
+
+    $component = Livewire::test(TokensPage::class);
+
+    expect($component->get('preset'))->not->toBe('')
+        ->and($component->get('preset'))->not->toBe('no_such_preset');
 });

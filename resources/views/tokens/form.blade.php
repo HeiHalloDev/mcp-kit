@@ -23,7 +23,11 @@
                 @if ($this->extraOptions !== [])
                     <flux:checkbox.group wire:model.live="extras" :label="__('Extended (privileged only)')" :description="__('Never granted by a wildcard — has to be chosen here.')">
                         @foreach ($this->extraOptions as $ability => $description)
-                            <flux:checkbox :value="$ability" :label="$ability" :description="$description" />
+                            <flux:checkbox
+                                :value="$ability"
+                                :label="\Illuminate\Support\Str::headline(str_replace([':', '-', '_'], ' ', \Illuminate\Support\Str::after($ability, ':')))"
+                                :description="$description.' ('.$ability.')'"
+                            />
                         @endforeach
                     </flux:checkbox.group>
                 @endif

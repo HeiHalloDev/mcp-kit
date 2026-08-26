@@ -58,7 +58,12 @@ class TokensPage extends Component
 
     public function mount(): void
     {
-        $this->preset = array_key_first($this->presets) ?? '';
+        // The configured default, when the person may actually mint it;
+        // otherwise the first preset they can. Listing order is presentation,
+        // not policy.
+        $default = (string) config('mcp-kit.tokens.default_preset', '');
+
+        $this->preset = isset($this->presets[$default]) ? $default : (array_key_first($this->presets) ?? '');
         $this->expiresDays = app(TokenPolicy::class)->defaultDays() ?? array_key_first($this->expiryOptions);
     }
 
