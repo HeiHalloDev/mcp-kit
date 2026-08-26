@@ -21,10 +21,16 @@ use Laravel\Mcp\Response;
  *
  * The frame itself is opened by the middleware on the first call, because
  * asking an assistant to open one *before* the work requires it to predict
- * that the work will matter — and it does not. Two rounds of instructions
- * produced zero frames against ninety-six calls. So the grouping is
- * automatic and this tool supplies the part only the assistant knows:
- * what it was for, whether the person got it, and how hard it was.
+ * that the work will matter — and it does not. So the grouping is automatic
+ * and this tool supplies the part only the assistant knows: what it was
+ * for, whether the person got it, and how hard it was.
+ *
+ * Every refusal here names the parameter it is talking about. The first
+ * assistant to use this in earnest tried seven times and never got in: it
+ * fixed `effort` after one refusal, because that message lists the valid
+ * values, and never found `purpose` or `result`, because those messages
+ * asked for a thing without saying what it was called. An error that
+ * cannot be acted on is worse than no error.
  *
  * Deliberately does not preview and confirm. Everything else that writes
  * here changes the business's data and needs a person to agree; this
@@ -34,7 +40,7 @@ class WorkingOnTool extends StaffTool
 {
     protected string $name = 'working_on';
 
-    protected string $description = 'Say what a piece of work was for and how it went. Call it when the work is over — the frame is already open, this fills it in. `effort` is the judgement only you can make: smooth when the tools did what you needed, fiddly when it took stitching together, fought_it when it worked in the end and should not have been that hard. Succeeding after a fight is the most useful thing you can report, so say so. Describe the kind of work, never the customer.';
+    protected string $description = 'Say what a piece of work was for and how it went. Call it when the work is over — the frame is already open, this fills it in. Parameters: `purpose` (what it was for), `outcome` (done, partly, failed), `effort` (smooth, fiddly, fought_it) and `result` (what happened, and what got in the way). `effort` is the judgement only you can make: smooth when the tools did what you needed, fiddly when it took stitching together, fought_it when it worked in the end and should not have been that hard. Succeeding after a fight is the most useful thing you can report, so say so. Describe the kind of work, never the customer.';
 
     /**
      * @var array<string, mixed>
@@ -48,6 +54,25 @@ class WorkingOnTool extends StaffTool
             'result' => ['type' => 'string', 'description' => 'One line on what happened. Say plainly what got in the way when something did — that is the most useful thing here.'],
         ],
     ];
+
+    /**
+     * Names assistants reach for instead of the real ones. Taken from what
+     * they actually sent, not from imagination. The value is accepted and
+     * the reply says which parameter it went into, so the next call is
+     * right rather than merely forgiven.
+     *
+     * @var array<string, list<string>>
+     */
+    protected const ALSO_KNOWN_AS = [
+        'purpose' => ['task', 'work', 'doing', 'summary', 'what'],
+        'result' => ['friction', 'shortfall', 'reason', 'note', 'notes', 'details', 'what_happened'],
+    ];
+
+    /** Parameters read under a name that is not theirs, for the reply. */
+    protected array $misnamed = [];
+
+    /** The frame every refusal is counted against. */
+    protected ?Task $frame = null;
 
     public function handle(Request $request): Response
     {
@@ -71,78 +96,126 @@ class WorkingOnTool extends StaffTool
             return Response::error('That looks like a password or token. A task frame says what kind of work is going on, never a credential.');
         }
 
+        $this->misnamed = [];
+        $this->frame = $this->openFrame(app(TaskStore::class), $principal, (string) $tokenId);
+
         return $request->get('outcome') !== null
-            ? $this->close($request, $principal, (string) $tokenId)
-            : $this->nameFrame($request, $principal, (string) $tokenId);
+            ? $this->close($request, $principal)
+            : $this->nameFrame($request, $principal);
     }
 
     /**
      * Naming without closing: the work is still going, but now the frame
      * says what it is.
      */
-    protected function nameFrame(Request $request, Principal $principal, string $tokenId): Response
+    protected function nameFrame(Request $request, Principal $principal): Response
     {
-        $purpose = trim((string) $request->get('purpose', ''));
+        $purpose = $this->read($request, 'purpose');
 
         if ($purpose === '') {
-            return Response::error('Say what this work is for, in one line — or pass an outcome and an effort to close it.');
+            return $this->refuse('`purpose` is missing. Pass `purpose` with one line on what this work is for — or pass `outcome` and `effort` to close it.');
         }
 
         $store = app(TaskStore::class);
-        $task = $this->openFrame($store, $principal, $tokenId);
-
-        $named = $store->put($task->named($purpose));
+        $named = $store->put($this->frame->named($purpose));
 
         app(CurrentTask::class)->set($named);
 
         event(new TaskOpened($named, $principal));
 
-        return Response::text('Noted. Call working_on again with an outcome and an effort when this is over.');
+        return Response::text($this->say('Noted. Call working_on again with `outcome` and `effort` when this is over.'));
     }
 
-    protected function close(Request $request, Principal $principal, string $tokenId): Response
+    protected function close(Request $request, Principal $principal): Response
     {
         $outcome = (string) $request->get('outcome');
 
         if (! in_array($outcome, Task::OUTCOMES, true)) {
-            return Response::error('Outcome is one of: '.implode(', ', Task::OUTCOMES).'.');
+            return $this->refuse('`outcome` is one of: '.implode(', ', Task::OUTCOMES).'.');
         }
 
         $effort = trim((string) $request->get('effort', ''));
 
         if (! in_array($effort, Task::EFFORTS, true)) {
-            return Response::error(
-                'Say how hard it was: '.implode(', ', Task::EFFORTS).'. This is the judgement only you can make — '
+            return $this->refuse(
+                '`effort` is one of: '.implode(', ', Task::EFFORTS).'. This is the judgement only you can make — '
                 .'the call count cannot see it, because reading before writing and previewing before confirming '
                 .'make a correct write three calls by design. A task that got there in the end but should not '
                 .'have been that hard is fought_it, and that is the row worth reading.'
             );
         }
 
-        $store = app(TaskStore::class);
-        $task = $this->openFrame($store, $principal, $tokenId);
-
-        $result = trim((string) $request->get('result', ''));
+        $result = $this->read($request, 'result');
 
         if ($result === '' && ($outcome !== Task::DONE || $effort !== Task::SMOOTH)) {
-            return Response::error('Say what got in the way. A task that fell short, or that was harder than it should have been, is the one row nobody can learn from without a reason.');
+            return $this->refuse('`result` is missing. Pass `result` with one line on what happened and what got in the way. A task that fell short, or that was harder than it should have been, is the one row nobody can learn from without a reason.');
         }
 
-        $closed = $store->put($task->closedAs(
+        $store = app(TaskStore::class);
+
+        $closed = $store->put($this->frame->closedAs(
             outcome: $outcome,
             result: $result,
-            calls: $task->calls,
+            calls: $this->frame->calls,
             effort: $effort,
-            purpose: trim((string) $request->get('purpose', '')),
+            purpose: $this->read($request, 'purpose'),
         ));
 
         app(CurrentTask::class)->set(null);
 
         event(new TaskClosed($closed, $principal));
 
-        return Response::text($closed->isUnnamed()
-            ? 'Noted — though the frame has no purpose on it, so it says how it went without saying what it was.'
-            : 'Noted.');
+        return Response::text($this->say($closed->isUnnamed()
+            ? 'Noted — though the frame has no `purpose` on it, so it says how it went without saying what it was.'
+            : 'Noted.'));
+    }
+
+    /**
+     * Read a parameter, falling back to the names assistants reach for
+     * instead. What was used is remembered so the reply can name the real
+     * one — accepted, not silently swallowed.
+     */
+    protected function read(Request $request, string $parameter): string
+    {
+        $value = trim((string) $request->get($parameter, ''));
+
+        if ($value !== '') {
+            return $value;
+        }
+
+        foreach (self::ALSO_KNOWN_AS[$parameter] ?? [] as $alias) {
+            $value = trim((string) $request->get($alias, ''));
+
+            if ($value !== '') {
+                $this->misnamed[$alias] = $parameter;
+
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Refusals are counted on the frame. Seven in a row look identical to
+     * a frame nobody touched, and they are the opposite: somebody tried.
+     */
+    protected function refuse(string $message): Response
+    {
+        if ($this->frame !== null) {
+            app(TaskStore::class)->noteRefusal($this->frame);
+        }
+
+        return Response::error($this->say($message));
+    }
+
+    protected function say(string $message): string
+    {
+        foreach ($this->misnamed as $alias => $parameter) {
+            $message .= sprintf(' (`%s` is not a parameter here — I read it as `%s`.)', $alias, $parameter);
+        }
+
+        return $message;
     }
 
     /**

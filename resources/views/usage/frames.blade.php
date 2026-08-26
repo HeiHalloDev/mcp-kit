@@ -3,7 +3,7 @@
     'short' => [__('Fell short'), __('Somebody came for something and did not get it. Read these against the gap list above.')],
     'hard' => [__('Worked, but should not have been that hard'), __('They got what they came for, so nothing else here flags these. The call count cannot see them either — only the assistant that did the work can say it fought the tools.')],
     'worked' => [__('Worked'), __('Went the way the tools expect.')],
-    'unjudged' => [__('Nobody said how it went'), __('Opened by the first call and left. The calls are real; nothing is claimed about the outcome.')],
+    'unjudged' => [__('Nobody said how it went'), __('Opened by the first call and left. The calls are real; nothing is claimed about the outcome — unless it is marked refused, which means somebody tried.')],
 ])
 
 <div class="space-y-8">
@@ -35,6 +35,10 @@
 
                             @if ($task->fellShort())
                                 <flux:badge color="red" size="sm">{{ $task->outcome }}</flux:badge>
+                            @endif
+
+                            @if ($task->namingWasRefused())
+                                <flux:badge color="red" size="sm" variant="solid">{{ __(':count refused', ['count' => $task->refusals]) }}</flux:badge>
                             @endif
                         </div>
 

@@ -107,5 +107,9 @@
     "Last 90 days": "Last 90 days",
     "All servers": "All servers",
     "Say what was decided — the people who reported this will read it.": "Say what was decided — the people who reported this will read it.",
-    "Noted. Everybody who reported it will hear the next time they ask.": "Noted. Everybody who reported it will hear the next time they ask."
+    "Noted. Everybody who reported it will hear the next time they ask.": "Noted. Everybody who reported it will hear the next time they ask.",
+    "An assistant could not record its work": "An assistant could not record its work",
+    "working_on refused these, so the frame stayed blank. Somebody tried to say what the work was and the tool would not take it — the numbers above undercount by this much.": "working_on refused these, so the frame stayed blank. Somebody tried to say what the work was and the tool would not take it — the numbers above undercount by this much.",
+    ":count refused": ":count refused",
+    "Opened by the first call and left. The calls are real; nothing is claimed about the outcome — unless it is marked refused, which means somebody tried.": "Opened by the first call and left. The calls are real; nothing is claimed about the outcome — unless it is marked refused, which means somebody tried."
 }

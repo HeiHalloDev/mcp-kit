@@ -149,7 +149,7 @@ test('a frame closed without ever being named says so', function () {
 
     AcmeServer::actingAs($user)
         ->tool(WorkingOnTool::class, ['outcome' => 'done', 'effort' => 'smooth'])
-        ->assertSee('no purpose on it');
+        ->assertSee('no `purpose` on it');
 
     expect(app(TaskStore::class)->recent()[0]->isUnnamed())->toBeTrue();
 });
@@ -288,4 +288,79 @@ test('a service client gets no frame and cannot name one', function () {
 
     Mcp::call($client, '/mcp/acme', 'working_on', ['purpose' => 'A machine has no purpose to state'])
         ->assertSee('for people');
+});
+
+/*
+ * What the first assistant to use this in earnest actually sent. It tried
+ * seven times and never got in: it fixed `effort` after one refusal
+ * because that message lists the valid values, and never found `purpose`
+ * or `result` because those messages asked for a thing without naming it.
+ */
+test('every refusal names the parameter it is about', function () {
+    $user = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($user)->tool(WorkingOnTool::class, [])
+        ->assertHasErrors()->assertSee('`purpose` is missing');
+
+    AcmeServer::actingAs($user)->tool(WorkingOnTool::class, ['outcome' => 'finished'])
+        ->assertHasErrors()->assertSee('`outcome` is one of');
+
+    AcmeServer::actingAs($user)->tool(WorkingOnTool::class, ['outcome' => 'done', 'effort' => 'medium'])
+        ->assertHasErrors()->assertSee('`effort` is one of');
+
+    AcmeServer::actingAs($user)->tool(WorkingOnTool::class, ['outcome' => 'done', 'effort' => 'fiddly'])
+        ->assertHasErrors()->assertSee('`result` is missing');
+});
+
+test('a name it reached for instead is accepted, and the real one is named back', function () {
+    $user = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($user)->tool(WorkingOnTool::class, [
+        'task' => 'Overview of upcoming meetings and open slots',
+        'outcome' => 'done',
+        'effort' => 'fiddly',
+        'friction' => 'get_available_slots ignores user_id.',
+    ])
+        ->assertHasNoErrors()
+        ->assertSee('`task` is not a parameter here — I read it as `purpose`.')
+        ->assertSee('`friction` is not a parameter here — I read it as `result`.');
+
+    $task = app(TaskStore::class)->recent()[0];
+
+    expect($task->purpose)->toBe('Overview of upcoming meetings and open slots')
+        ->and($task->result)->toBe('get_available_slots ignores user_id.')
+        ->and($task->outcome)->toBe(Task::DONE);
+});
+
+test('a frame that kept bouncing is counted and shown, not mistaken for one nobody touched', function () {
+    $user = acmeUser();
+    $token = acmeToken($user, ['acme:things:read']);
+
+    Mcp::call($token, '/mcp/acme', 'list_things')->assertOk();
+
+    foreach ([[], ['outcome' => 'done', 'effort' => 'medium'], ['outcome' => 'done', 'effort' => 'fiddly']] as $attempt) {
+        Mcp::call($token, '/mcp/acme', 'working_on', $attempt);
+    }
+
+    $task = app(TaskStore::class)->recent()[0];
+
+    expect($task->refusals)->toBe(3)
+        ->and($task->isUnnamed())->toBeTrue()
+        ->and($task->namingWasRefused())->toBeTrue();
+
+    Mcp::readResource(acmeToken(acmeAdmin(), ['acme:things:read']), '/mcp/acme', 'acme://usage')
+        ->assertSee('An assistant could not record its work')
+        ->assertSee('refused 3');
+});
+
+test('a refused call is logged as failed, not as a plain read', function () {
+    $user = acmeUser();
+    $token = acmeToken($user, ['acme:things:read']);
+
+    Mcp::call($token, '/mcp/acme', 'working_on', ['outcome' => 'done', 'effort' => 'medium']);
+
+    $row = Activity::query()->where('log_name', 'mcp')->latest('id')->sole();
+
+    expect($row->event)->toBe('failed')
+        ->and($row->properties['tool'])->toBe('working_on');
 });

@@ -53,6 +53,10 @@ class UsageResource extends Resource
 
         return Response::text(view('mcp-kit::resources.usage', [
             'days' => $days,
+            // An assistant tried to say what it was doing and could not
+            // get in. Leads the file: it means the record is lying about
+            // itself, and every number under it is short.
+            'refused' => array_values(array_filter($recent, fn (Task $t): bool => $t->namingWasRefused())),
             'shortfalls' => array_values(array_filter($recent, fn (Task $t): bool => $t->fellShort())),
             // Succeeded, but not easily. No outcome flags these and no
             // call count finds them; the effort judgement is the only

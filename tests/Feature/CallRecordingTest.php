@@ -104,3 +104,15 @@ test('a source resolver stamps the product on rows', function () {
 
     expect(Activity::query()->where('log_name', 'mcp')->sole()->source)->toBe('acme.example');
 });
+
+test('a tool that refuses is recorded as failed, not as a successful read', function () {
+    config()->set('mcp-kit.learning.enabled', true);
+
+    $token = acmeToken(acmeUser(), ['acme:things:read']);
+
+    // Response::error() comes back as a *successful* JSON-RPC result with
+    // isError set, so a transport-level check never sees it.
+    Mcp::call($token, '/mcp/acme', 'working_on', ['outcome' => 'nonsense'])->assertOk();
+
+    expect(Activity::query()->where('log_name', 'mcp')->latest('id')->sole()->event)->toBe('failed');
+});

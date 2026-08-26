@@ -26,6 +26,13 @@ interface TaskStore
     public function noteCall(Task $task): int;
 
     /**
+     * Record that an assistant tried to name or close this frame and was
+     * refused; returns the new total. A frame that keeps bouncing looks
+     * exactly like one nobody bothered with, and it is the opposite.
+     */
+    public function noteRefusal(Task $task): int;
+
+    /**
      * @param  list<string>  $outcomes
      * @return list<Task>
      */

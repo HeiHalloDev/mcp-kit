@@ -126,6 +126,18 @@ class UsagePage extends Component
     }
 
     /**
+     * Frames an assistant tried to name and could not. They look identical
+     * to frames nobody bothered with, and mean the opposite.
+     *
+     * @return list<Task>
+     */
+    #[Computed]
+    public function refused(): array
+    {
+        return array_values(array_filter($this->tasks, fn (Task $t): bool => $t->namingWasRefused()));
+    }
+
+    /**
      * The numbers worth watching: how much work came through, and how much
      * of it anybody said anything about. A frame opens by itself, so the
      * share that gets named is the only figure that measures cooperation.

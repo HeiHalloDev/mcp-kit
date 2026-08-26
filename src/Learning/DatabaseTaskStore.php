@@ -37,6 +37,7 @@ class DatabaseTaskStore implements TaskStore
             'result' => $task->result,
             'effort' => $task->effort,
             'calls' => $task->calls,
+            'refusals' => $task->refusals,
             'closed_at' => $task->closedAt,
         ];
 
@@ -75,6 +76,19 @@ class DatabaseTaskStore implements TaskStore
         $row->forceFill(['calls' => $row->calls + 1])->saveQuietly();
 
         return (int) $row->calls;
+    }
+
+    public function noteRefusal(Task $task): int
+    {
+        $row = $this->model()->newQuery()->find($task->id);
+
+        if ($row === null) {
+            return $task->refusals;
+        }
+
+        $row->forceFill(['refusals' => (int) $row->refusals + 1])->saveQuietly();
+
+        return (int) $row->refusals;
     }
 
     public function abandonStale(string $tokenId, int $olderThanHours): void
@@ -121,6 +135,7 @@ class DatabaseTaskStore implements TaskStore
             result: $row->result === null ? null : (string) $row->result,
             effort: $row->effort === null ? null : (string) $row->effort,
             calls: (int) $row->calls,
+            refusals: (int) ($row->refusals ?? 0),
             startedAt: $row->created_at,
             closedAt: $row->closed_at,
             id: $row->id,

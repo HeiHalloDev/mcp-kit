@@ -171,8 +171,17 @@ class McpCallContext
         $this->deniedAbility = $ability;
     }
 
+    /**
+     * A denial is already a more precise account of the same refusal —
+     * it names the ability and the reason — so it is never overwritten
+     * by the generic failure the response inspection produces.
+     */
     public function failed(): void
     {
+        if ($this->status === self::STATUS_DENIED) {
+            return;
+        }
+
         $this->status = self::STATUS_FAILED;
     }
 

@@ -49,6 +49,8 @@ final class Task
         /** Null on a frame nobody has judged yet. */
         public readonly ?string $effort = null,
         public readonly int $calls = 0,
+        /** Times an assistant tried to name or close this and was refused. */
+        public readonly int $refusals = 0,
         public readonly ?DateTimeInterface $startedAt = null,
         public readonly ?DateTimeInterface $closedAt = null,
         public readonly int|string|null $id = null,
@@ -89,6 +91,7 @@ final class Task
             result: $this->result,
             effort: $this->effort,
             calls: $this->calls,
+            refusals: $this->refusals,
             startedAt: $this->startedAt,
             closedAt: $this->closedAt,
             id: $this->id,
@@ -100,6 +103,16 @@ final class Task
      * rows worth reading first — and the ones that most often turn out to
      * be a gap nobody filed.
      */
+    /**
+     * An assistant tried to say what this was and the tool would not take
+     * it. The frame looks abandoned and is not — that difference is
+     * invisible everywhere else, so it is worth its own question.
+     */
+    public function namingWasRefused(): bool
+    {
+        return $this->refusals > 0;
+    }
+
     public function fellShort(): bool
     {
         return in_array($this->outcome, [self::FAILED, self::PARTLY], true);
@@ -117,6 +130,7 @@ final class Task
             result: $result === '' ? $this->result : $result,
             effort: $effort ?? $this->effort,
             calls: $calls,
+            refusals: $this->refusals,
             startedAt: $this->startedAt,
             closedAt: now(),
             id: $this->id,
@@ -130,6 +144,7 @@ final class Task
     {
         return array_filter([
             'purpose' => $this->purpose,
+            'refusals' => $this->refusals ?: null,
             'outcome' => $this->outcome,
             'effort' => $this->effort,
             'result' => $this->result,

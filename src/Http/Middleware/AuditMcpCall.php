@@ -185,7 +185,12 @@ class AuditMcpCall
     }
 
     /**
-     * A JSON-RPC error inside a 200 (a tool that threw) counts as failed.
+     * A JSON-RPC error inside a 200 (a tool that threw) counts as failed,
+     * and so does a tool that refused: `Response::error()` comes back as a
+     * *successful* result carrying `isError`, which the transport-level
+     * check below never sees. Seven consecutive refusals were logged as
+     * plain reads before this was caught.
+     *
      * Streamed responses are not inspected.
      */
     protected function isErrorResponse(Response $response): bool
@@ -196,6 +201,14 @@ class AuditMcpCall
 
         $content = (string) $response->getContent();
 
-        return $content !== '' && str_contains($content, '"error"') && ! str_contains($content, '"result"');
+        if ($content === '') {
+            return false;
+        }
+
+        if (str_contains($content, '"error"') && ! str_contains($content, '"result"')) {
+            return true;
+        }
+
+        return str_contains($content, '"isError":true');
     }
 }

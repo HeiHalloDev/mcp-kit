@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.8.0 — 2026-08-26
+
+The first assistant to use `working_on` in earnest tried seven times and never got in. Every one of those refusals was logged as a successful read, and the frame it was trying to name looked exactly like one nobody had bothered with.
+
+- **Every refusal names its parameter.** It fixed `effort` after a single refusal, because that message lists the valid values — and never found `purpose` or `result` across six attempts, because those messages asked for a thing without saying what it was called. Now: `` `result` is missing `` where it used to say "say what got in the way".
+- **The names it reached for instead are accepted**: `task`, `work`, `doing`, `summary` for `purpose`; `friction`, `shortfall`, `reason`, `note`, `details` for `result`. The reply says which parameter the value went into, so the next call is right rather than merely forgiven.
+- **Refusals are counted on the frame** (`mcp_tasks.refusals`, `Task::namingWasRefused()`) and lead `{scheme}://usage` and the usage page. A frame that bounced seven times and one nobody touched were indistinguishable, and they mean opposite things.
+- **A tool that refuses is logged as `failed`.** `Response::error()` returns a *successful* JSON-RPC result carrying `isError`, which the transport-level check never saw, so every refusal read as `read`. A denial keeps its more precise `denied`.
+
 ## v1.7.0 — 2026-08-26
 
 Servers can merge without stranding their clients, and presets know who they are for.
