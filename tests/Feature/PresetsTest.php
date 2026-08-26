@@ -74,3 +74,40 @@ it('keeps a server that opted out of presets off the staff page and can require 
     expect($presets->grantableFor(acmeUser(['things'])))->toBe([])
         ->and($presets->grantableFor(acmeUser(['staff', 'things'])))->not->toBe([]);
 });
+
+test('a preset with a roles list is hidden from roles outside it and offered to roles in it', function () {
+    config()->set('mcp-kit.token_presets.owner', [
+        'label' => 'Owner',
+        'description' => 'Numbers, staff included.',
+        'grant' => ['reports:read'],
+        'roles' => ['owner'],
+    ]);
+
+    $owner = acmeUser(['reports'], role: 'owner');
+    $staff = acmeUser(['reports'], role: 'staff');
+
+    $resolver = app(PresetResolver::class);
+
+    expect($resolver->abilitiesFor($owner, 'owner'))->toBe(['reports:read'])
+        ->and($resolver->abilitiesFor($staff, 'owner'))->toBe([]);
+});
+
+test('a privileged owner bypasses every roles list', function () {
+    config()->set('mcp-kit.token_presets.owner', [
+        'label' => 'Owner',
+        'description' => 'Numbers, staff included.',
+        'grant' => ['reports:read'],
+        'roles' => ['owner'],
+    ]);
+
+    // acmeAdmin holds role admin — not in the list, but privileged.
+    expect(app(PresetResolver::class)->abilitiesFor(acmeAdmin(), 'owner'))
+        ->toBe(['reports:read']);
+});
+
+test('a preset without a roles list behaves exactly as before', function () {
+    $staff = acmeUser(['staff', 'things']);
+
+    expect(app(PresetResolver::class)->abilitiesFor($staff, 'analyst'))->toBe([]);
+    expect(app(PresetResolver::class)->abilitiesFor(acmeUser(['reports']), 'analyst'))->toBe(['reports:read']);
+});

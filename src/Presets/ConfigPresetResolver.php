@@ -8,6 +8,7 @@ use HeiHallo\McpKit\Contracts\AbilityCatalogue;
 use HeiHallo\McpKit\Contracts\PermissionChecker;
 use HeiHallo\McpKit\Contracts\PresetResolver;
 use HeiHallo\McpKit\Contracts\PrincipalResolver;
+use HeiHallo\McpKit\Permissions\Concerns\ReadsPermissionRules;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository;
@@ -20,6 +21,8 @@ use Illuminate\Contracts\Config\Repository;
  */
 class ConfigPresetResolver implements PresetResolver
 {
+    use ReadsPermissionRules;
+
     public function __construct(
         protected Repository $config,
         protected AbilityCatalogue $catalogue,
@@ -101,6 +104,15 @@ class ConfigPresetResolver implements PresetResolver
         }
 
         if (($definition['privileged'] ?? false) && ! $principal->privileged) {
+            return [];
+        }
+
+        // A preset may name the roles it is for. Privileged owners bypass the
+        // list — they have all access everywhere, and being able to mint every
+        // preset is how they test the narrower ones.
+        $roles = array_values(array_filter((array) ($definition['roles'] ?? []), 'is_string'));
+
+        if ($roles !== [] && ! $principal->privileged && ! $this->userHasAnyRole($user, $roles)) {
             return [];
         }
 
