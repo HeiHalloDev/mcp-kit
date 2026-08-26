@@ -27,6 +27,17 @@ final class Task
 
     public const OUTCOMES = [self::DONE, self::PARTLY, self::FAILED];
 
+    /** It went the way the tools expect. */
+    public const SMOOTH = 'smooth';
+
+    /** It worked, but it took stitching together. */
+    public const FIDDLY = 'fiddly';
+
+    /** It worked in the end and should not have been that hard. */
+    public const FOUGHT_IT = 'fought_it';
+
+    public const EFFORTS = [self::SMOOTH, self::FIDDLY, self::FOUGHT_IT];
+
     public function __construct(
         public readonly string $purpose,
         public readonly string $tokenId,
@@ -35,6 +46,8 @@ final class Task
         public readonly ?string $server = null,
         public readonly string $outcome = self::OPEN,
         public readonly ?string $result = null,
+        /** Null on a frame nobody has judged yet. */
+        public readonly ?string $effort = null,
         public readonly int $calls = 0,
         public readonly ?DateTimeInterface $startedAt = null,
         public readonly ?DateTimeInterface $closedAt = null,
@@ -47,6 +60,42 @@ final class Task
     }
 
     /**
+     * Opened by the middleware and never named. The calls are grouped, but
+     * nobody has said what for — the row counts, the purpose does not.
+     */
+    public function isUnnamed(): bool
+    {
+        return trim($this->purpose) === '';
+    }
+
+    /**
+     * Succeeded, but should have been easier. The case call counts cannot
+     * see and outcomes alone cannot express, and the reason effort exists.
+     */
+    public function wasHarderThanItShouldBe(): bool
+    {
+        return in_array($this->effort, [self::FIDDLY, self::FOUGHT_IT], true);
+    }
+
+    public function named(string $purpose): self
+    {
+        return new self(
+            purpose: $purpose,
+            tokenId: $this->tokenId,
+            userId: $this->userId,
+            name: $this->name,
+            server: $this->server,
+            outcome: $this->outcome,
+            result: $this->result,
+            effort: $this->effort,
+            calls: $this->calls,
+            startedAt: $this->startedAt,
+            closedAt: $this->closedAt,
+            id: $this->id,
+        );
+    }
+
+    /**
      * Did the person walk away without what they came for? These are the
      * rows worth reading first — and the ones that most often turn out to
      * be a gap nobody filed.
@@ -56,16 +105,17 @@ final class Task
         return in_array($this->outcome, [self::FAILED, self::PARTLY], true);
     }
 
-    public function closedAs(string $outcome, string $result, int $calls): self
+    public function closedAs(string $outcome, string $result, int $calls, ?string $effort = null, ?string $purpose = null): self
     {
         return new self(
-            purpose: $this->purpose,
+            purpose: $purpose !== null && trim($purpose) !== '' ? $purpose : $this->purpose,
             tokenId: $this->tokenId,
             userId: $this->userId,
             name: $this->name,
             server: $this->server,
             outcome: $outcome,
             result: $result === '' ? $this->result : $result,
+            effort: $effort ?? $this->effort,
             calls: $calls,
             startedAt: $this->startedAt,
             closedAt: now(),
@@ -81,6 +131,7 @@ final class Task
         return array_filter([
             'purpose' => $this->purpose,
             'outcome' => $this->outcome,
+            'effort' => $this->effort,
             'result' => $this->result,
             'server' => $this->server,
             'calls' => $this->calls,

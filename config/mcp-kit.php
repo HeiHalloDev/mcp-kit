@@ -379,9 +379,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | The call log knows which tools ran, never what for. With this on, the
-    | assistant opens a one-line task frame before substantial work and
-    | closes it with an outcome, and every call in between is stamped with
-    | it. Off by default: it records what your colleagues do all day, so
+    | frame opens itself on the first call and every call in between is
+    | stamped with it; the assistant names it and judges it afterwards. Off by default: it records what your colleagues do all day, so
     | turning it on is a decision, and `{scheme}://me` tells them plainly
     | that it is on. Reading the result is privileged, like the gap list.
     | Env-driven so it can be run for a fortnight and turned off again
@@ -398,6 +397,11 @@ return [
         // An open frame this old is closed as unknown rather than counted
         // as a success nobody vouched for.
         'lifetime_hours' => 4,
+
+        // The call at which an unnamed frame asks to be named, in the
+        // result of that call. Low enough to catch real work, high enough
+        // that a single lookup is never nagged.
+        'nudge_after' => 4,
 
         'recent_days' => 30,
         'recent_limit' => 100,

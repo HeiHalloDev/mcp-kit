@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.5.0 — 2026-08-26
+
+Frames open themselves, and closing one carries a judgement of how hard it was.
+
+- **Nobody opens a frame any more.** The middleware opens one on the first call and stamps every call after it. Two rounds of instructions asking the assistant to open one first produced **zero frames against ninety-six real calls** — opening one requires predicting that the work will matter, and models are bad at predicting and good at reacting. Grouping now happens whether anyone cooperates or not.
+- `working_on` became *"say what that was"* rather than *"say what this will be"*. It names the open frame and closes it, and a purpose written at the end is better evidence than a guess written at the start.
+- **New `effort` on close: `smooth | fiddly | fought_it`, required.** Call counts are a bad proxy for difficulty — read-before-write and preview-then-confirm make a correct write three calls by design. `done` with `fought_it` is the row the old schema could not express at all: it succeeded, so no outcome flags it and no count finds it. `{scheme}://usage` now lists those above the plain successes.
+- The nudge to name a frame arrives in the result of the call itself, once, as its own content block — never appended to the tool's own text.
+- Closing without a reason is refused for anything except a smooth success. Nullable column, so frames closed before this keep working.
+
 ## v1.4.2 — 2026-08-26
 
 - The instruction to open a task frame moved into the connect-time instructions, gated on `learning.enabled`. It had lived only in the ground-rules resource, which an assistant reads late or not at all — so CRM recorded 28 tool calls and zero frames overnight. A frame has to be opened *before* the work, so the instruction has to arrive before the work too. Apps that do not record are unaffected.

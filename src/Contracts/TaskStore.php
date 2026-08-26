@@ -21,6 +21,11 @@ interface TaskStore
     public function put(Task $task): Task;
 
     /**
+     * Record that a call belonged to this frame; returns the new total.
+     */
+    public function noteCall(Task $task): int;
+
+    /**
      * @param  list<string>  $outcomes
      * @return list<Task>
      */

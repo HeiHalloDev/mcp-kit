@@ -54,7 +54,17 @@ class UsageResource extends Resource
         return Response::text(view('mcp-kit::resources.usage', [
             'days' => $days,
             'shortfalls' => array_values(array_filter($recent, fn (Task $t): bool => $t->fellShort())),
-            'done' => array_values(array_filter($recent, fn (Task $t): bool => $t->outcome === Task::DONE)),
+            // Succeeded, but not easily. No outcome flags these and no
+            // call count finds them; the effort judgement is the only
+            // thing that can see them.
+            'hard_won' => array_values(array_filter(
+                $recent,
+                fn (Task $t): bool => $t->outcome === Task::DONE && $t->wasHarderThanItShouldBe(),
+            )),
+            'done' => array_values(array_filter(
+                $recent,
+                fn (Task $t): bool => $t->outcome === Task::DONE && ! $t->wasHarderThanItShouldBe(),
+            )),
             'unjudged' => array_values(array_filter(
                 $recent,
                 fn (Task $t): bool => in_array($t->outcome, [Task::OPEN, Task::UNKNOWN], true),

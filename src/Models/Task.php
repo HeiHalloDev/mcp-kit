@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property ?string $server
  * @property string $outcome
  * @property ?string $result
+ * @property ?string $effort
  * @property int $calls
  * @property ?Carbon $closed_at
  */

@@ -35,6 +35,7 @@ class DatabaseTaskStore implements TaskStore
             'server' => $task->server,
             'outcome' => $task->outcome,
             'result' => $task->result,
+            'effort' => $task->effort,
             'calls' => $task->calls,
             'closed_at' => $task->closedAt,
         ];
@@ -56,6 +57,24 @@ class DatabaseTaskStore implements TaskStore
             ->get();
 
         return $rows->map(fn (TaskModel $row): Task => $this->toTask($row))->all();
+    }
+
+    /**
+     * Count this call against the open frame and hand back the new total.
+     * Kept on the row rather than counted from the log, because the nudge
+     * has to know mid-call and a count query per call is not worth it.
+     */
+    public function noteCall(Task $task): int
+    {
+        $row = $this->model()->newQuery()->find($task->id);
+
+        if ($row === null) {
+            return $task->calls;
+        }
+
+        $row->forceFill(['calls' => $row->calls + 1])->saveQuietly();
+
+        return (int) $row->calls;
     }
 
     public function abandonStale(string $tokenId, int $olderThanHours): void
@@ -100,6 +119,7 @@ class DatabaseTaskStore implements TaskStore
             server: $row->server === null ? null : (string) $row->server,
             outcome: (string) $row->outcome,
             result: $row->result === null ? null : (string) $row->result,
+            effort: $row->effort === null ? null : (string) $row->effort,
             calls: (int) $row->calls,
             startedAt: $row->created_at,
             closedAt: $row->closed_at,
