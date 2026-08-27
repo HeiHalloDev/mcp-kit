@@ -53,6 +53,18 @@ return [
     'read_only' => (bool) env('MCP_READ_ONLY', false),
 
     /*
+    | Refuse a call carrying an argument the tool does not declare, naming
+    | the closest real parameter. Without it the argument is dropped and
+    | the tool answers confidently about something else. People only —
+    | service clients send code we change deliberately.
+    */
+
+    'strict_parameters' => (bool) env('MCP_STRICT_PARAMETERS', true),
+
+    // Never counted as unknown, whether a tool declares them or not.
+    'always_allowed_parameters' => ['confirm'],
+
+    /*
     |--------------------------------------------------------------------------
     | Resource URI scheme
     |--------------------------------------------------------------------------

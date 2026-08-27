@@ -17,7 +17,7 @@ test('a read call becomes one mcp row with the sanitised arguments', function ()
     $user = acmeUser();
     $token = acmeToken($user, ['acme:things:read'], 'laptop');
 
-    Mcp::call($token, '/mcp/acme', 'list_things', ['query' => 'Wid', 'password' => 'hunter2'])->assertSuccessful();
+    Mcp::call($token, '/mcp/acme', 'list_things', ['query' => 'Wid'])->assertSuccessful();
 
     $row = Activity::query()->where('log_name', 'mcp')->sole();
 
@@ -29,7 +29,6 @@ test('a read call becomes one mcp row with the sanitised arguments', function ()
         ->and($row->properties['tool'])->toBe('list_things')
         ->and($row->properties['server'])->toBe('acme')
         ->and($row->properties['arguments']['query'])->toBe('Wid')
-        ->and($row->properties['arguments']['password'])->toBe('[REDACTED]')
         ->and($row->properties['call_id'])->toBeString()
         ->and($row->properties['duration_ms'])->toBeNumeric()
         ->and($row->properties['client'])->toBeString();
@@ -115,4 +114,19 @@ test('a tool that refuses is recorded as failed, not as a successful read', func
     Mcp::call($token, '/mcp/acme', 'working_on', ['outcome' => 'nonsense'])->assertOk();
 
     expect(Activity::query()->where('log_name', 'mcp')->latest('id')->sole()->event)->toBe('failed');
+});
+
+test('a declared parameter that carries a secret is redacted in the row', function () {
+    $token = acmeToken(acmeUser(), ['acme:events:write'], 'laptop');
+
+    // An *undeclared* secret never gets this far — strict parameters
+    // refuse the call. This is the other case: a parameter the tool really
+    // takes, whose value must not reach the log. The CRM's send_sms is the
+    // live one.
+    Mcp::call($token, '/mcp/acme', 'log_event', ['event' => 'signup', 'message' => 'hunter2'])->assertSuccessful();
+
+    $arguments = Activity::query()->where('log_name', 'mcp')->latest('id')->sole()->properties['arguments'];
+
+    expect($arguments['event'])->toBe('signup')
+        ->and($arguments['message'])->toBe('[REDACTED]');
 });

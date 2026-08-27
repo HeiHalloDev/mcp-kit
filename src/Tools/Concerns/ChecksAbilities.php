@@ -60,7 +60,97 @@ trait ChecksAbilities
             event(new AbilityDenied($principal, $ability, $denial, method_exists($this, 'name') ? $this->name() : null));
         }
 
-        return $denial;
+        if ($denial !== null) {
+            return $denial;
+        }
+
+        return $this->unknownParameterRefusal($request);
+    }
+
+    /**
+     * An argument the tool does not declare is silently dropped by every
+     * `$request->get()` below, and the tool then answers confidently about
+     * something else. `get_available_slots` given `user_id` ignored it,
+     * fell back to the caller, and reported that *they* had no booking
+     * calendar — naming the wrong person for the wrong reason.
+     *
+     * A refusal that names the real parameter is worth more than an answer
+     * to a question nobody asked. Service clients are exempt: their calls
+     * are code we control and change deliberately, not a model guessing.
+     */
+    protected function unknownParameterRefusal(Request $request): ?string
+    {
+        if (! config('mcp-kit.strict_parameters', true)) {
+            return null;
+        }
+
+        $tokenable = $request->user();
+        $principal = $tokenable ? app(PrincipalResolver::class)->resolve($tokenable) : null;
+
+        if ($principal === null || ! $principal->isPerson()) {
+            return null;
+        }
+
+        $declared = $this->declaredParameters();
+
+        // No declared schema means nothing to judge against.
+        if ($declared === []) {
+            return null;
+        }
+
+        $allowed = [...$declared, ...(array) config('mcp-kit.always_allowed_parameters', ['confirm'])];
+        $unknown = array_values(array_diff(array_keys($request->all()), $allowed));
+
+        if ($unknown === []) {
+            return null;
+        }
+
+        $lines = [];
+
+        foreach ($unknown as $parameter) {
+            $closest = $this->closestParameter((string) $parameter, $declared);
+
+            $lines[] = $closest === null
+                ? sprintf('`%s` is not a parameter here.', $parameter)
+                : sprintf('`%s` is not a parameter here — did you mean `%s`?', $parameter, $closest);
+        }
+
+        return implode(' ', $lines).' Nothing was done, because a dropped argument produces a confident answer to a different question. Parameters: '.implode(', ', $declared).'.';
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function declaredParameters(): array
+    {
+        $schema = method_exists($this, 'resolveInputSchema')
+            ? $this->resolveInputSchema()
+            : (property_exists($this, 'inputSchema') ? $this->inputSchema : []);
+
+        $properties = $schema['properties'] ?? [];
+
+        return is_array($properties) ? array_map(strval(...), array_keys($properties)) : [];
+    }
+
+    /**
+     * @param  list<string>  $declared
+     */
+    protected function closestParameter(string $parameter, array $declared): ?string
+    {
+        $best = null;
+        $bestDistance = PHP_INT_MAX;
+
+        foreach ($declared as $candidate) {
+            $distance = levenshtein(strtolower($parameter), strtolower($candidate));
+
+            if ($distance < $bestDistance) {
+                $best = $candidate;
+                $bestDistance = $distance;
+            }
+        }
+
+        // Far enough apart that a suggestion would be a guess, not a hint.
+        return $bestDistance <= max(3, (int) floor(strlen($parameter) / 2)) ? $best : null;
     }
 
     private function computeAbilityDenial(Request $request, string $ability): ?string

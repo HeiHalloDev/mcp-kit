@@ -138,6 +138,10 @@ With Livewire 4 and Flux installed, set `mcp-kit.ui.enabled` and `ui.tokens_page
 
 `ui.usage_page.enabled` adds a second page at `settings/mcp-usage`: what the tools were used for and what people needed and could not get — the browser twin of `{scheme}://usage` and `{scheme}://gaps`. It refuses anybody who is not privileged, because it is a record of colleagues' work. A gap is decided from here (planned, built, or turned down) with a line saying why; everybody who reported it reads that line the next time they read `{scheme}://me`.
 
+## Strict parameters
+
+An argument a tool does not declare is refused, naming the closest real parameter, rather than silently dropped — a dropped argument makes the tool answer a different question and sound sure about it. People only; service clients are exempt because their calls are code you change deliberately. Turn it off with `MCP_STRICT_PARAMETERS=false`, and list anything that should never count as unknown in `always_allowed_parameters` (default `confirm`).
+
 ## Testing in your app
 
 ```php

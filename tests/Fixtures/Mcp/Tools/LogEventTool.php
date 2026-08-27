@@ -16,7 +16,7 @@ class LogEventTool extends StaffTool
 
     protected string $description = 'System logging from another service: a write service clients may perform.';
 
-    protected array $inputSchema = ['type' => 'object', 'properties' => ['event' => ['type' => 'string']], 'required' => ['event']];
+    protected array $inputSchema = ['type' => 'object', 'properties' => ['event' => ['type' => 'string'], 'message' => ['type' => 'string']], 'required' => ['event']];
 
     public function handle(Request $request): Response
     {

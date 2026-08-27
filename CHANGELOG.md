@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.9.0 — 2026-08-27
+
+An argument a tool does not declare is now refused instead of dropped.
+
+- **`strict_parameters` (on by default).** Every `$request->get()` silently ignores an argument the tool never declared, and the tool then answers confidently about something else. The CRM's `get_available_slots`, handed `user_id` instead of `staff`, ignored it, fell back to the caller and reported that *they* had no booking calendar — the wrong person, for the wrong reason, with nothing to show anything had gone astray. The refusal names the unknown parameter, suggests the closest real one and lists them all.
+- **People only.** Service clients are exempt: their calls are code we change deliberately, not a model guessing. An ability denial still wins, so a stray argument never reveals a schema to a token that may not use the tool.
+- Off with `MCP_STRICT_PARAMETERS=false`; `always_allowed_parameters` (default `confirm`) is never counted as unknown.
+- Redaction moved where it belongs: `Sanitizer` has unit tests, and the call-recording test now proves an undeclared secret is refused outright while a *declared* one (the CRM's `send_sms` `message`) is still redacted in the row.
+
 ## v1.8.0 — 2026-08-26
 
 The first assistant to use `working_on` in earnest tried seven times and never got in. Every one of those refusals was logged as a successful read, and the frame it was trying to name looked exactly like one nobody had bothered with.
