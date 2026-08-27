@@ -130,3 +130,30 @@ test('a declared parameter that carries a secret is redacted in the row', functi
     expect($arguments['event'])->toBe('signup')
         ->and($arguments['message'])->toBe('[REDACTED]');
 });
+
+test('a failed row records what the refusal actually said', function () {
+    config()->set('mcp-kit.learning.enabled', true);
+
+    $token = acmeToken(acmeUser(), ['acme:things:read']);
+
+    Mcp::call($token, '/mcp/acme', 'working_on', ['outcome' => 'nonsense'])->assertOk();
+
+    $row = Activity::query()->where('log_name', 'mcp')->latest('id')->sole();
+
+    // Three real failures of get_available_slots were recorded with
+    // reason: null — which tool, never one word of why.
+    expect($row->event)->toBe('failed')
+        ->and($row->properties['reason'])->toContain('`outcome` is one of');
+});
+
+test('a denial keeps its own reason rather than the response text', function () {
+    $token = acmeToken(acmeUser(), ['acme:events:write']);
+
+    Mcp::call($token, '/mcp/acme', 'list_things', ['query' => 'x']);
+
+    $row = Activity::query()->where('log_name', 'mcp')->latest('id')->sole();
+
+    expect($row->event)->toBe('denied')
+        ->and($row->properties['ability'])->toBe('acme:things:read')
+        ->and($row->properties['reason'])->toContain('Required ability');
+});

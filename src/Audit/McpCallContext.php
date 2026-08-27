@@ -176,13 +176,20 @@ class McpCallContext
      * it names the ability and the reason — so it is never overwritten
      * by the generic failure the response inspection produces.
      */
-    public function failed(): void
+    public function failed(?string $reason = null): void
     {
         if ($this->status === self::STATUS_DENIED) {
             return;
         }
 
         $this->status = self::STATUS_FAILED;
+
+        // What the tool actually said. Without it the row records that
+        // get_available_slots failed three times and not one word of why,
+        // which is the half worth reading.
+        if ($reason !== null && $this->denial === null) {
+            $this->denial = Str::limit(trim($reason), 300);
+        }
     }
 
     public function status(): string

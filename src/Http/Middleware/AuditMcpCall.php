@@ -63,7 +63,7 @@ class AuditMcpCall
         try {
             $response = $next($request);
         } catch (\Throwable $e) {
-            $this->context->failed();
+            $this->context->failed($e::class.': '.$e->getMessage());
             $this->record($request, 500);
             $this->context->end();
 
@@ -71,7 +71,7 @@ class AuditMcpCall
         }
 
         if ($response->getStatusCode() >= 400 || $this->isErrorResponse($response)) {
-            $this->context->failed();
+            $this->context->failed($this->errorMessageFrom($response));
         }
 
         $this->record($request, $response->getStatusCode());
@@ -182,6 +182,45 @@ class AuditMcpCall
             'tool' => isset($params['name']) ? (string) $params['name'] : null,
             'arguments' => (array) ($params['arguments'] ?? []),
         ];
+    }
+
+    /**
+     * What the refusal actually said. A row that records three failures of
+     * get_available_slots and not one word of why is the half of the story
+     * nobody can act on.
+     */
+    protected function errorMessageFrom(Response $response): ?string
+    {
+        if ($response instanceof StreamedResponse) {
+            return null;
+        }
+
+        try {
+            $payload = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return null;
+        }
+
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        if (is_string($payload['error']['message'] ?? null)) {
+            return $payload['error']['message'];
+        }
+
+        $blocks = $payload['result']['content'] ?? null;
+
+        if (! is_array($blocks)) {
+            return null;
+        }
+
+        $text = implode(' ', array_filter(array_map(
+            static fn (mixed $block): ?string => is_array($block) && is_string($block['text'] ?? null) ? $block['text'] : null,
+            $blocks,
+        )));
+
+        return $text === '' ? null : $text;
     }
 
     /**
