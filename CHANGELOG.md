@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.9.1 — 2026-08-27
+
+- **`refusedParameters`**: a tool declares fields it turns away on purpose, as name => reason, and the caller gets that reason instead of a typo suggestion. v1.9.0's generic refusal fired first and stole better messages that apps had already written — flex's `update_student` explains that name and e-mail are owned by auth.afpt and that review access has its own tool, which is worth more than "did you mean `mobile`?". A call carrying only refused fields gets just those reasons, with no parameter list appended.
+
 ## v1.9.0 — 2026-08-27
 
 An argument a tool does not declare is now refused instead of dropped.

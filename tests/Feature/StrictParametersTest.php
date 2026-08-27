@@ -66,3 +66,15 @@ test('an ability denial still wins — a stray argument never leaks the schema',
         ->assertSee('acme:things:read')
         ->assertDontSee('Parameters:');
 });
+
+test('a field the tool turns away on purpose gives its own reason, not a typo guess', function () {
+    $token = acmeToken(acmeUser(), ['acme:things:write']);
+
+    // UpdateThingTool declares `owner` as refused: identity lives in
+    // another service, and "did you mean `name`?" would be a worse answer
+    // than saying so.
+    Mcp::call($token, '/mcp/acme', 'update_thing', ['id' => 1, 'owner' => 'kari'])
+        ->assertSee('Owner is owned by the directory and cannot be changed here.')
+        ->assertDontSee('did you mean')
+        ->assertDontSee('Parameters:');
+});

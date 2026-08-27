@@ -105,9 +105,21 @@ trait ChecksAbilities
             return null;
         }
 
+        $refused = $this->refusedParameters();
         $lines = [];
+        $onlyRefused = true;
 
         foreach ($unknown as $parameter) {
+            // A field the tool turns away on purpose has a better reason
+            // than "unknown" — it belongs somewhere else, or has its own
+            // tool. Say that instead of guessing at a typo.
+            if (isset($refused[$parameter])) {
+                $lines[] = ucfirst((string) $refused[$parameter]).'.';
+
+                continue;
+            }
+
+            $onlyRefused = false;
             $closest = $this->closestParameter((string) $parameter, $declared);
 
             $lines[] = $closest === null
@@ -115,7 +127,26 @@ trait ChecksAbilities
                 : sprintf('`%s` is not a parameter here — did you mean `%s`?', $parameter, $closest);
         }
 
+        if ($onlyRefused) {
+            return implode(' ', $lines);
+        }
+
         return implode(' ', $lines).' Nothing was done, because a dropped argument produces a confident answer to a different question. Parameters: '.implode(', ', $declared).'.';
+    }
+
+    /**
+     * Fields this tool turns away deliberately, as name => reason: owned by
+     * another service, or changed through a tool of their own. Declaring
+     * them here means the caller gets the real reason rather than a typo
+     * suggestion.
+     *
+     * @return array<string, string>
+     */
+    protected function refusedParameters(): array
+    {
+        return property_exists($this, 'refusedParameters') && is_array($this->refusedParameters)
+            ? $this->refusedParameters
+            : [];
     }
 
     /**

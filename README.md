@@ -140,7 +140,7 @@ With Livewire 4 and Flux installed, set `mcp-kit.ui.enabled` and `ui.tokens_page
 
 ## Strict parameters
 
-An argument a tool does not declare is refused, naming the closest real parameter, rather than silently dropped — a dropped argument makes the tool answer a different question and sound sure about it. People only; service clients are exempt because their calls are code you change deliberately. Turn it off with `MCP_STRICT_PARAMETERS=false`, and list anything that should never count as unknown in `always_allowed_parameters` (default `confirm`).
+An argument a tool does not declare is refused, naming the closest real parameter, rather than silently dropped — a dropped argument makes the tool answer a different question and sound sure about it. People only; service clients are exempt because their calls are code you change deliberately. Turn it off with `MCP_STRICT_PARAMETERS=false`, and list anything that should never count as unknown in `always_allowed_parameters` (default `confirm`). A tool that turns a field away on purpose — it belongs to another service, or has a tool of its own — declares `protected array $refusedParameters = ['name' => 'name is owned by auth.afpt and cannot be changed here']`, and that reason is what the caller reads.
 
 ## Testing in your app
 

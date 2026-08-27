@@ -14,6 +14,9 @@ use RuntimeException;
 #[IsIdempotent]
 class UpdateThingTool extends StaffTool
 {
+    /** @var array<string, string> */
+    protected array $refusedParameters = ['owner' => 'owner is owned by the directory and cannot be changed here'];
+
     protected string $name = 'update_thing';
 
     protected string $description = 'Rename a thing. Previews without confirm=true.';
