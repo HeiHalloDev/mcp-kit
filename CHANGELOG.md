@@ -2,12 +2,14 @@
 
 ## v1.10.0 — 2026-08-28
 
-Filing a gap moves to where the sentence is already being written.
+Filing a gap moves to where the sentence is already being written, and list tools learn to page.
 
 - **`working_on` takes an optional `gap`**: a short title for the missing capability, filed in the same call that closes the frame, using the frame's `purpose` as the need and its `result` as what was missing. `report_gap` had **zero** uses against 378 real calls, while seven frames described missing capability in their `result` — describing friction on the way out is natural, deciding to file a separate report is not. The same asymmetry that stopped anyone opening a frame before the middleware did it for them.
 - **A frame that fought back and named nothing is asked for one**, in the reply, where the assistant has just written the reason. It points at `report_gap`, which works standalone — the frame is closed by then.
 - Only for work that actually fought back: a `smooth` close naming a gap is told why nothing was filed, and the close still succeeds.
 - Repeats join the open gap rather than writing a second row, exactly as `report_gap` does — both now share `ComposesGaps`, so the dedupe cannot drift.
+- **The ground rules now separate the two kinds of gap**, because the code no longer matches what they said. A person asking for something missing is still offered `report_gap` and never filed without a yes; the tools fighting *you* is yours to report, through `working_on`, without asking them to weigh in on your tooling.
+- **New `PagesResults` concern** (on `StaffTool`): `offset`, `direction`, a per-tool `sort`, and `total`/`has_more` on every reply. A sweep of six apps found **62 list tools and five** that let a caller past the cap — the rest ordered one fixed way with no offset, so anything beyond the limit was unreachable by any route, and a full page looked exactly like a complete answer. A tool's own ordering is kept unless the caller asks, so composite orders survive.
 
 ## v1.9.2 — 2026-08-27
 

@@ -138,6 +138,10 @@ With Livewire 4 and Flux installed, set `mcp-kit.ui.enabled` and `ui.tokens_page
 
 `ui.usage_page.enabled` adds a second page at `settings/mcp-usage`: what the tools were used for and what people needed and could not get — the browser twin of `{scheme}://usage` and `{scheme}://gaps`. It refuses anybody who is not privileged, because it is a record of colleagues' work. A gap is decided from here (planned, built, or turned down) with a line saying why; everybody who reported it reads that line the next time they read `{scheme}://me`.
 
+## List tools
+
+`PagesResults` (already on `StaffTool`) gives a list tool `offset`, `direction` and a per-tool `sort`, and puts `total` and `has_more` on every reply. Merge `PAGING_PROPERTIES` into the tool's schema, declare its own `sort` enum, and call `applyPaging($query, $request, [...])` before `get()`. Without it a capped list is indistinguishable from a complete one, and nothing past the cap can be reached at all.
+
 ## Strict parameters
 
 An argument a tool does not declare is refused, naming the closest real parameter, rather than silently dropped — a dropped argument makes the tool answer a different question and sound sure about it. People only; service clients are exempt because their calls are code you change deliberately. Turn it off with `MCP_STRICT_PARAMETERS=false`, and list anything that should never count as unknown in `always_allowed_parameters` (default `confirm`). A tool that turns a field away on purpose — it belongs to another service, or has a tool of its own — declares `protected array $refusedParameters = ['name' => 'name is owned by auth.afpt and cannot be changed here']`, and that reason is what the caller reads.

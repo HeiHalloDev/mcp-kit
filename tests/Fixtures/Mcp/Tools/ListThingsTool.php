@@ -21,6 +21,9 @@ class ListThingsTool extends StaffTool
         'type' => 'object',
         'properties' => [
             'query' => ['type' => 'string', 'description' => 'Part of a name'],
+            'sort' => ['type' => 'string', 'enum' => ['name', 'created_at'], 'description' => 'What to order by'],
+            'limit' => ['type' => 'integer', 'description' => 'Maximum rows (max 50)', 'default' => 20, 'minimum' => 1, 'maximum' => 50],
+            ...self::PAGING_PROPERTIES,
         ],
     ];
 
@@ -30,12 +33,19 @@ class ListThingsTool extends StaffTool
             return $denied;
         }
 
-        $things = Thing::query()
+        $builder = Thing::query()
             ->when($request->get('query'), fn ($q, $query) => $q->where('name', 'ilike', "%{$query}%"))
-            ->get()
+            ->orderBy('name');
+
+        $paging = $this->applyPaging($builder, $request, [
+            'name' => 'name',
+            'created_at' => 'created_at',
+        ], defaultSort: 'name', defaultDirection: 'asc');
+
+        $things = $builder->get()
             ->map(fn (Thing $thing): array => $this->withAdminUrl(['id' => $thing->id, 'name' => $thing->name], $thing))
             ->all();
 
-        return Response::json($this->withListAdminUrl(['things' => $things], 'things', ['query' => $request->get('query')]));
+        return Response::json($this->withListAdminUrl(['things' => $things] + $paging, 'things', ['query' => $request->get('query')]));
     }
 }
