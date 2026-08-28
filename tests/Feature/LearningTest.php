@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Contracts\GroundRules;
 use HeiHallo\McpKit\Contracts\TaskStore;
+use HeiHallo\McpKit\Events\GapReported;
 use HeiHallo\McpKit\Events\TaskClosed;
 use HeiHallo\McpKit\Learning\Task;
 use HeiHallo\McpKit\Mcp\Resources\MeResource;
@@ -363,4 +365,70 @@ test('a refused call is logged as failed, not as a plain read', function () {
 
     expect($row->event)->toBe('failed')
         ->and($row->properties['tool'])->toBe('working_on');
+});
+
+/*
+ * report_gap went unused: zero gaps against 378 real calls, while seven
+ * frames described missing capability in their `result`. Describing
+ * friction on the way out is natural; deciding to file a separate report
+ * is not — the same asymmetry that stopped anyone opening a frame.
+ */
+test('closing a frame files the gap it names', function () {
+    Event::fake([GapReported::class]);
+
+    $user = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($user)->tool(WorkingOnTool::class, [
+        'purpose' => 'Finding the earliest-enrolled contacts in a sequence',
+        'outcome' => 'done',
+        'effort' => 'fought_it',
+        'result' => 'search_leads has no sort or offset, so the oldest are unreachable.',
+        'gap' => 'No way to reach the oldest leads',
+    ])->assertSee('Filed as a gap');
+
+    $gap = app(GapStore::class)->list()[0];
+
+    expect($gap->title)->toBe('No way to reach the oldest leads')
+        ->and($gap->need)->toBe('Finding the earliest-enrolled contacts in a sequence')
+        ->and($gap->missing)->toContain('no sort or offset');
+
+    Event::assertDispatched(GapReported::class);
+});
+
+test('a second person naming the same gap joins it rather than filing twice', function () {
+    $kari = actingWith(acmeUser(), ['acme:things:read']);
+    $ola = actingWith(acmeUser(['staff', 'things'], 'staff', ['name' => 'Ola Nordmann']), ['acme:things:read']);
+
+    $close = fn (string $result) => [
+        'purpose' => 'Reaching old leads', 'outcome' => 'partly', 'effort' => 'fought_it',
+        'result' => $result, 'gap' => 'No way to reach the oldest leads',
+    ];
+
+    AcmeServer::actingAs($kari)->tool(WorkingOnTool::class, $close('No offset.'))->assertSee('Filed as a gap');
+    AcmeServer::actingAs($ola)->tool(WorkingOnTool::class, $close('Same wall.'))->assertSee('now 2 reports');
+
+    expect(app(GapStore::class)->list())->toHaveCount(1);
+});
+
+test('work that fought back and named nothing is asked for a gap', function () {
+    $user = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($user)->tool(WorkingOnTool::class, [
+        'purpose' => 'Something awkward', 'outcome' => 'done', 'effort' => 'fought_it',
+        'result' => 'Took four passes.',
+    ])->assertSee('report_gap it now');
+
+    expect(app(GapStore::class)->list())->toBe([]);
+});
+
+test('a smooth task naming a gap is refused the filing, not the close', function () {
+    $user = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($user)->tool(WorkingOnTool::class, [
+        'purpose' => 'Easy thing', 'outcome' => 'done', 'effort' => 'smooth', 'gap' => 'Something missing',
+    ])
+        ->assertHasNoErrors()
+        ->assertSee('`gap` is for work that fought back');
+
+    expect(app(GapStore::class)->list())->toBe([]);
 });

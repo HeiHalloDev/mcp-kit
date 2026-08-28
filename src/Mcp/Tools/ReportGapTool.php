@@ -7,6 +7,7 @@ namespace HeiHallo\McpKit\Mcp\Tools;
 use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Events\GapReported;
 use HeiHallo\McpKit\Events\GapStatusChanged;
+use HeiHallo\McpKit\Gaps\ComposesGaps;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Memory\SecretDetector;
 use HeiHallo\McpKit\Principal;
@@ -18,6 +19,8 @@ use Laravel\Mcp\Response;
 
 class ReportGapTool extends StaffTool
 {
+    use ComposesGaps;
+
     protected string $name = 'report_gap';
 
     protected string $description = 'File something the person needed that this app cannot do. Not for refusals: if a tool said an ability or permission was missing, that is a permissions question with a named fix, not a gap. A repeat of something already reported joins it instead of duplicating, so just file it. Previews without confirm=true. Privileged staff may set status.';
@@ -93,18 +96,16 @@ class ReportGapTool extends StaffTool
             ));
         }
 
-        $gap = $existing !== null
-            ? $this->joined($existing, $principal, $note, $blocking)
-            : new Gap(
-                key: $key,
-                title: $title,
-                need: $need,
-                missing: $missing,
-                server: $server,
-                tool: $this->text($request, 'tool'),
-                blocking: $blocking,
-                reporters: [$this->reporter($principal, $note)],
-            );
+        $gap = $this->composeGap(
+            $principal,
+            title: $title,
+            need: $need,
+            missing: $missing,
+            server: $server,
+            tool: $this->text($request, 'tool'),
+            blocking: $blocking,
+            note: $note,
+        );
 
         return $this->previewOrExecute(
             $request,
@@ -206,37 +207,6 @@ class ReportGapTool extends StaffTool
     /**
      * @return array{name: string, at: string, note: string}
      */
-    protected function reporter(Principal $principal, string $note): array
-    {
-        return [
-            'name' => $principal->name,
-            'at' => now()->toIso8601String(),
-            'note' => $note,
-        ];
-    }
-
-    protected function joined(Gap $existing, Principal $principal, string $note, bool $blocking): Gap
-    {
-        return new Gap(
-            key: $existing->key,
-            title: $existing->title,
-            need: $existing->need,
-            missing: $existing->missing,
-            server: $existing->server,
-            tool: $existing->tool,
-            // One person blocked is enough to call the whole gap blocking.
-            blocking: $existing->blocking || $blocking,
-            status: $existing->status,
-            reporters: [...$existing->reporters, $this->reporter($principal, $note)],
-            reports: $existing->reports + 1,
-            resolution: $existing->resolution,
-            resolvedBy: $existing->resolvedBy,
-            resolvedAt: $existing->resolvedAt,
-            reportedAt: $existing->reportedAt,
-            id: $existing->id,
-        );
-    }
-
     protected function required(Request $request, string $key): string
     {
         $value = trim((string) $request->get($key, ''));

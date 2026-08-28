@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.10.0 — 2026-08-28
+
+Filing a gap moves to where the sentence is already being written.
+
+- **`working_on` takes an optional `gap`**: a short title for the missing capability, filed in the same call that closes the frame, using the frame's `purpose` as the need and its `result` as what was missing. `report_gap` had **zero** uses against 378 real calls, while seven frames described missing capability in their `result` — describing friction on the way out is natural, deciding to file a separate report is not. The same asymmetry that stopped anyone opening a frame before the middleware did it for them.
+- **A frame that fought back and named nothing is asked for one**, in the reply, where the assistant has just written the reason. It points at `report_gap`, which works standalone — the frame is closed by then.
+- Only for work that actually fought back: a `smooth` close naming a gap is told why nothing was filed, and the close still succeeds.
+- Repeats join the open gap rather than writing a second row, exactly as `report_gap` does — both now share `ComposesGaps`, so the dedupe cannot drift.
+
 ## v1.9.2 — 2026-08-27
 
 - **A failed call records what the refusal said.** `reason` was filled only by an ability denial, so every other failure stored `null`: production showed `get_available_slots` failing three times and not one word of why. The tool's own text — a JSON-RPC `error.message`, or the `content` blocks of an `isError` result — is now kept (300 chars), and an uncaught exception stores its class and message. A denial still keeps its own more precise reason.

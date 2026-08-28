@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace HeiHallo\McpKit\Mcp\Tools;
 
+use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Contracts\TaskStore;
+use HeiHallo\McpKit\Events\GapReported;
 use HeiHallo\McpKit\Events\TaskClosed;
 use HeiHallo\McpKit\Events\TaskOpened;
+use HeiHallo\McpKit\Gaps\ComposesGaps;
+use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Learning\CurrentTask;
 use HeiHallo\McpKit\Learning\Task;
 use HeiHallo\McpKit\Memory\SecretDetector;
@@ -38,9 +42,11 @@ use Laravel\Mcp\Response;
  */
 class WorkingOnTool extends StaffTool
 {
+    use ComposesGaps;
+
     protected string $name = 'working_on';
 
-    protected string $description = 'Say what a piece of work was for and how it went. Call it when the work is over — the frame is already open, this fills it in. Parameters: `purpose` (what it was for), `outcome` (done, partly, failed), `effort` (smooth, fiddly, fought_it) and `result` (what happened, and what got in the way). `effort` is the judgement only you can make: smooth when the tools did what you needed, fiddly when it took stitching together, fought_it when it worked in the end and should not have been that hard. Succeeding after a fight is the most useful thing you can report, so say so. Describe the kind of work, never the customer.';
+    protected string $description = 'Say what a piece of work was for and how it went. Call it when the work is over — the frame is already open, this fills it in. Parameters: `purpose` (what it was for), `outcome` (done, partly, failed), `effort` (smooth, fiddly, fought_it) and `result` (what happened, and what got in the way). When the work was harder than it should have been because something is missing, name it in `gap` and it is filed in the same call. `effort` is the judgement only you can make: smooth when the tools did what you needed, fiddly when it took stitching together, fought_it when it worked in the end and should not have been that hard. Succeeding after a fight is the most useful thing you can report, so say so. Describe the kind of work, never the customer.';
 
     /**
      * @var array<string, mixed>
@@ -52,6 +58,7 @@ class WorkingOnTool extends StaffTool
             'outcome' => ['type' => 'string', 'enum' => ['done', 'partly', 'failed'], 'description' => 'done when they got what they came for, partly when some of it, failed when none.'],
             'effort' => ['type' => 'string', 'enum' => ['smooth', 'fiddly', 'fought_it'], 'description' => 'How hard it was to get there, regardless of whether you got there. Do not flatter the tools: a task that succeeded after twenty minutes of working around them is fought_it, not smooth, and that row is the point of this whole record.'],
             'result' => ['type' => 'string', 'description' => 'One line on what happened. Say plainly what got in the way when something did — that is the most useful thing here.'],
+            'gap' => ['type' => 'string', 'description' => 'If the work was hard because this app cannot do something yet, a short title for the missing capability — "no way to list a sequence\'s scheduled messages". Files it for whoever builds this app, using the purpose and result above. Leave it out when the friction was your own doing rather than a missing tool.'],
         ],
     ];
 
@@ -165,9 +172,83 @@ class WorkingOnTool extends StaffTool
 
         event(new TaskClosed($closed, $principal));
 
-        return Response::text($this->say($closed->isUnnamed()
+        $reply = $closed->isUnnamed()
             ? 'Noted — though the frame has no `purpose` on it, so it says how it went without saying what it was.'
-            : 'Noted.'));
+            : 'Noted.';
+
+        return Response::text($this->say($reply.$this->gapFrom($request, $closed, $principal)));
+    }
+
+    /**
+     * File the missing capability the work ran into, if the assistant named
+     * one — in the same call that closes the frame.
+     *
+     * `report_gap` went unused: zero gaps against 378 calls, while seven
+     * frames described missing capability in their `result`. Describing
+     * friction on the way out is natural; deciding to file a separate
+     * report is not, the same asymmetry that stopped anyone opening a frame
+     * before the middleware did it for them.
+     *
+     * Only for work that actually fought back: a smooth task naming a gap
+     * is a contradiction, and a gap needs a reason to read.
+     */
+    protected function gapFrom(Request $request, Task $closed, Principal $principal): string
+    {
+        $title = trim((string) $request->get('gap', ''));
+
+        if (! config('mcp-kit.gaps.enabled', true)) {
+            return '';
+        }
+
+        // Nothing named, but the work fought back and said why: ask, here,
+        // where the sentence has just been written. Asking later, through a
+        // separate tool, is what nobody did.
+        if ($title === '') {
+            return $closed->wasHarderThanItShouldBe() && trim((string) $closed->result) !== ''
+                ? ' If it was hard because this app cannot do something yet, report_gap it now — you have already written the sentence. Next time, pass `gap` here and it is filed in the same call.'
+                : '';
+        }
+
+        if (! $closed->wasHarderThanItShouldBe()) {
+            return ' (No gap filed: `gap` is for work that fought back, and this was `'.$closed->effort.'`.)';
+        }
+
+        if ($closed->result === null || trim($closed->result) === '') {
+            return ' (No gap filed: it needs a `result` saying what got in the way.)';
+        }
+
+        // Checked before composing: composeGap joins this person on, so
+        // asking the composed gap whether they reported it always says yes.
+        try {
+            $already = app(GapStore::class)->openMatching(Gap::key($title));
+        } catch (\InvalidArgumentException $e) {
+            return ' (No gap filed: '.$e->getMessage().')';
+        }
+
+        if ($already !== null && $already->reportedBy($principal->name)) {
+            return ' You have already reported that one, so nothing was added.';
+        }
+
+        try {
+            $gap = $this->composeGap(
+                $principal,
+                title: $title,
+                need: $closed->purpose !== '' ? $closed->purpose : $title,
+                missing: $closed->result,
+                server: app(ServerRegistry::class)->forRoute(request()->route())?->key,
+            );
+        } catch (\InvalidArgumentException $e) {
+            return ' (No gap filed: '.$e->getMessage().')';
+        }
+
+        $isNew = $gap->id === null;
+        $saved = app(GapStore::class)->put($gap);
+
+        event(new GapReported($saved, $principal, $isNew));
+
+        return $isNew
+            ? ' Filed as a gap for whoever builds this app.'
+            : sprintf(' Added to an open gap, now %d reports behind it.', $saved->reports);
     }
 
     /**
