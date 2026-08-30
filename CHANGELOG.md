@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.11.0 — 2026-08-28
+
+Local files reach the tools: a staging endpoint next to the MCP routes.
+
+- **`POST /mcp/uploads`** (`uploads.enabled`, off by default): multipart field `file`, same bearer token, same access gate and throttle as the servers. Stages the bytes and answers with a handle (`up_…`), name, size, checksum and expiry. The endpoint is deliberately dumb — every meaning the file gains comes from the tool that consumes it.
+- **`AcceptsUploads`** (on `StaffTool`): a tool declares an `upload` parameter (`UPLOAD_PROPERTY`), resolves it with `stagedUpload()`, copies from `stagedPath()` into the app's real home, and records where it went with `uploadConsumed()`. Copy, not move — one upload can feed two tools.
+- **Ownership is the person, not the token.** Tokens rotate every 90 days and sessions get cut off; the next session — or the next token — lists and reuses what is already staged instead of uploading again. A foreign handle answers exactly like a missing one, so handles are not probes.
+- **`list_uploads`** (shared tool): your staged files with checksum, expiry and what consumed each. Bytes go up over HTTP; everything about them is queryable over MCP.
+- **A loading dock, not a warehouse**: `uploads.ttl_days` default 3 (`MCP_UPLOAD_TTL_DAYS`), `mcp-kit:prune` deletes expired rows with their bytes. Size cap `max_kb` (default 50 MB) and an optional mime allow-list.
+- The connect instructions tell the assistant how, only in apps that turned it on. Works for shell-capable agents (curl with the same env-var token); a claude.ai connector cannot POST files — browser staff keep the app UI.
+
 ## v1.10.0 — 2026-08-28
 
 Filing a gap moves to where the sentence is already being written, and list tools learn to page.

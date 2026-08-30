@@ -55,7 +55,7 @@ test('mcp:install scaffolds config, server, ground-rules intro, guard test, docs
         ->and((string) file_get_contents(base_path('tests/Feature/Mcp/KitGuardsTest.php')))->toContain('Guards::all(inventory:')
         ->and((string) file_get_contents(base_path('tests/Pest.php')))->toContain('Guards::actors(')
         ->and((string) file_get_contents(config('mcp-kit.docs.path')))->toContain('<!-- generated:tools:start -->')
-        ->and(json_decode((string) file_get_contents(config('mcp-kit.docs.inventory')), true))->toBe(['acme' => ['admin_only', 'list_things', 'log_event', 'update_thing'], 'reports' => ['monthly_numbers']]);
+        ->and(json_decode((string) file_get_contents(config('mcp-kit.docs.inventory')), true))->toBe(['acme' => ['admin_only', 'attach_file', 'list_things', 'log_event', 'update_thing'], 'reports' => ['monthly_numbers']]);
 
     // Second run: everything exists, nothing is appended twice.
     $this->artisan('mcp:install')

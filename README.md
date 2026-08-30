@@ -142,6 +142,10 @@ With Livewire 4 and Flux installed, set `mcp-kit.ui.enabled` and `ui.tokens_page
 
 `PagesResults` (already on `StaffTool`) gives a list tool `offset`, `direction` and a per-tool `sort`, and puts `total` and `has_more` on every reply. Merge `PAGING_PROPERTIES` into the tool's schema, declare its own `sort` enum, and call `applyPaging($query, $request, [...])` before `get()`. Without it a capped list is indistinguishable from a complete one, and nothing past the cap can be reached at all.
 
+## File uploads
+
+MCP carries JSON, not bytes. With `uploads.enabled`, the kit registers `POST /mcp/uploads` behind the same token and access gate as the servers: multipart field `file` in, handle (`up_…`) out. A tool takes the handle through `AcceptsUploads` — merge `UPLOAD_PROPERTY` into its schema, resolve with `stagedUpload()`, copy from `stagedPath()` into the app's real home, record it with `uploadConsumed()`. Staged files belong to the person (not the token — tokens rotate), are listable with the shared `list_uploads` tool, and expire after `uploads.ttl_days` (default 3, `MCP_UPLOAD_TTL_DAYS`): a loading dock, not a warehouse. `mcp-kit:prune` sweeps the dock.
+
 ## Strict parameters
 
 An argument a tool does not declare is refused, naming the closest real parameter, rather than silently dropped — a dropped argument makes the tool answer a different question and sound sure about it. People only; service clients are exempt because their calls are code you change deliberately. Turn it off with `MCP_STRICT_PARAMETERS=false`, and list anything that should never count as unknown in `always_allowed_parameters` (default `confirm`). A tool that turns a field away on purpose — it belongs to another service, or has a tool of its own — declares `protected array $refusedParameters = ['name' => 'name is owned by auth.afpt and cannot be changed here']`, and that reason is what the caller reads.

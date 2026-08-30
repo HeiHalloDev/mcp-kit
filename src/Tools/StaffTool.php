@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HeiHallo\McpKit\Tools;
 
+use HeiHallo\McpKit\Tools\Concerns\AcceptsUploads;
 use HeiHallo\McpKit\Tools\Concerns\ChecksAbilities;
 use HeiHallo\McpKit\Tools\Concerns\ConfirmsWrites;
 use HeiHallo\McpKit\Tools\Concerns\DeclaresInputSchema;
@@ -18,6 +19,7 @@ use Laravel\Mcp\Server\Tool;
  */
 abstract class StaffTool extends Tool
 {
+    use AcceptsUploads;
     use ChecksAbilities;
     use ConfirmsWrites;
     use DeclaresInputSchema;

@@ -18,6 +18,7 @@ use HeiHallo\McpKit\Mcp\Resources\GroundRulesResource;
 use HeiHallo\McpKit\Mcp\Resources\MeResource;
 use HeiHallo\McpKit\Mcp\Resources\PlaybooksResource;
 use HeiHallo\McpKit\Mcp\Resources\UsageResource;
+use HeiHallo\McpKit\Mcp\Tools\ListUploadsTool;
 use HeiHallo\McpKit\Mcp\Tools\RememberAboutMeTool;
 use HeiHallo\McpKit\Mcp\Tools\ReportGapTool;
 use HeiHallo\McpKit\Mcp\Tools\SavePlaybookTool;
@@ -316,9 +317,32 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | File uploads
+    |--------------------------------------------------------------------------
+    |
+    | MCP carries JSON, not bytes. With this on, the kit registers one HTTP
+    | endpoint behind the same token and access gate as the servers; a tool
+    | then consumes the returned handle. Staged files expire — a loading
+    | dock, not a warehouse — and mcp-kit:prune deletes them.
+    |
+    */
+
+    'uploads' => [
+        'enabled' => (bool) env('MCP_UPLOADS_ENABLED', false),
+        'route' => '/mcp/uploads',
+        'disk' => 'local',
+        'path' => 'mcp-uploads',
+        'ttl_days' => (int) env('MCP_UPLOAD_TTL_DAYS', 3),
+        'max_kb' => 51200,
+        // Empty accepts anything; list client mime types to narrow.
+        'mimes' => [],
+    ],
+
     'shared' => [
         'resources' => [GroundRulesResource::class, MeResource::class, PlaybooksResource::class, GapsResource::class, UsageResource::class],
-        'tools' => [RememberAboutMeTool::class, SavePlaybookTool::class, ReportGapTool::class, WorkingOnTool::class],
+        'tools' => [RememberAboutMeTool::class, SavePlaybookTool::class, ReportGapTool::class, WorkingOnTool::class, ListUploadsTool::class],
         'prompts' => [GettingStartedPrompt::class],
     ],
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace HeiHallo\McpKit\Activity;
 
 use HeiHallo\McpKit\Contracts\TaskStore;
+use HeiHallo\McpKit\Uploads\Uploads;
 use Illuminate\Console\Command;
 use Spatie\Activitylog\Models\Activity;
 
@@ -41,6 +42,21 @@ class PruneMcpActivityCommand extends Command
         $this->info("Pruned {$deleted} task frame(s) older than {$days} days.");
     }
 
+    /**
+     * Staged files are a loading dock: whatever nobody consumed goes with
+     * its row when the clock runs out.
+     */
+    protected function pruneUploads(): void
+    {
+        if (! config('mcp-kit.uploads.enabled', false)) {
+            return;
+        }
+
+        $pruned = app(Uploads::class)->prune();
+
+        $this->info("Pruned {$pruned} expired staged upload(s).");
+    }
+
     public function handle(): int
     {
         $days = (int) ($this->option('days') ?: config('mcp-kit.activity.retain_days', 90));
@@ -68,6 +84,7 @@ class PruneMcpActivityCommand extends Command
         $this->info("Pruned {$deleted} MCP activity row(s) older than {$days} days.");
 
         $this->pruneTasks();
+        $this->pruneUploads();
 
         return self::SUCCESS;
     }

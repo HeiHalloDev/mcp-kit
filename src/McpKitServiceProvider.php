@@ -115,7 +115,7 @@ class McpKitServiceProvider extends ServiceProvider
         $defaults = require __DIR__.'/../config/mcp-kit.php';
         $config = $this->app['config'];
 
-        foreach (['catalogue', 'tokens', 'routes', 'permission_rules', 'memory', 'activity', 'onboarding', 'docs', 'shared', 'ground_rules', 'me', 'instructions', 'describer_options', 'playbooks', 'gaps', 'learning'] as $section) {
+        foreach (['catalogue', 'tokens', 'routes', 'permission_rules', 'memory', 'activity', 'onboarding', 'docs', 'shared', 'ground_rules', 'me', 'instructions', 'describer_options', 'playbooks', 'gaps', 'learning', 'uploads'] as $section) {
             $config->set("mcp-kit.{$section}", array_merge($defaults[$section], (array) $config->get("mcp-kit.{$section}", [])));
         }
 
@@ -158,6 +158,7 @@ class McpKitServiceProvider extends ServiceProvider
         $this->registerActivityModel();
         $this->registerStamper();
         $this->registerUi();
+        $this->registerUploads();
 
         $this->app->booted(fn () => $this->enforceGuardedServers());
 
@@ -231,6 +232,17 @@ class McpKitServiceProvider extends ServiceProvider
         Event::listen("eloquent.creating: {$model}", fn ($activity) => $this->app->make(ActivityStamper::class)($activity));
     }
 
+    /**
+     * The upload endpoint is independent of the Livewire UI: an API-only
+     * app stages files too.
+     */
+    protected function registerUploads(): void
+    {
+        if ($this->app['config']->get('mcp-kit.uploads.enabled')) {
+            $this->loadRoutesFrom(__DIR__.'/../routes/uploads.php');
+        }
+    }
+
     protected function registerUi(): void
     {
         $config = $this->app['config'];
@@ -250,6 +262,7 @@ class McpKitServiceProvider extends ServiceProvider
         if ($config->get('mcp-kit.ui.tokens_page.enabled') || $config->get('mcp-kit.ui.usage_page.enabled')) {
             $this->loadRoutesFrom(__DIR__.'/../routes/ui.php');
         }
+
     }
 
     /**

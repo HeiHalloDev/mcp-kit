@@ -6,6 +6,7 @@ namespace HeiHallo\McpKit\Tests\Fixtures\Mcp\Servers;
 
 use HeiHallo\McpKit\Servers\StaffServer;
 use HeiHallo\McpKit\Tests\Fixtures\Mcp\Tools\AdminOnlyTool;
+use HeiHallo\McpKit\Tests\Fixtures\Mcp\Tools\AttachFileTool;
 use HeiHallo\McpKit\Tests\Fixtures\Mcp\Tools\ListThingsTool;
 use HeiHallo\McpKit\Tests\Fixtures\Mcp\Tools\LogEventTool;
 use HeiHallo\McpKit\Tests\Fixtures\Mcp\Tools\UpdateThingTool;
@@ -21,5 +22,6 @@ class AcmeServer extends StaffServer
         UpdateThingTool::class,
         AdminOnlyTool::class,
         LogEventTool::class,
+        AttachFileTool::class,
     ];
 }
