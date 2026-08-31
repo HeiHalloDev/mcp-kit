@@ -108,11 +108,32 @@ class ConnectSnippets
     {
         $lines = [];
 
+        // Codex never takes the token itself — only the NAME of an env var
+        // it reads at runtime (--bearer-token-env-var). So every snippet is
+        // two lines: put the token in the environment, then point Codex at
+        // it. The export belongs in the shell profile to survive new
+        // terminals; the snippet works as pasted either way.
         foreach ($this->definitions($serverKeys) as $server) {
-            $lines[$server->clientName] = sprintf('codex mcp add %s --url %s --bearer-token "%s"', $server->clientName, $server->url(), $token);
+            $lines[$server->clientName] = sprintf(
+                "export %s=\"%s\"\ncodex mcp add %s --url %s --bearer-token-env-var %s",
+                $this->envVar($server->clientName),
+                $token,
+                $server->clientName,
+                $server->url(),
+                $this->envVar($server->clientName),
+            );
         }
 
         return $lines;
+    }
+
+    /**
+     * The env var a server's token lives in for Codex: CRM_MCP_TOKEN,
+     * CRM_REPORTS_MCP_TOKEN.
+     */
+    public function envVar(string $clientName): string
+    {
+        return strtoupper(str_replace('-', '_', $clientName)).'_MCP_TOKEN';
     }
 
     /**
@@ -155,14 +176,16 @@ class ConnectSnippets
 
         foreach ($this->definitions($serverKeys) as $server) {
             $blocks[] = sprintf(
-                "[mcp_servers.%s]\nurl = \"%s\"\nbearer_token = \"%s\"",
+                "[mcp_servers.%s]\nurl = \"%s\"\nbearer_token_env_var = \"%s\"",
                 str_replace('-', '_', $server->clientName),
                 $server->url(),
-                $token,
+                $this->envVar($server->clientName),
             );
         }
 
-        return implode("\n\n", $blocks);
+        // The TOML names the env var too, so the exports still have to
+        // exist — say so where the block is pasted from.
+        return "# Codex reads the token from the environment; export the\n# *_MCP_TOKEN variables from the tab above (shell profile).\n\n".implode("\n\n", $blocks);
     }
 
     /**

@@ -188,6 +188,9 @@ test('the connect snippets offer every server at once, one at a time, and a way 
         ->assertSee('claude mcp add acme ')
         ->assertSee('claude mcp add acme-reports ')
         ->assertSee('codex mcp add acme ')
+        ->assertSee('--bearer-token-env-var ACME_MCP_TOKEN')
+        ->assertSee('export ACME_MCP_TOKEN=')
+        ->assertSee('bearer_token_env_var = ')
         // Removal is by name and carries no token.
         ->assertSee('claude mcp remove acme')
         ->assertSee('codex mcp remove acme')

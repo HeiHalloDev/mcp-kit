@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.11.1 — 2026-08-31
+
+- **The Codex connect snippets used a flag that does not exist.** Codex never takes a bearer token directly — only the *name* of an env var it reads at runtime. `codex mcp add … --bearer-token "…"` fails with "unexpected argument"; the CLI snippet is now two lines (`export CRM_MCP_TOKEN=…`, then `--bearer-token-env-var CRM_MCP_TOKEN`), and the config.toml block uses `bearer_token_env_var` with a comment saying the exports must exist. The export belongs in the shell profile so new terminals keep working.
+
 ## v1.11.0 — 2026-08-28
 
 Local files reach the tools: a staging endpoint next to the MCP routes.
