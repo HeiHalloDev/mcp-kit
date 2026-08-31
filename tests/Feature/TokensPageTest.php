@@ -190,6 +190,7 @@ test('the connect snippets offer every server at once, one at a time, and a way 
         ->assertSee('codex mcp add acme ')
         ->assertSee('--bearer-token-env-var ACME_MCP_TOKEN')
         ->assertSee('export ACME_MCP_TOKEN=')
+        ->assertSee('add this export to ~/.zshrc')
         ->assertSee('bearer_token_env_var = ')
         // Removal is by name and carries no token.
         ->assertSee('claude mcp remove acme')

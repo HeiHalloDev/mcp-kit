@@ -115,7 +115,7 @@ class ConnectSnippets
         // terminals; the snippet works as pasted either way.
         foreach ($this->definitions($serverKeys) as $server) {
             $lines[$server->clientName] = sprintf(
-                "export %s=\"%s\"\ncodex mcp add %s --url %s --bearer-token-env-var %s",
+                "# add this export to ~/.zshrc (or your shell profile) — Codex reads it in every new terminal\nexport %s=\"%s\"\ncodex mcp add %s --url %s --bearer-token-env-var %s",
                 $this->envVar($server->clientName),
                 $token,
                 $server->clientName,
@@ -185,7 +185,7 @@ class ConnectSnippets
 
         // The TOML names the env var too, so the exports still have to
         // exist — say so where the block is pasted from.
-        return "# Codex reads the token from the environment; export the\n# *_MCP_TOKEN variables from the tab above (shell profile).\n\n".implode("\n\n", $blocks);
+        return "# Codex reads the token from the environment: add the export lines\n# from the tab above to ~/.zshrc (or your shell profile) first.\n\n".implode("\n\n", $blocks);
     }
 
     /**
