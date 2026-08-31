@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.11.3 — 2026-08-31
+
+- **The Codex snippet is now one config.toml block — no env vars, no exports.** The env-var route never reached the ChatGPT app: `bearer_token_env_var` reads the environment at connect time, GUI apps do not inherit `~/.zshrc`, and `launchctl setenv` dies with the login session. Streamable HTTP servers support `http_headers` (static values) in `~/.codex/config.toml`, and the terminal, the ChatGPT app and the IDE extension all read that file — so the snippet is now the block itself: `url` plus `http_headers = { Authorization = "Bearer …" }`. Same on-disk risk class as a token in `~/.zshrc`. There is no CLI flag for `http_headers`, so the instruction is "append to the file", not a command; `codex mcp remove <name>` still works for removal. `ConnectSnippets::envVar()` is gone with the mechanism it served.
+
 ## v1.11.2 — 2026-08-31
 
 - The Codex snippets now say where the export goes: a comment line in the CLI snippet points at `~/.zshrc` (or the shell profile), and the TOML preamble says the exports must be there first. Copy-paste still runs as-is; new terminals keep working.

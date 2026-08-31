@@ -68,30 +68,22 @@
             @php($codexLines = $this->snippets()->codexLines($this->servers, $tokenPlaceholder))
             @php($codexRemove = $this->snippets()->codexRemoveLines($this->servers))
 
-            @if (count($codexLines) > 1)
-                @include('mcp-kit::tokens.snippet', [
-                    'code' => implode("\n", $codexLines),
-                    'label' => __('Run once in the terminal — all servers at once:'),
-                    'copyLabel' => __('Copy all'),
-                ])
-
-                <div class="space-y-3">
-                    <flux:text size="sm">{{ __('One server at a time') }}</flux:text>
-                    @foreach ($codexLines as $name => $line)
-                        @include('mcp-kit::tokens.snippet', ['code' => $line, 'label' => $name])
-                    @endforeach
-                </div>
-            @else
-                @include('mcp-kit::tokens.snippet', [
-                    'code' => implode("\n", $codexLines),
-                    'label' => __('Run once in the terminal:'),
-                ])
-            @endif
-
             @include('mcp-kit::tokens.snippet', [
                 'code' => $this->snippets()->codexToml($this->servers, $tokenPlaceholder),
-                'label' => __('Or in ~/.codex/config.toml:'),
+                'label' => __('Append to ~/.codex/config.toml:'),
+                'copyLabel' => count($codexLines) > 1 ? __('Copy all') : __('Copy'),
             ])
+
+            <flux:text size="sm">{{ __('The token lives in the file, not in the environment — the terminal, the ChatGPT app and the IDE extension all read it, and no shell exports are needed.') }}</flux:text>
+
+            @if (count($codexLines) > 1)
+                <div class="space-y-3">
+                    <flux:text size="sm">{{ __('One server at a time') }}</flux:text>
+                    @foreach ($codexLines as $name => $block)
+                        @include('mcp-kit::tokens.snippet', ['code' => $block, 'label' => $name])
+                    @endforeach
+                </div>
+            @endif
 
             <div class="space-y-3">
                 <flux:text size="sm">{{ __('Remove a connection') }}</flux:text>

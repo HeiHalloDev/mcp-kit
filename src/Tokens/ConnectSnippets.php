@@ -101,6 +101,13 @@ class ConnectSnippets
     }
 
     /**
+     * One TOML block per server, keyed by the name the client will know it
+     * as. The token goes into ~/.codex/config.toml as a static header
+     * (http_headers) — the terminal, the ChatGPT app and the IDE extension
+     * all read that file, and only the terminal ever sees shell env vars,
+     * so a bearer_token_env_var export never reaches the app. There is no
+     * CLI flag for http_headers, so the snippet is the block itself.
+     *
      * @param  list<string>  $serverKeys
      * @return array<string, string>
      */
@@ -108,19 +115,12 @@ class ConnectSnippets
     {
         $lines = [];
 
-        // Codex never takes the token itself — only the NAME of an env var
-        // it reads at runtime (--bearer-token-env-var). So every snippet is
-        // two lines: put the token in the environment, then point Codex at
-        // it. The export belongs in the shell profile to survive new
-        // terminals; the snippet works as pasted either way.
         foreach ($this->definitions($serverKeys) as $server) {
             $lines[$server->clientName] = sprintf(
-                "# add this export to ~/.zshrc (or your shell profile) — Codex reads it in every new terminal\nexport %s=\"%s\"\ncodex mcp add %s --url %s --bearer-token-env-var %s",
-                $this->envVar($server->clientName),
-                $token,
+                "[mcp_servers.%s]\nurl = \"%s\"\nhttp_headers = { Authorization = \"Bearer %s\" }",
                 $server->clientName,
                 $server->url(),
-                $this->envVar($server->clientName),
+                $token,
             );
         }
 
@@ -128,20 +128,11 @@ class ConnectSnippets
     }
 
     /**
-     * The env var a server's token lives in for Codex: CRM_MCP_TOKEN,
-     * CRM_REPORTS_MCP_TOKEN.
-     */
-    public function envVar(string $clientName): string
-    {
-        return strtoupper(str_replace('-', '_', $clientName)).'_MCP_TOKEN';
-    }
-
-    /**
      * @param  list<string>  $serverKeys
      */
     public function codex(array $serverKeys, string $token): string
     {
-        return implode("\n", $this->codexLines($serverKeys, $token));
+        return implode("\n\n", $this->codexLines($serverKeys, $token));
     }
 
     /**
@@ -172,20 +163,7 @@ class ConnectSnippets
      */
     public function codexToml(array $serverKeys, string $token): string
     {
-        $blocks = [];
-
-        foreach ($this->definitions($serverKeys) as $server) {
-            $blocks[] = sprintf(
-                "[mcp_servers.%s]\nurl = \"%s\"\nbearer_token_env_var = \"%s\"",
-                str_replace('-', '_', $server->clientName),
-                $server->url(),
-                $this->envVar($server->clientName),
-            );
-        }
-
-        // The TOML names the env var too, so the exports still have to
-        // exist — say so where the block is pasted from.
-        return "# Codex reads the token from the environment: add the export lines\n# from the tab above to ~/.zshrc (or your shell profile) first.\n\n".implode("\n\n", $blocks);
+        return "# append to ~/.codex/config.toml — the terminal, the ChatGPT app and\n# the IDE extension all read this file. No env vars, no exports.\n\n".$this->codex($serverKeys, $token);
     }
 
     /**

@@ -187,11 +187,14 @@ test('the connect snippets offer every server at once, one at a time, and a way 
         ->assertSee('One server at a time')
         ->assertSee('claude mcp add acme ')
         ->assertSee('claude mcp add acme-reports ')
-        ->assertSee('codex mcp add acme ')
-        ->assertSee('--bearer-token-env-var ACME_MCP_TOKEN')
-        ->assertSee('export ACME_MCP_TOKEN=')
-        ->assertSee('add this export to ~/.zshrc')
-        ->assertSee('bearer_token_env_var = ')
+        // The Codex snippet is a config.toml block with a static header —
+        // the ChatGPT app never sees shell env vars, so no exports.
+        ->assertSee('[mcp_servers.acme]')
+        ->assertSee('[mcp_servers.acme-reports]')
+        ->assertSee('http_headers = { Authorization = ', false)
+        ->assertSee('append to ~/.codex/config.toml')
+        ->assertDontSee('bearer_token_env_var')
+        ->assertDontSee('bearer-token-env-var')
         // Removal is by name and carries no token.
         ->assertSee('claude mcp remove acme')
         ->assertSee('codex mcp remove acme')
