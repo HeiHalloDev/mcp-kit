@@ -167,9 +167,13 @@ class ConnectSnippets
     }
 
     /**
-     * The values to type into the ChatGPT app's own form (Settings → MCP
-     * servers → Add server), one block per server — for people who have
-     * never opened a terminal.
+     * The values to type into the ChatGPT app's own form (Plugins → MCPs),
+     * one block per server — for people who have never opened a terminal.
+     * The form has no field for the token itself, only for the NAME of an
+     * env var — which the app cannot read — so the token goes in as a
+     * static header row instead ("Headers", not "Headers from environment
+     * variables"). That row is http_headers, the mechanism the terminal
+     * route uses too.
      *
      * @param  list<string>  $serverKeys
      * @return array<string, string>
@@ -180,7 +184,7 @@ class ConnectSnippets
 
         foreach ($this->definitions($serverKeys) as $server) {
             $lines[$server->clientName] = sprintf(
-                "Name:          %s\nType:          Streamable HTTP\nURL:           %s\nBearer token:  %s",
+                "Name:          %s\nType:          Streamable HTTP\nURL:           %s\nHeader key:    Authorization\nHeader value:  Bearer %s",
                 $server->clientName,
                 $server->url(),
                 $token,

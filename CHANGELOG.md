@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.11.5 — 2026-09-01
+
+- **The ChatGPT-app values now match the app's real form.** The form (Plugins → MCPs) has no field for the token itself — only for the *name* of an env var, which the app cannot read. The values block now says to leave "Bearer token env var" empty and puts the token in a static header row instead: key `Authorization`, value `Bearer …` (the "Headers" section, not "Headers from environment variables" — that row is `http_headers`, the same mechanism the terminal route writes). Confirmed working against a live server. Removal points at Plugins → MCPs too.
+
 ## v1.11.4 — 2026-09-01
 
 - **The Codex tab now speaks to people who have never opened a terminal.** "Append to ~/.codex/config.toml" meant nothing to staff. The tab now leads with the ChatGPT app's own form (Settings → MCP servers → Add server) and per-server value blocks — Name, Streamable HTTP, URL, Bearer token — to copy straight into it. The config.toml route became one paste-and-enter terminal command (`codexTerminal()`): it creates the file if missing, strips any existing entry for these server names before appending — so re-running after a token rotation replaces instead of duplicating a TOML table, which would break the whole file — and reminds to fully quit and reopen the ChatGPT app. Removal notes both routes.

@@ -69,7 +69,7 @@
             @php($codexRemove = $this->snippets()->codexRemoveLines($this->servers))
 
             <div class="space-y-3">
-                <flux:text size="sm">{{ __('In the ChatGPT app: click your name (bottom left) → Settings → MCP servers → Add server, then copy these values into the form — one server per form:') }}</flux:text>
+                <flux:text size="sm">{{ __('In the ChatGPT app: Plugins → MCPs → add a server, then copy these values into the form — one server per form. Leave "Bearer token env var" empty: the token goes in as a header row under "Headers" (not "Headers from environment variables"):') }}</flux:text>
                 @foreach ($codexApp as $name => $block)
                     @include('mcp-kit::tokens.snippet', ['code' => $block, 'label' => $name])
                 @endforeach
@@ -85,7 +85,7 @@
 
             <div class="space-y-3">
                 <flux:text size="sm">{{ __('Remove a connection') }}</flux:text>
-                <flux:text size="sm" class="opacity-70">{{ __('In the ChatGPT app, delete the server under Settings → MCP servers — or from a terminal:') }}</flux:text>
+                <flux:text size="sm" class="opacity-70">{{ __('In the ChatGPT app, uninstall the server under Plugins → MCPs — or from a terminal:') }}</flux:text>
                 @include('mcp-kit::tokens.snippet', [
                     'code' => implode("\n", $codexRemove),
                     'copyLabel' => count($codexRemove) > 1 ? __('Copy all') : __('Copy'),

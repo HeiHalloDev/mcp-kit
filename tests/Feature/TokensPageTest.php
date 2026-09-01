@@ -191,7 +191,8 @@ test('the connect snippets offer every server at once, one at a time, and a way 
         // never sees shell env vars) and falls back to one terminal paste
         // that writes the config.toml blocks.
         ->assertSee('Streamable HTTP')
-        ->assertSee('Bearer token:')
+        ->assertSee('Header key:    Authorization')
+        ->assertSee('Header value:  Bearer ')
         ->assertSee('cat >> ~/.codex/config.toml')
         ->assertSee('[mcp_servers.acme]')
         ->assertSee('[mcp_servers.acme-reports]')
