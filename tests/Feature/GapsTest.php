@@ -321,3 +321,24 @@ test('the person who reported a gap hears what came of it, once', function () {
         ->resource(MeResource::class)
         ->assertDontSee('What came of what you asked for');
 });
+
+test('a runaway title is cut to fit, never crashed on', function () {
+    $user = actingWith(acmeUser(), ['acme:things:read'], 'laptop');
+    $sentence = 'the tool cannot '.str_repeat('really ', 60).'do the thing';
+
+    $filed = AcmeServer::actingAs($user)->tool(ReportGapTool::class, gapArguments([
+        'title' => $sentence,
+        'confirm' => true,
+    ]));
+
+    expect($filed)->toHaveExecuted();
+
+    $gaps = app(GapStore::class)->list();
+
+    expect($gaps)->toHaveCount(1)
+        ->and(mb_strlen($gaps[0]->title))->toBeLessThanOrEqual(201)
+        ->and($gaps[0]->title)->toStartWith('the tool cannot really')
+        ->and($gaps[0]->title)->toEndWith('…')
+        // The full sentence survives where there is room for it.
+        ->and($gaps[0]->need)->toBe(gapArguments()['need']);
+});

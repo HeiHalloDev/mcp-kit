@@ -86,3 +86,17 @@ test('mcp:install --with-tokens-page switches the UI on in the published config'
         ->toContain("env('MCP_KIT_TOKENS_PAGE', true)")
         ->toContain("env('MCP_KIT_UI', true)");
 });
+
+test('an existing file is never overwritten, --force or not', function () {
+    $this->artisan('mcp:install')->assertSuccessful();
+
+    File::put(config_path('mcp-kit.php'), "<?php return ['edited' => true];");
+    File::put((string) config('mcp-kit.docs.path'), "# 550 lines of hand-written docs\n<!-- generated:tools:start -->\n<!-- generated:tools:end -->\n");
+
+    $this->artisan('mcp:install --force')
+        ->expectsOutputToContain('never overwritten')
+        ->assertSuccessful();
+
+    expect(File::get(config_path('mcp-kit.php')))->toContain("'edited' => true")
+        ->and(File::get((string) config('mcp-kit.docs.path')))->toContain('550 lines of hand-written docs');
+});

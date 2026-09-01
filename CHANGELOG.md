@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.11.6 — 2026-09-01
+
+Two gaps filed by an agent working in a consuming app, fixed at the root:
+
+- **`mcp:install` never overwrites an existing file any more — `--force` included.** The flag meant "overwrite what the installer wrote before", but a scaffold cannot tell its own leftovers from the app's live content: the published config carries the whole catalogue, the docs index carries hand-written pages around the markers, and `--force` ate them. Existing files now always stand (the message says so, and how to re-scaffold: delete the file, re-run). The flag is kept so old scripts do not break; it changes nothing.
+- **A runaway gap title is cut to fit, never crashed on.** `report_gap` and `working_on`'s `gap` store the title in a 255-char column; a longer sentence threw a database error instead of filing. Titles are now capped at 200 chars with an ellipsis (`Gap::title()`); the full story still lands in `need` and `missing`, which have no limit.
+
 ## v1.11.5 — 2026-09-01
 
 - **The ChatGPT-app values now match the app's real form.** The form (Plugins → MCPs) has no field for the token itself — only for the *name* of an env var, which the app cannot read. The values block now says to leave "Bearer token env var" empty and puts the token in a static header row instead: key `Authorization`, value `Bearer …` (the "Headers" section, not "Headers from environment variables" — that row is `http_headers`, the same mechanism the terminal route writes). Confirmed working against a live server. Removal points at Plugins → MCPs too.

@@ -432,3 +432,22 @@ test('a smooth task naming a gap is refused the filing, not the close', function
 
     expect(app(GapStore::class)->list())->toBe([]);
 });
+
+test('a gap note longer than the title column is cut to fit, never crashed on', function () {
+    $user = actingWith(acmeUser(), ['acme:things:read']);
+    $sentence = 'the export has no way to '.str_repeat('carefully ', 40).'page through results';
+
+    AcmeServer::actingAs($user)->tool(WorkingOnTool::class, [
+        'purpose' => 'Pulling every signup for the yearly report',
+        'outcome' => 'partly',
+        'effort' => 'fought_it',
+        'result' => 'The list stops at 100 with no way onward.',
+        'gap' => $sentence,
+    ])->assertSee('Filed as a gap');
+
+    $gap = app(GapStore::class)->list()[0];
+
+    expect(mb_strlen($gap->title))->toBeLessThanOrEqual(201)
+        ->and($gap->title)->toEndWith('…')
+        ->and($gap->missing)->toBe('The list stops at 100 with no way onward.');
+});

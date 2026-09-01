@@ -194,7 +194,7 @@ class WorkingOnTool extends StaffTool
      */
     protected function gapFrom(Request $request, Task $closed, Principal $principal): string
     {
-        $title = trim((string) $request->get('gap', ''));
+        $title = Gap::title((string) $request->get('gap', ''));
 
         if (! config('mcp-kit.gaps.enabled', true)) {
             return '';

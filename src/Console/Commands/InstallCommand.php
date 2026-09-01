@@ -13,13 +13,17 @@ use Symfony\Component\Finder\Finder;
 /**
  * Scaffolds what an app needs to run the kit: the config, a server class,
  * the ground-rules intro, the guard test and its inventory, the docs page.
- * Re-runnable; deletes nothing; --force overwrites what it wrote before.
+ * Re-runnable; deletes nothing — an existing file is never rewritten, not
+ * even with --force: once installed, these files carry the app's own
+ * content (the catalogue in the config, the hand-written docs around the
+ * markers), and a scaffold has no way to tell that apart from its own
+ * leftovers. Re-scaffolding one file is an explicit act: delete it, re-run.
  */
 class InstallCommand extends Command
 {
     protected $signature = 'mcp:install
                             {--scan : Read the abilities the existing tools check and write catalogue entries for them}
-                            {--force : Overwrite files the installer wrote before}
+                            {--force : Kept for old scripts; existing files are still never overwritten}
                             {--with-tokens-page : Turn the tokens page on in the published config}';
 
     protected $description = 'Scaffold mcp-kit into this app: config, server, ground rules, guard test, docs';
@@ -58,8 +62,8 @@ class InstallCommand extends Command
     {
         $target = config_path('mcp-kit.php');
 
-        if (is_file($target) && ! $this->option('force')) {
-            $this->components->twoColumnDetail('config/mcp-kit.php', 'exists');
+        if (is_file($target)) {
+            $this->components->twoColumnDetail('config/mcp-kit.php', $this->keptMessage());
 
             return;
         }
@@ -88,7 +92,7 @@ class InstallCommand extends Command
         $class = preg_replace('/[^A-Za-z0-9]/', '', $class) ?: 'AppServer';
         $path = "{$directory}/{$class}.php";
 
-        if (is_file($path) && ! $this->option('force')) {
+        if (is_file($path)) {
             $this->components->twoColumnDetail("app/Mcp/Servers/{$class}.php", 'exists (does not extend StaffServer — change the parent)');
 
             return;
@@ -107,8 +111,8 @@ class InstallCommand extends Command
     {
         $path = resource_path('views/vendor/mcp-kit/ground-rules/intro.blade.php');
 
-        if (is_file($path) && ! $this->option('force')) {
-            $this->components->twoColumnDetail('resources/views/vendor/mcp-kit/ground-rules/intro.blade.php', 'exists');
+        if (is_file($path)) {
+            $this->components->twoColumnDetail('resources/views/vendor/mcp-kit/ground-rules/intro.blade.php', $this->keptMessage());
 
             return;
         }
@@ -121,8 +125,8 @@ class InstallCommand extends Command
     {
         $path = base_path('tests/Feature/Mcp/KitGuardsTest.php');
 
-        if (is_file($path) && ! $this->option('force')) {
-            $this->components->twoColumnDetail('tests/Feature/Mcp/KitGuardsTest.php', 'exists');
+        if (is_file($path)) {
+            $this->components->twoColumnDetail('tests/Feature/Mcp/KitGuardsTest.php', $this->keptMessage());
 
             return;
         }
@@ -158,7 +162,7 @@ class InstallCommand extends Command
         $path = app(ToolReference::class)->path();
         $relative = str_replace(base_path().'/', '', $path);
 
-        if (is_file($path) && ! $this->option('force')) {
+        if (is_file($path)) {
             $contents = (string) file_get_contents($path);
 
             if (! str_contains($contents, '<!-- generated:tools:start -->')) {
@@ -168,7 +172,7 @@ class InstallCommand extends Command
                 return;
             }
 
-            $this->components->twoColumnDetail($relative, 'exists');
+            $this->components->twoColumnDetail($relative, $this->keptMessage());
 
             return;
         }
@@ -182,8 +186,8 @@ class InstallCommand extends Command
         $path = app(ToolReference::class)->inventoryPath();
         $relative = str_replace(base_path().'/', '', $path);
 
-        if (is_file($path) && ! $this->option('force')) {
-            $this->components->twoColumnDetail($relative, 'exists');
+        if (is_file($path)) {
+            $this->components->twoColumnDetail($relative, $this->keptMessage());
 
             return;
         }
@@ -289,6 +293,16 @@ class InstallCommand extends Command
         } else {
             $this->components->twoColumnDetail('tokens page', 'set mcp-kit.ui.enabled and ui.tokens_page.enabled to true yourself');
         }
+    }
+
+    /**
+     * What an existing file is told: with --force, why it still stands.
+     */
+    protected function keptMessage(): string
+    {
+        return $this->option('force')
+            ? 'exists — never overwritten, --force or not; delete it and re-run for a fresh scaffold'
+            : 'exists';
     }
 
     protected function warnAboutLegacyReadOnly(): void

@@ -73,7 +73,7 @@ class ReportGapTool extends StaffTool
         }
 
         try {
-            $title = $this->required($request, 'title');
+            $title = Gap::title($this->required($request, 'title'));
             $need = $this->required($request, 'need');
             $missing = $this->required($request, 'missing');
             $key = Gap::key($title);

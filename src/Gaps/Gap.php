@@ -47,6 +47,16 @@ final class Gap
     ) {}
 
     /**
+     * A title is a list line and a matching key, not the report itself —
+     * a runaway sentence is cut to fit its column, never crashed on. The
+     * full story belongs in need and missing, which have no limit.
+     */
+    public static function title(string $raw): string
+    {
+        return Str::limit(trim($raw), 200, '…');
+    }
+
+    /**
      * What a repeat report is matched on: the title, reduced to its words.
      */
     public static function key(string $title): string
