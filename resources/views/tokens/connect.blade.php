@@ -65,28 +65,27 @@
         </flux:tab.panel>
 
         <flux:tab.panel name="codex" class="space-y-5">
-            @php($codexLines = $this->snippets()->codexLines($this->servers, $tokenPlaceholder))
+            @php($codexApp = $this->snippets()->codexAppLines($this->servers, $tokenPlaceholder))
             @php($codexRemove = $this->snippets()->codexRemoveLines($this->servers))
 
-            @include('mcp-kit::tokens.snippet', [
-                'code' => $this->snippets()->codexToml($this->servers, $tokenPlaceholder),
-                'label' => __('Append to ~/.codex/config.toml:'),
-                'copyLabel' => count($codexLines) > 1 ? __('Copy all') : __('Copy'),
-            ])
+            <div class="space-y-3">
+                <flux:text size="sm">{{ __('In the ChatGPT app: click your name (bottom left) → Settings → MCP servers → Add server, then copy these values into the form — one server per form:') }}</flux:text>
+                @foreach ($codexApp as $name => $block)
+                    @include('mcp-kit::tokens.snippet', ['code' => $block, 'label' => $name])
+                @endforeach
+            </div>
 
-            <flux:text size="sm">{{ __('The token lives in the file, not in the environment — the terminal, the ChatGPT app and the IDE extension all read it, and no shell exports are needed.') }}</flux:text>
-
-            @if (count($codexLines) > 1)
-                <div class="space-y-3">
-                    <flux:text size="sm">{{ __('One server at a time') }}</flux:text>
-                    @foreach ($codexLines as $name => $block)
-                        @include('mcp-kit::tokens.snippet', ['code' => $block, 'label' => $name])
-                    @endforeach
-                </div>
-            @endif
+            <div class="space-y-3">
+                <flux:text size="sm">{{ __('Or from a terminal — paste this once, press enter, and fully quit and reopen the ChatGPT app afterwards. The terminal, the ChatGPT app and the IDE extension all read the same file:') }}</flux:text>
+                @include('mcp-kit::tokens.snippet', [
+                    'code' => $this->snippets()->codexTerminal($this->servers, $tokenPlaceholder),
+                    'copyLabel' => __('Copy'),
+                ])
+            </div>
 
             <div class="space-y-3">
                 <flux:text size="sm">{{ __('Remove a connection') }}</flux:text>
+                <flux:text size="sm" class="opacity-70">{{ __('In the ChatGPT app, delete the server under Settings → MCP servers — or from a terminal:') }}</flux:text>
                 @include('mcp-kit::tokens.snippet', [
                     'code' => implode("\n", $codexRemove),
                     'copyLabel' => count($codexRemove) > 1 ? __('Copy all') : __('Copy'),

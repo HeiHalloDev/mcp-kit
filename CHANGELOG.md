@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.11.4 — 2026-09-01
+
+- **The Codex tab now speaks to people who have never opened a terminal.** "Append to ~/.codex/config.toml" meant nothing to staff. The tab now leads with the ChatGPT app's own form (Settings → MCP servers → Add server) and per-server value blocks — Name, Streamable HTTP, URL, Bearer token — to copy straight into it. The config.toml route became one paste-and-enter terminal command (`codexTerminal()`): it creates the file if missing, strips any existing entry for these server names before appending — so re-running after a token rotation replaces instead of duplicating a TOML table, which would break the whole file — and reminds to fully quit and reopen the ChatGPT app. Removal notes both routes.
+
 ## v1.11.3 — 2026-08-31
 
 - **The Codex snippet is now one config.toml block — no env vars, no exports.** The env-var route never reached the ChatGPT app: `bearer_token_env_var` reads the environment at connect time, GUI apps do not inherit `~/.zshrc`, and `launchctl setenv` dies with the login session. Streamable HTTP servers support `http_headers` (static values) in `~/.codex/config.toml`, and the terminal, the ChatGPT app and the IDE extension all read that file — so the snippet is now the block itself: `url` plus `http_headers = { Authorization = "Bearer …" }`. Same on-disk risk class as a token in `~/.zshrc`. There is no CLI flag for `http_headers`, so the instruction is "append to the file", not a command; `codex mcp remove <name>` still works for removal. `ConnectSnippets::envVar()` is gone with the mechanism it served.

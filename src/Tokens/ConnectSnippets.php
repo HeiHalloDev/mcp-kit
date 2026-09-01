@@ -167,6 +167,56 @@ class ConnectSnippets
     }
 
     /**
+     * The values to type into the ChatGPT app's own form (Settings → MCP
+     * servers → Add server), one block per server — for people who have
+     * never opened a terminal.
+     *
+     * @param  list<string>  $serverKeys
+     * @return array<string, string>
+     */
+    public function codexAppLines(array $serverKeys, string $token): array
+    {
+        $lines = [];
+
+        foreach ($this->definitions($serverKeys) as $server) {
+            $lines[$server->clientName] = sprintf(
+                "Name:          %s\nType:          Streamable HTTP\nURL:           %s\nBearer token:  %s",
+                $server->clientName,
+                $server->url(),
+                $token,
+            );
+        }
+
+        return $lines;
+    }
+
+    /**
+     * One paste-and-enter terminal command that writes every server into
+     * ~/.codex/config.toml. The awk pass first drops any existing entry
+     * for these names, so running it again after a token rotation
+     * replaces instead of duplicating (a duplicated TOML table breaks the
+     * whole file).
+     *
+     * @param  list<string>  $serverKeys
+     */
+    public function codexTerminal(array $serverKeys, string $token): string
+    {
+        $definitions = $this->definitions($serverKeys);
+
+        if ($definitions === []) {
+            return '';
+        }
+
+        $names = implode('|', array_map(fn (ServerDefinition $server): string => preg_quote($server->clientName, '/'), $definitions));
+
+        return sprintf(
+            "mkdir -p ~/.codex && touch ~/.codex/config.toml\nawk '/^\\[mcp_servers\\.(%s)\\]$/{skip=1;next} /^\\[/{skip=0} !skip' ~/.codex/config.toml > ~/.codex/config.toml.new && mv ~/.codex/config.toml.new ~/.codex/config.toml\ncat >> ~/.codex/config.toml <<'TOML'\n%s\nTOML",
+            $names,
+            $this->codex($serverKeys, $token),
+        );
+    }
+
+    /**
      * @param  list<string>  $serverKeys
      */
     public function curl(array $serverKeys, string $token): string
