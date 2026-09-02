@@ -3,3 +3,6 @@
 /.phpunit.result.cache
 composer.lock
 .DS_Store
+
+# Local-only notes (client names stay out of the public repo)
+/APPS.local.md
