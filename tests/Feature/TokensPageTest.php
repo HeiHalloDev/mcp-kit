@@ -189,10 +189,10 @@ test('the connect snippets offer every server at once, one at a time, and a way 
         ->assertSee('claude mcp add acme-reports ')
         // The Codex tab leads with the ChatGPT app's own form (the app
         // never sees shell env vars) and falls back to one terminal paste
-        // that writes the config.toml blocks.
-        ->assertSee('Streamable HTTP')
-        ->assertSee('Header key:    Authorization')
-        ->assertSee('Header value:  Bearer ')
+        // that writes the config.toml blocks. The form takes one value per
+        // field, so every value gets its own copy button.
+        ->assertSeeInOrder(['Name', 'acme', 'Type', 'Streamable HTTP', 'URL', 'Header key', 'Authorization', 'Header value', 'Bearer '])
+        ->assertSee('Copy Header value')
         ->assertSee('cat >> ~/.codex/config.toml')
         ->assertSee('[mcp_servers.acme]')
         ->assertSee('[mcp_servers.acme-reports]')

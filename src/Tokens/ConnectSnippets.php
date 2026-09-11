@@ -175,23 +175,45 @@ class ConnectSnippets
      * variables"). That row is http_headers, the mechanism the terminal
      * route uses too.
      *
+     * Field by field, so the page can give every value its own copy button:
+     * the form takes them one at a time.
+     *
+     * @param  list<string>  $serverKeys
+     * @return array<string, array<string, string>>
+     */
+    public function codexAppFields(array $serverKeys, string $token): array
+    {
+        $fields = [];
+
+        foreach ($this->definitions($serverKeys) as $server) {
+            $fields[$server->clientName] = [
+                'Name' => $server->clientName,
+                'Type' => 'Streamable HTTP',
+                'URL' => $server->url(),
+                'Header key' => 'Authorization',
+                'Header value' => "Bearer {$token}",
+            ];
+        }
+
+        return $fields;
+    }
+
+    /**
+     * The same values as one aligned text block per server.
+     *
      * @param  list<string>  $serverKeys
      * @return array<string, string>
      */
     public function codexAppLines(array $serverKeys, string $token): array
     {
-        $lines = [];
-
-        foreach ($this->definitions($serverKeys) as $server) {
-            $lines[$server->clientName] = sprintf(
-                "Name:          %s\nType:          Streamable HTTP\nURL:           %s\nHeader key:    Authorization\nHeader value:  Bearer %s",
-                $server->clientName,
-                $server->url(),
-                $token,
-            );
-        }
-
-        return $lines;
+        return array_map(
+            fn (array $fields): string => implode("\n", array_map(
+                fn (string $label, string $value): string => str_pad("{$label}:", 15).$value,
+                array_keys($fields),
+                $fields,
+            )),
+            $this->codexAppFields($serverKeys, $token),
+        );
     }
 
     /**

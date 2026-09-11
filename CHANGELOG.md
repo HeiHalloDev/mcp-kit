@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.11.7 — 2026-09-11
+
+- **Every ChatGPT-app value has its own copy button.** The form takes Name, URL, header key and header value one field at a time, but each server's values sat in one block, so a person selected each value by hand. The Codex tab now shows one row per field with a copy button on the row (`tokens/fields` partial, fed by the new `ConnectSnippets::codexAppFields()`). `codexAppLines()` still returns the aligned text blocks, now built from the fields. The copy button moved into its own partial, `tokens/copy-button`, shared with the snippet.
+
 ## v1.11.6 — 2026-09-01
 
 Two gaps filed by an agent working in a consuming app, fixed at the root:

@@ -65,13 +65,13 @@
         </flux:tab.panel>
 
         <flux:tab.panel name="codex" class="space-y-5">
-            @php($codexApp = $this->snippets()->codexAppLines($this->servers, $tokenPlaceholder))
+            @php($codexApp = $this->snippets()->codexAppFields($this->servers, $tokenPlaceholder))
             @php($codexRemove = $this->snippets()->codexRemoveLines($this->servers))
 
             <div class="space-y-3">
                 <flux:text size="sm">{{ __('In the ChatGPT app: Plugins → MCPs → add a server, then copy these values into the form — one server per form. Leave "Bearer token env var" empty: the token goes in as a header row under "Headers" (not "Headers from environment variables"):') }}</flux:text>
-                @foreach ($codexApp as $name => $block)
-                    @include('mcp-kit::tokens.snippet', ['code' => $block, 'label' => $name])
+                @foreach ($codexApp as $name => $fields)
+                    @include('mcp-kit::tokens.fields', ['fields' => $fields, 'label' => $name])
                 @endforeach
             </div>
 

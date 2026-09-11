@@ -57,6 +57,7 @@
     "Run once in the terminal — all servers at once:": "Run once in the terminal — all servers at once:",
     "Copy all": "Copy all",
     "Copy": "Copy",
+    "Copy :field": "Copy :field",
     "One server at a time": "One server at a time",
     "Remove a connection": "Remove a connection",
     "Removing a connection only forgets it on this machine — it does not revoke the token. Revoke it in the list above.": "Removing a connection only forgets it on this machine — it does not revoke the token. Revoke it in the list above.",
