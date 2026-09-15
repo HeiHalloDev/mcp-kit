@@ -448,6 +448,11 @@ return [
         // that a single lookup is never nagged.
         'nudge_after' => 4,
 
+        // Asked again every this many calls while the frame stays unnamed.
+        // A long session loses the first ask to context compaction well
+        // before the work is over. 0 asks once.
+        'nudge_every' => 25,
+
         'recent_days' => 30,
         'recent_limit' => 100,
 

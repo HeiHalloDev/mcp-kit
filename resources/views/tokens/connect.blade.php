@@ -83,6 +83,18 @@
                 ])
             </div>
 
+            @if (config('mcp-kit.learning.enabled', false) || config('mcp-kit.gaps.enabled', true))
+                <div class="space-y-3">
+                    <flux:text size="sm">{{ __('Then tell Codex to record its work. Codex reads ~/.codex/AGENTS.md at the start of every thread, in the ChatGPT app too. Paste this once in a terminal. Running it again, from this app or another, replaces the block instead of adding a second, and leaves the rest of the file alone:') }}</flux:text>
+                    @include('mcp-kit::tokens.snippet', [
+                        'code' => $this->snippets()->codexInstructionsTerminal(),
+                        'copyLabel' => __('Copy'),
+                    ])
+                    <flux:text size="sm" class="opacity-70">{{ __('Or add these lines to ~/.codex/AGENTS.md yourself:') }}</flux:text>
+                    @include('mcp-kit::tokens.snippet', ['code' => $this->snippets()->codexInstructions()])
+                </div>
+            @endif
+
             <div class="space-y-3">
                 <flux:text size="sm">{{ __('Remove a connection') }}</flux:text>
                 <flux:text size="sm" class="opacity-70">{{ __('In the ChatGPT app, uninstall the server under Plugins → MCPs — or from a terminal:') }}</flux:text>

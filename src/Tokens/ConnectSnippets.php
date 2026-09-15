@@ -243,6 +243,35 @@ class ConnectSnippets
     }
 
     /**
+     * What Codex is told about working_on and report_gap, as it sits in
+     * ~/.codex/AGENTS.md — the file Codex reads at the start of every
+     * thread, in the terminal, the ChatGPT app and the IDE extension. A
+     * long session compacts away what the server said at connect time;
+     * this comes back with every new thread.
+     *
+     * The text is the same from every app and the markers are fixed here,
+     * outside the overridable view, so pasting it from a second app
+     * replaces the block instead of stacking another copy.
+     */
+    public function codexInstructions(): string
+    {
+        return "<!-- mcp-kit -->\n".trim(view('mcp-kit::tokens.codex-instructions')->render())."\n<!-- /mcp-kit -->";
+    }
+
+    /**
+     * One paste-and-enter terminal command that writes the block above into
+     * ~/.codex/AGENTS.md. The awk pass drops an earlier block first and
+     * leaves everything else in the file alone.
+     */
+    public function codexInstructionsTerminal(): string
+    {
+        return sprintf(
+            "mkdir -p ~/.codex && touch ~/.codex/AGENTS.md\nawk '/^<!-- mcp-kit -->$/{skip=1;next} /^<!-- \\/mcp-kit -->$/{skip=0;next} !skip' ~/.codex/AGENTS.md > ~/.codex/AGENTS.md.new && mv ~/.codex/AGENTS.md.new ~/.codex/AGENTS.md\ncat >> ~/.codex/AGENTS.md <<'MD'\n%s\nMD",
+            $this->codexInstructions(),
+        );
+    }
+
+    /**
      * @param  list<string>  $serverKeys
      */
     public function curl(array $serverKeys, string $token): string

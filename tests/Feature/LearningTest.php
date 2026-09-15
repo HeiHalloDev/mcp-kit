@@ -66,8 +66,49 @@ test('the nudge arrives in a tool result, once, and only while the frame is unna
     // assistant is certain to read.
     Mcp::call($token, '/mcp/acme', 'list_things')->assertSee('nobody has named');
 
-    // Once. A nag every call would be worse than silence.
+    // Not on the next call. A nag every call would be worse than silence.
     Mcp::call($token, '/mcp/acme', 'list_things')->assertDontSee('nobody has named');
+});
+
+test('an unnamed frame that keeps going is asked again every nudge_every calls', function () {
+    config()->set('mcp-kit.learning.nudge_after', 2);
+    config()->set('mcp-kit.learning.nudge_every', 3);
+
+    $user = acmeUser();
+    $token = acmeToken($user, ['acme:things:read']);
+
+    $nudged = [];
+
+    foreach (range(1, 8) as $call) {
+        if (str_contains((string) Mcp::call($token, '/mcp/acme', 'list_things')->getContent(), 'nobody has named')) {
+            $nudged[] = $call;
+        }
+    }
+
+    // A 200-call session has compacted the first ask away long before the
+    // work is over, so it comes back — at a pace that never nags a lookup.
+    expect($nudged)->toBe([2, 5, 8]);
+
+    Mcp::call($token, '/mcp/acme', 'working_on', ['purpose' => 'Tidying a study tree']);
+
+    // Named: call 11 would have been due, and stays quiet.
+    foreach (range(10, 12) as $call) {
+        Mcp::call($token, '/mcp/acme', 'list_things')->assertDontSee('nobody has named');
+    }
+});
+
+test('nudge_every 0 asks once and never again', function () {
+    config()->set('mcp-kit.learning.nudge_after', 1);
+    config()->set('mcp-kit.learning.nudge_every', 0);
+
+    $user = acmeUser();
+    $token = acmeToken($user, ['acme:things:read']);
+
+    Mcp::call($token, '/mcp/acme', 'list_things')->assertSee('nobody has named');
+
+    foreach (range(2, 30) as $call) {
+        Mcp::call($token, '/mcp/acme', 'list_things')->assertDontSee('nobody has named');
+    }
 });
 
 test('the nudge is its own content block, so the tool answer is untouched', function () {

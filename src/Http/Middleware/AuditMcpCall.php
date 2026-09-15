@@ -84,13 +84,19 @@ class AuditMcpCall
      * Ask for the frame's name where the assistant will actually read it:
      * in the result of a call it just made. Instructions asking it to open
      * a frame *before* the work never landed — they require predicting
-     * that the work will matter. This asks afterwards, once, when it knows.
+     * that the work will matter. This asks afterwards, when it knows — and
+     * again while the frame goes on unnamed, because a long session compacts
+     * the first ask away long before the work is over.
      */
     protected function nudge(Response $response, ?int $position, ?string $tool): Response
     {
         $after = (int) config('mcp-kit.learning.nudge_after', 4);
+        $every = (int) config('mcp-kit.learning.nudge_every', 25);
 
-        if ($position !== $after || $tool === 'working_on' || $response instanceof StreamedResponse) {
+        $due = $position !== null && ($position === $after
+            || ($every > 0 && $position > $after && ($position - $after) % $every === 0));
+
+        if (! $due || $tool === 'working_on' || $response instanceof StreamedResponse) {
             return $response;
         }
 

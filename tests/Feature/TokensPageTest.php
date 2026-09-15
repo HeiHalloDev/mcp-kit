@@ -199,6 +199,11 @@ test('the connect snippets offer every server at once, one at a time, and a way 
         ->assertSee('http_headers = { Authorization = ', false)
         ->assertDontSee('bearer_token_env_var')
         ->assertDontSee('bearer-token-env-var')
+        // Codex is told about working_on and report_gap in the file it
+        // reads at the start of every thread.
+        ->assertSee('cat >> ~/.codex/AGENTS.md')
+        ->assertSee('<!-- mcp-kit -->')
+        ->assertSee('call `report_gap` before working around it', false)
         // Removal is by name and carries no token.
         ->assertSee('claude mcp remove acme')
         ->assertSee('codex mcp remove acme')

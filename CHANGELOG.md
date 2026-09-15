@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.12.0 — 2026-09-15
+
+Codex sessions left most of their work unnamed: staff working in Codex had frames of 173 and 225 calls with no purpose, and worked around missing tools in the browser without filing a gap. Two changes, both aimed at where a long session actually looks.
+
+- **The nudge comes back.** An unnamed frame used to be asked once, at `nudge_after` (call 4). A long session compacts that away long before the work ends. It is now asked again every `learning.nudge_every` calls (default 25) while the frame stays unnamed; `0` keeps the old single ask. Still its own content block, still never on `working_on` itself.
+- **The Codex tab writes AGENTS.md.** Codex reads `~/.codex/AGENTS.md` at the start of every thread, in the terminal, the ChatGPT app and the IDE extension. The tab now offers a paste-and-enter command that writes a short block about `working_on` and `report_gap` there (`ConnectSnippets::codexInstructionsTerminal()`), plus the lines themselves (`codexInstructions()`). The block sits between fixed `<!-- mcp-kit -->` markers and is the same from every app, so pasting it again, or from a second app, replaces it and leaves the rest of the file alone. The wording lives in the overridable `tokens/codex-instructions` view. Shown when learning or gaps is on.
+
 ## v1.11.7 — 2026-09-11
 
 - **Every ChatGPT-app value has its own copy button.** The form takes Name, URL, header key and header value one field at a time, but each server's values sat in one block, so a person selected each value by hand. The Codex tab now shows one row per field with a copy button on the row (`tokens/fields` partial, fed by the new `ConnectSnippets::codexAppFields()`). `codexAppLines()` still returns the aligned text blocks, now built from the fields. The copy button moved into its own partial, `tokens/copy-button`, shared with the snippet.
