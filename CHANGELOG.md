@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.12.1 — 2026-09-17
+
+The "First message to the assistant" block ran off the right of the tokens page and took a horizontal scrollbar for the whole page with it. The block sits in a `flux:field`, and seven of the apps on the kit still carry the old starter kit's `[data-flux-field] { @apply grid gap-2 }`. That makes the field a grid container, and a grid item's automatic minimum size is its min-content width — so the unwrappable line widened the track instead of scrolling inside it.
+
+- **A snippet stays inside whatever it is dropped into.** The partial's outer div now carries `min-width: 0`, which ends the item's min-content contribution in a grid or flex parent and does nothing in a block one. Every block on the page goes through that partial, so this holds for anything added later too.
+- **Prose wraps; commands still scroll.** The partial takes `wrap`, and the opening message and the two AGENTS.md blocks pass it — a paragraph read by scrolling sideways is not read. The `claude mcp add` lines, the JSON and the TOML keep scrolling on purpose: a shell line broken across rows invites a bad hand-paste, and the copy button is what carries the token anyway. An app overriding `tokens/first-message` no longer needs to hand-wrap it.
+
 ## v1.12.0 — 2026-09-15
 
 Codex sessions left most of their work unnamed: staff working in Codex had frames of 173 and 225 calls with no purpose, and worked around missing tools in the browser without filing a gap. Two changes, both aimed at where a long session actually looks.

@@ -89,9 +89,10 @@
                     @include('mcp-kit::tokens.snippet', [
                         'code' => $this->snippets()->codexInstructionsTerminal(),
                         'copyLabel' => __('Copy'),
+                        'wrap' => true,
                     ])
                     <flux:text size="sm" class="opacity-70">{{ __('Or add these lines to ~/.codex/AGENTS.md yourself:') }}</flux:text>
-                    @include('mcp-kit::tokens.snippet', ['code' => $this->snippets()->codexInstructions()])
+                    @include('mcp-kit::tokens.snippet', ['code' => $this->snippets()->codexInstructions(), 'wrap' => true])
                 </div>
             @endif
 
@@ -120,7 +121,7 @@
     <flux:field>
         <flux:label>{{ __('First message to the assistant') }}</flux:label>
         <flux:description>{{ __('Paste as the first message of a new session after setup — it connects, reads who you are and explains what it can help with.') }}</flux:description>
-        @include('mcp-kit::tokens.snippet', ['code' => trim(view('mcp-kit::tokens.first-message')->render())])
+        @include('mcp-kit::tokens.snippet', ['code' => trim(view('mcp-kit::tokens.first-message')->render()), 'wrap' => true])
     </flux:field>
 
     <flux:callout icon="exclamation-triangle" variant="warning">
