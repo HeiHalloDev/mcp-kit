@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.12.2 — 2026-09-17
+
+- **The Codex terminal paste scrolls again.** v1.12.1 wrapped it along with the prose, and a wrapped awk one-liner reads as mangled shell. It is a command — three lines to paste and forget, like every other command on the page. The AGENTS.md lines below it, which a person does read, keep wrapping.
+- The fields partial now says why it has no `min-width: 0` of its own: a row's min-content is a fixed label column plus a button, a floor rather than a runaway line, and removing it would spill both out of the dark box on a narrow screen.
+
 ## v1.12.1 — 2026-09-17
 
 The "First message to the assistant" block ran off the right of the tokens page and took a horizontal scrollbar for the whole page with it. The block sits in a `flux:field`, and seven of the apps on the kit still carry the old starter kit's `[data-flux-field] { @apply grid gap-2 }`. That makes the field a grid container, and a grid item's automatic minimum size is its min-content width — so the unwrappable line widened the track instead of scrolling inside it.

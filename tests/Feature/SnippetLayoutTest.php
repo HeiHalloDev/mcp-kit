@@ -23,3 +23,14 @@ test('a snippet scrolls sideways unless it is asked to wrap', function () {
         ->and($wrapped)->toContain('white-space: pre-wrap')
         ->and($wrapped)->toContain('overflow-wrap: anywhere');
 });
+
+test('wrapping changes how a block looks, never what it copies', function () {
+    $code = "cat >> ~/.codex/AGENTS.md <<'MD'\nA line no one should have to re-type.\nMD";
+
+    $text = fn (string $rendered) => html_entity_decode(strip_tags($rendered), ENT_QUOTES);
+
+    expect($text(view('mcp-kit::tokens.snippet', ['code' => $code, 'wrap' => true])->render()))
+        ->toContain($code)
+        ->and($text(view('mcp-kit::tokens.snippet', ['code' => $code])->render()))
+        ->toContain($code);
+});

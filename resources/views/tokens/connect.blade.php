@@ -89,7 +89,6 @@
                     @include('mcp-kit::tokens.snippet', [
                         'code' => $this->snippets()->codexInstructionsTerminal(),
                         'copyLabel' => __('Copy'),
-                        'wrap' => true,
                     ])
                     <flux:text size="sm" class="opacity-70">{{ __('Or add these lines to ~/.codex/AGENTS.md yourself:') }}</flux:text>
                     @include('mcp-kit::tokens.snippet', ['code' => $this->snippets()->codexInstructions(), 'wrap' => true])

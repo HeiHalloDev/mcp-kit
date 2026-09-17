@@ -6,6 +6,11 @@
     Styled inline for the same reason as the snippet partial.
 
     Expects: $fields (field label => value). Optional: $label.
+
+    No min-width: 0 here, unlike the snippet partial. A row is a fixed label
+    column, a value and a button: its min-content is a floor, not a runaway
+    line, and removing it would spill the label and the button out of the
+    dark box on a narrow screen. The two partials differ on purpose.
 --}}
 @php($fieldsLabel = $label ?? null)
 
