@@ -13,8 +13,9 @@ use Laravel\Mcp\Request;
 /**
  * Lets a tool take a staged file by handle.
  *
- * MCP carries JSON, not bytes: the file went up over HTTP first with the
- * same token, and the tool receives the handle. Declare the parameter by
+ * MCP carries JSON, not bytes: the file went up over HTTP first, with the
+ * same token or through a request_upload link, and the tool receives the
+ * handle. Declare the parameter by
  * merging UPLOAD_PROPERTY into the schema, then:
  *
  *     $upload = $this->stagedUpload($request);
@@ -29,7 +30,7 @@ trait AcceptsUploads
      */
     public const UPLOAD_PROPERTY = [
         'type' => 'string',
-        'description' => 'Handle of a staged file (`up_…`) from the upload endpoint. Files go up over HTTP with your same bearer token; list_uploads shows what is staged.',
+        'description' => 'Handle of a staged file (`up_…`). Files go up over HTTP: with your bearer token to the upload endpoint, or to a link from request_upload when the token sits in your connector settings. list_uploads shows what is staged.',
     ];
 
     /**
@@ -40,7 +41,7 @@ trait AcceptsUploads
         $handle = trim((string) $request->get($parameter, ''));
 
         if ($handle === '') {
-            return 'Pass `'.$parameter.'` with the handle of a staged file (`up_…`). Upload one first — POST the file to the upload endpoint with your same bearer token.';
+            return 'Pass `'.$parameter.'` with the handle of a staged file (`up_…`). Upload one first: POST the file to the upload endpoint with your bearer token, or ask request_upload for a link if you cannot send the token.';
         }
 
         $principal = app(PrincipalResolver::class)->resolve($request->user());

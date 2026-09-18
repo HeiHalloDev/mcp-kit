@@ -46,7 +46,7 @@ class ListUploadsTool extends Tool
         $staged = $uploads->for($principal);
 
         if ($staged === []) {
-            return Response::text('Nothing staged. POST a file to the upload endpoint with your same bearer token, and it shows up here with a handle.');
+            return Response::text('Nothing staged. POST a file to the upload endpoint with your bearer token, or to a link from request_upload, and it shows up here with a handle.');
         }
 
         return Response::json([

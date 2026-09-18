@@ -21,6 +21,7 @@ use HeiHallo\McpKit\Mcp\Resources\UsageResource;
 use HeiHallo\McpKit\Mcp\Tools\ListUploadsTool;
 use HeiHallo\McpKit\Mcp\Tools\RememberAboutMeTool;
 use HeiHallo\McpKit\Mcp\Tools\ReportGapTool;
+use HeiHallo\McpKit\Mcp\Tools\RequestUploadTool;
 use HeiHallo\McpKit\Mcp\Tools\SavePlaybookTool;
 use HeiHallo\McpKit\Mcp\Tools\WorkingOnTool;
 use HeiHallo\McpKit\Memory\ColumnMemoryStore;
@@ -332,6 +333,11 @@ return [
     'uploads' => [
         'enabled' => (bool) env('MCP_UPLOADS_ENABLED', false),
         'route' => '/mcp/uploads',
+        // request_upload hands out a signed link to this path: the file goes
+        // up without the bearer token, which an assistant behind a connector
+        // never sees. Short on purpose — the link is the credential.
+        'link_route' => '/mcp/uploads/link',
+        'link_minutes' => (int) env('MCP_UPLOAD_LINK_MINUTES', 30),
         'disk' => 'local',
         'path' => 'mcp-uploads',
         'ttl_days' => (int) env('MCP_UPLOAD_TTL_DAYS', 3),
@@ -342,7 +348,7 @@ return [
 
     'shared' => [
         'resources' => [GroundRulesResource::class, MeResource::class, PlaybooksResource::class, GapsResource::class, UsageResource::class],
-        'tools' => [RememberAboutMeTool::class, SavePlaybookTool::class, ReportGapTool::class, WorkingOnTool::class, ListUploadsTool::class],
+        'tools' => [RememberAboutMeTool::class, SavePlaybookTool::class, ReportGapTool::class, WorkingOnTool::class, ListUploadsTool::class, RequestUploadTool::class],
         'prompts' => [GettingStartedPrompt::class],
     ],
 

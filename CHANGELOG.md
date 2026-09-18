@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.13.0 — 2026-09-18
+
+Staff behind a connector could not upload a file at all. The upload endpoint takes the bearer token, and an assistant in Claude, ChatGPT or Codex with the token in its config talks MCP through a token it never sees. In studies nobody had ever staged a file: four gap reports in two days asked for picture upload that `legacy_add_image` already offered, and each picture went through the admin in the browser instead.
+
+- **`request_upload` hands out a link that needs no token.** A new shared tool, registered where uploads are on. It signs a link to `POST /mcp/uploads/link` (`uploads.link_route`) bound to the token that asked, valid for `uploads.link_minutes` (default 30, `MCP_UPLOAD_LINK_MINUTES`), and answers with the URL, the field name, a curl line, the limits and what comes back. One link takes several files until it runs out.
+- **Behind the link, nothing is new.** The link stands in for the bearer header and the rest is the bearer upload: `EnsureMcpAccess`, the throttle, the size and type limits, the handle in the owner's own dock. The token is looked up on every POST, so revoking it or blocking the person kills links already handed out. A bad or expired link answers in JSON and names `request_upload`, rather than the framework's bare 403 page.
+- The upload wording (`UPLOAD_PROPERTY`, the missing-handle refusal, `list_uploads` when empty, the ground-rules footer) names the link as the way in when the token cannot be sent.
+
 ## v1.12.2 — 2026-09-17
 
 - **The Codex terminal paste scrolls again.** v1.12.1 wrapped it along with the prose, and a wrapped awk one-liner reads as mangled shell. It is a command — three lines to paste and forget, like every other command on the page. The AGENTS.md lines below it, which a person does read, keep wrapping.

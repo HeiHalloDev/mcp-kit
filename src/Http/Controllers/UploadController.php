@@ -12,7 +12,8 @@ use Illuminate\Http\Request;
 
 /**
  * The upload endpoint next to the MCP routes: same bearer token, same
- * access gate (EnsureMcpAccess runs in front of this). Deliberately dumb —
+ * access gate (EnsureMcpAccess runs in front of this). A request_upload
+ * link reaches it too, with the link standing in for the bearer header. Deliberately dumb —
  * it stages bytes and answers with a handle; every meaning the file gains
  * comes later, from the tool that consumes it.
  */

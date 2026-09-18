@@ -176,3 +176,124 @@ test('the connect instructions say how, where uploads are on', function () {
         ->toContain('/mcp/uploads')
         ->toContain('list_uploads');
 });
+
+/*
+ * An assistant behind a connector talks MCP through a token it never sees,
+ * so it cannot send the bearer header. request_upload hands it a signed
+ * link instead; behind the link everything is the bearer upload again.
+ */
+
+function uploadLink(string $token): string
+{
+    $reply = Mcp::call($token, '/mcp/acme', 'request_upload')->json('result.content.0.text');
+
+    return (string) json_decode((string) $reply, true)['url'];
+}
+
+function postToLink(string $url, UploadedFile $file)
+{
+    return test()->post($url, ['file' => $file], ['Accept' => 'application/json']);
+}
+
+test('a link from request_upload stages a file without the bearer token', function () {
+    bootUploads();
+    $user = acmeUser();
+    $token = acmeToken($user, ['acme:things:read', 'acme:things:write']);
+    $thing = Thing::query()->create(['name' => 'Widget']);
+
+    $link = uploadLink($token);
+
+    expect($link)->toContain('/mcp/uploads/link')->toContain('signature=');
+
+    $handle = postToLink($link, UploadedFile::fake()->createWithContent('figur.png', 'PNG BYTES'))
+        ->assertCreated()
+        ->assertJsonPath('checksum', hash('sha256', 'PNG BYTES'))
+        ->json('upload');
+
+    // Staged in the person's own dock, so their tools take it as usual.
+    Mcp::call($token, '/mcp/acme', 'attach_file', ['id' => $thing->id, 'upload' => $handle])
+        ->assertSee('figur.png');
+});
+
+test('one link takes several files until it expires', function () {
+    bootUploads();
+    $link = uploadLink(acmeToken(acmeUser(), ['acme:things:read']));
+
+    postToLink($link, UploadedFile::fake()->createWithContent('a.png', 'A'))->assertCreated();
+    postToLink($link, UploadedFile::fake()->createWithContent('b.png', 'B'))->assertCreated();
+
+    expect(Upload::query()->count())->toBe(2);
+});
+
+test('an expired link stores nothing and says to ask again', function () {
+    bootUploads();
+    $link = uploadLink(acmeToken(acmeUser(), ['acme:things:read']));
+
+    $this->travel(31)->minutes();
+
+    postToLink($link, UploadedFile::fake()->createWithContent('sen.png', 'X'))
+        ->assertForbidden()
+        ->assertJsonPath('error', fn (string $e) => str_contains($e, 'request_upload'));
+
+    expect(Upload::query()->count())->toBe(0);
+});
+
+test('a link pointed at somebody else\'s token fails the signature', function () {
+    bootUploads();
+    $kari = acmeUser();
+    $ola = acmeUser(['staff', 'things'], 'staff', ['name' => 'Ola Nordmann']);
+    $link = uploadLink(acmeToken($kari, ['acme:things:read']));
+    acmeToken($ola, ['acme:things:read']);
+    $olaTokenId = (string) $ola->tokens()->value('id');
+
+    $forged = preg_replace('/([?&]token=)\d+/', '${1}'.$olaTokenId, $link);
+
+    postToLink($forged, UploadedFile::fake()->createWithContent('x.png', 'X'))->assertForbidden();
+
+    expect(Upload::query()->count())->toBe(0);
+});
+
+test('revoking the token kills its links', function () {
+    bootUploads();
+    $user = acmeUser();
+    $link = uploadLink(acmeToken($user, ['acme:things:read']));
+
+    $user->tokens()->delete();
+
+    postToLink($link, UploadedFile::fake()->createWithContent('x.png', 'X'))
+        ->assertUnauthorized()
+        ->assertJsonPath('error', fn (string $e) => str_contains($e, 'request_upload'));
+
+    expect(Upload::query()->count())->toBe(0);
+});
+
+test('a person blocked after the link was handed out stages nothing', function () {
+    bootUploads();
+    $user = acmeUser();
+    $link = uploadLink(acmeToken($user, ['acme:things:read']));
+
+    $user->forceFill(['blocked_at' => now()])->save();
+
+    postToLink($link, UploadedFile::fake()->createWithContent('x.png', 'X'))->assertForbidden();
+
+    expect(Upload::query()->count())->toBe(0);
+});
+
+test('a link keeps the size limit', function () {
+    bootUploads();
+    config()->set('mcp-kit.uploads.max_kb', 1);
+    $link = uploadLink(acmeToken(acmeUser(), ['acme:things:read']));
+
+    postToLink($link, UploadedFile::fake()->create('big.bin', 5))->assertStatus(413);
+});
+
+test('request_upload is off with uploads, and the footer names it when on', function () {
+    $token = acmeToken(acmeUser(), ['acme:things:read']);
+
+    expect(collect(Mcp::listTools($token, '/mcp/acme')->json('result.tools'))->pluck('name'))->not->toContain('request_upload');
+
+    bootUploads();
+
+    expect(collect(Mcp::listTools($token, '/mcp/acme')->json('result.tools'))->pluck('name'))->toContain('request_upload')
+        ->and(app(GroundRules::class)->instructions('acme', 'Staff tools.'))->toContain('request_upload');
+});

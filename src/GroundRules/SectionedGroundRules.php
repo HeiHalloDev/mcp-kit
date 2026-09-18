@@ -105,7 +105,7 @@ class SectionedGroundRules implements GroundRules
         // MCP carries JSON, not bytes; the endpoint is how a local file
         // gets here. Only apps that turned uploads on pay for the sentence.
         if (config('mcp-kit.uploads.enabled', false)) {
-            $footer .= ' To use a local file: POST it as multipart field `file` to `'.url((string) config('mcp-kit.uploads.route', '/mcp/uploads')).'` with this same bearer token, then pass the returned `up_…` handle to a tool that takes `upload`. `list_uploads` shows what is staged.';
+            $footer .= ' To use a local file: POST it as multipart field `file` to `'.url((string) config('mcp-kit.uploads.route', '/mcp/uploads')).'` with this same bearer token, then pass the returned `up_…` handle to a tool that takes `upload`. If the token sits in your connector settings and you cannot send it, `request_upload` gives a short-lived link that needs none. `list_uploads` shows what is staged.';
         }
 
         return $authored.$footer;
