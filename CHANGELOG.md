@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.14.3 — 2026-09-22
+
+- **The inventory guard says what a re-pin means before it says how.** It named the command first, and a message that leads with the remedy gets read as far as the remedy: an assistant clearing a red test runs `mcp:inventory` and the snapshot silently agrees to whatever was registered. Re-pinning is not a chore — it is the moment somebody says these tools belong in the catalogue. The failure now names the new tools (`crm/delete_everything`), says the snapshot is the record of what the app deliberately exposes, asks whether each one belongs, and offers taking the tool out as the other answer. The command comes last. Raised by the session working in a consuming app, whose own catalogue pin exists to force exactly that decision.
+
 ## v1.14.2 — 2026-09-22
 
 - **A refused call about somebody else's subject says whose.** The neighbour match now also runs when a tool comes back refused: the arguments and the refusal are checked against the neighbours, and the hint lands in that reply. This is the moment an assistant decides the job is impossible and reaches for a browser, and a paragraph of instructions read an hour ago is not what it is looking at. Off with `neighbours_on_refusal => false`.

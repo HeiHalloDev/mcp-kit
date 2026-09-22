@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use HeiHallo\McpKit\Docs\ToolReference;
+use HeiHallo\McpKit\Testing\Guards;
 use Illuminate\Support\Facades\File;
 
 /**
@@ -127,4 +128,30 @@ test('mcp:inventory re-pins the snapshot the guard compares against', function (
     $this->artisan('mcp:inventory', ['--check' => true])->assertExitCode(0);
 
     unlink($path);
+});
+
+/**
+ * A message that leads with the remedy gets read as far as the remedy, and
+ * re-pinning is the moment somebody says these tools belong in the
+ * catalogue — not a chore to clear.
+ */
+test('the grown-catalogue message names the new tools and asks before it tells you how', function () {
+    $message = Guards::grownCatalogue(
+        ['acme' => ['list_things', 'update_thing', 'delete_everything']],
+        ['acme' => ['list_things', 'update_thing']],
+        '/app/tests/Feature/Mcp/tool-inventory.json',
+    );
+
+    expect($message)->toContain('acme/delete_everything')
+        ->and($message)->toContain('deliberately exposes')
+        ->and($message)->toContain('Take the tool out instead')
+        ->and($message)->toContain('/app/tests/Feature/Mcp/tool-inventory.json')
+        // What it is comes before what to type, or the command is all that gets read.
+        ->and(strpos($message, 'deliberately exposes'))->toBeLessThan(strpos($message, 'mcp:inventory'));
+});
+
+test('it says plainly when the snapshot disagrees without anything new', function () {
+    $message = Guards::grownCatalogue(['acme' => ['list_things']], ['acme' => ['list_things']], '/snapshot.json');
+
+    expect($message)->toContain('no longer match the pinned snapshot');
 });

@@ -432,7 +432,7 @@ final class Guards
                 expect($missing)->toBe([], "[{$server}] lost tools: ".implode(', ', $missing).". Removing or renaming a tool breaks connected clients — if deliberate, update {$path}.");
             }
 
-            expect($actual)->toBe($pinned, "New tools registered — run php artisan mcp:inventory to re-pin {$path}, so the snapshot stays deliberate. (mcp:install never overwrites a file that exists, this one included.)");
+            expect($actual)->toBe($pinned, Guards::grownCatalogue($actual, (array) $pinned, $path));
         });
 
         test('tool names are unique within a server', function () {
@@ -444,6 +444,40 @@ final class Guards
                 expect(array_values(array_unique($names)))->toBe(array_values($names), "[{$key}] registers a tool name twice.");
             }
         });
+    }
+
+    /**
+     * What a grown catalogue says to whoever is looking at the red test.
+     *
+     * The remedy comes last on purpose. A message that leads with the
+     * command gets read as far as the command, and re-pinning a snapshot is
+     * not a chore — it is the moment somebody says these tools belong in the
+     * catalogue. An assistant in a hurry reading "run mcp:inventory" first
+     * makes the question disappear rather than answer it.
+     *
+     * @param  array<string, list<string>>  $actual
+     * @param  array<string, list<string>>  $pinned
+     */
+    public static function grownCatalogue(array $actual, array $pinned, string $path): string
+    {
+        $added = [];
+
+        foreach ($actual as $server => $names) {
+            foreach (array_diff($names, (array) ($pinned[$server] ?? [])) as $name) {
+                $added[] = "{$server}/{$name}";
+            }
+        }
+
+        return sprintf(
+            "%s\n\nThis snapshot is the record of what this app deliberately exposes, so read that list before "
+            .'you touch it. Does every one of them belong in the catalogue? Then re-pin: php artisan mcp:inventory. '
+            .'Is one of them half-finished, not meant for staff, or carrying an ability nobody agreed to? Take the '
+            ."tool out instead — re-pinning would settle the question by forgetting it was asked.\n\nSnapshot: %s",
+            $added === []
+                ? 'The registered tools no longer match the pinned snapshot.'
+                : 'The catalogue has grown: '.implode(', ', $added).'.',
+            $path,
+        );
     }
 
     public static function docsCurrent(): void
