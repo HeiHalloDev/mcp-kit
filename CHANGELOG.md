@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.16.0 — 2026-09-22
+
+- **The tokens page says where to get the client, not only what to paste into it.** Every connect tab handed somebody `claude mcp add …` and assumed `claude` was already on their machine. It is not: the people minting these tokens were told an assistant could read the CRM, not to install a terminal tool. Each client tab now carries the download link, the install line for each platform, the command that proves it worked, and the vendor's own page if any of it has moved. The Claude Desktop tab says plainly that the app's Code tab reads the `claude mcp add` connection — one paste, nothing to edit — and that the JSON block is for the chat side. `mcp:token` ends with the same install line for anybody minting from a terminal.
+- One source for all of it (`Tokens\ClientSetup`), so ten apps tell staff the same thing instead of drifting apart. Every link and command checked against the vendors' documentation on 2026-09-22, and the documentation linked beside it.
+
 ## v1.15.0 — 2026-09-22
 
 - **The snapshot pins what each tool takes, not only what it is called.** A tool can gain a path that reaches further than anything it reached yesterday — a scope, a flag that settles whatever it could not match — without its name changing by a letter, and a pin of names alone stays green through that. One such flag in a consuming app was a confirmation away from cancelling thirty paying subscriptions. The inventory snapshot now holds each tool's parameter names, and the guard says what moved: `l5/reconcile_subscriptions gained: scope, settle_missing, confirm`, then asks what the tool does when each one is set and whether that is still behind a confirmation. A parameter that *disappears* is its own message — the clients already sending it break, loudly if the call fails and quietly if the argument is dropped. The command comes last, as it does everywhere else.

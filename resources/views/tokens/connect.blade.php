@@ -39,6 +39,8 @@
 
             <flux:text size="sm">{{ __('--scope user makes the connection available from every folder; without it, it only works in the folder you ran the command from.') }}</flux:text>
 
+            @include('mcp-kit::tokens.install', ['client' => 'claude-code'])
+
             <div class="space-y-3">
                 <flux:text size="sm">{{ __('Remove a connection') }}</flux:text>
                 <flux:text size="sm" class="opacity-70">{{ __('Removing a connection only forgets it on this machine — it does not revoke the token. Revoke it in the list above.') }}</flux:text>
@@ -57,11 +59,13 @@
             </div>
         </flux:tab.panel>
 
-        <flux:tab.panel name="claude-desktop">
+        <flux:tab.panel name="claude-desktop" class="space-y-5">
             @include('mcp-kit::tokens.snippet', [
                 'code' => $this->snippets()->claudeDesktop($this->servers, $tokenPlaceholder),
                 'label' => __('Add to the MCP configuration (Claude Desktop: Settings → Developer → Edit Config):'),
             ])
+
+            @include('mcp-kit::tokens.install', ['client' => 'claude-desktop'])
         </flux:tab.panel>
 
         <flux:tab.panel name="codex" class="space-y-5">
@@ -94,6 +98,8 @@
                     @include('mcp-kit::tokens.snippet', ['code' => $this->snippets()->codexInstructions(), 'wrap' => true])
                 </div>
             @endif
+
+            @include('mcp-kit::tokens.install', ['client' => 'codex'])
 
             <div class="space-y-3">
                 <flux:text size="sm">{{ __('Remove a connection') }}</flux:text>

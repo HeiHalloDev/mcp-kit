@@ -82,7 +82,7 @@ it('has every view translation key in lang/en.json', function () {
     $keys = json_decode((string) file_get_contents($root.'/lang/en.json'), true);
     $missing = [];
 
-    $files = [...File::allFiles($root.'/resources/views'), ...File::allFiles($root.'/src/Livewire')];
+    $files = [...File::allFiles($root.'/resources/views'), ...File::allFiles($root.'/src/Livewire'), ...File::allFiles($root.'/src/Tokens')];
 
     foreach ($files as $file) {
         preg_match_all("/__\\(\\s*'((?:[^'\\\\]|\\\\.)*)'/", $file->getContents(), $single);

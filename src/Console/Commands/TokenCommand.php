@@ -9,6 +9,7 @@ use HeiHallo\McpKit\Contracts\PresetResolver;
 use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Contracts\TokenPolicy;
 use HeiHallo\McpKit\Exceptions\TokenRefused;
+use HeiHallo\McpKit\Tokens\ClientSetup;
 use HeiHallo\McpKit\Tokens\ConnectSnippets;
 use HeiHallo\McpKit\Tokens\TokenMinter;
 use Illuminate\Console\Command;
@@ -116,6 +117,10 @@ class TokenCommand extends Command
                 $this->line('  '.$line);
             }
         }
+
+        $this->newLine();
+        $this->line('No claude command yet? '.ClientSetup::claudeCode()['install'][__('macOS, Linux, WSL')]);
+        $this->line('Other clients, and the same lines with a copy button, are on the tokens page.');
 
         return self::SUCCESS;
     }
