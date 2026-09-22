@@ -6,3 +6,4 @@ composer.lock
 
 # Local-only notes (client names stay out of the public repo)
 /APPS.local.md
+tests/tmp/
