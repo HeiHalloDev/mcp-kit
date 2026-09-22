@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use HeiHallo\McpKit\Docs\ToolReference;
 use Illuminate\Support\Facades\File;
 
 /**
@@ -99,4 +100,31 @@ test('an existing file is never overwritten, --force or not', function () {
 
     expect(File::get(config_path('mcp-kit.php')))->toContain("'edited' => true")
         ->and(File::get((string) config('mcp-kit.docs.path')))->toContain('550 lines of hand-written docs');
+});
+
+/**
+ * mcp:install never overwrites a file that exists — it ate a hand-written
+ * docs page once — which left the inventory guard recommending a command
+ * that could no longer re-pin it.
+ */
+test('mcp:inventory re-pins the snapshot the guard compares against', function () {
+    $path = app(ToolReference::class)->inventoryPath();
+
+    if (! is_dir(dirname($path))) {
+        mkdir(dirname($path), 0755, true);
+    }
+
+    file_put_contents($path, json_encode(['acme' => ['list_things']], JSON_PRETTY_PRINT)."\n");
+
+    $this->artisan('mcp:inventory', ['--check' => true])->assertExitCode(1);
+    $this->artisan('mcp:inventory')->assertExitCode(0);
+
+    $pinned = json_decode((string) file_get_contents($path), true);
+
+    expect($pinned['acme'])->toBe(app(ToolReference::class)->inventory()['acme'])
+        ->and($pinned['acme'])->toContain('list_things');
+
+    $this->artisan('mcp:inventory', ['--check' => true])->assertExitCode(0);
+
+    unlink($path);
 });

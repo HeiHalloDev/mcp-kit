@@ -432,7 +432,7 @@ final class Guards
                 expect($missing)->toBe([], "[{$server}] lost tools: ".implode(', ', $missing).". Removing or renaming a tool breaks connected clients — if deliberate, update {$path}.");
             }
 
-            expect($actual)->toBe($pinned, "New tools registered — regenerate {$path} (php artisan mcp:install --force keeps the rest) so the snapshot stays deliberate.");
+            expect($actual)->toBe($pinned, "New tools registered — run php artisan mcp:inventory to re-pin {$path}, so the snapshot stays deliberate. (mcp:install never overwrites a file that exists, this one included.)");
         });
 
         test('tool names are unique within a server', function () {

@@ -6,6 +6,7 @@ namespace HeiHallo\McpKit\GroundRules;
 
 use HeiHallo\McpKit\Contracts\GroundRules;
 use HeiHallo\McpKit\Contracts\Section;
+use HeiHallo\McpKit\Neighbours\Neighbours;
 use HeiHallo\McpKit\Principal;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use Illuminate\Contracts\Cache\Repository as Cache;
@@ -91,6 +92,15 @@ class SectionedGroundRules implements GroundRules
         }
 
         $scheme = (string) config('mcp-kit.scheme', 'app');
+
+        // What this app does not hold, and which connection does. Written
+        // once in config rather than in every app's prose, because the
+        // assistant that needs it is the one that has already given up.
+        $neighbours = app(Neighbours::class)->instructions();
+
+        if ($neighbours !== null) {
+            $authored .= "\n\n".$neighbours;
+        }
 
         $footer = "\n\nStart a new session by reading `{$scheme}://me` and `{$scheme}://ground-rules`. Writes preview without `confirm=true` and execute with it.";
 

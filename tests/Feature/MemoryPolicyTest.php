@@ -8,6 +8,7 @@ use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Memory\AssistantMemory;
 use HeiHallo\McpKit\Memory\MemoryLimits;
 use HeiHallo\McpKit\Memory\MemoryMerger;
+use HeiHallo\McpKit\Memory\SecretDetector;
 use HeiHallo\McpKit\Models\ServiceClient;
 
 test('the default policy: self always, others only when privileged, service clients never', function () {
@@ -57,4 +58,42 @@ test('the merger validates lengths, onboarding values and note indexes', functio
         ->and($merged->onboardingDeclined())->toBeTrue()
         ->and($merger->merge($merged, ['onboarding' => 'reset'], false, null)->onboarding)->toBe([])
         ->and($merged->version)->toBe(1);
+});
+
+/**
+ * Talking about a credential is not carrying one. The first rules matched
+ * the word alone, so a report about the bearer-token upload path — which
+ * contained no token — was refused, and so was every gap about resetting a
+ * password.
+ */
+test('it tells a credential from a sentence about one', function () {
+    $secret = [
+        'I had to log in with password hunter2 instead.',
+        'passord: korrekthest42',
+        'Authorization: Bearer 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ012345',
+        'api_key=ab12cd34ef56gh',
+        'secret is correcthorsebatterystaple',
+        '-----BEGIN RSA PRIVATE KEY-----',
+    ];
+
+    $prose = [
+        'the bearer token path is unusable for connector staff',
+        'no way to reset a student password from here',
+        'a gap about passwords and tokens',
+        'the token sits in the connector settings, so the tool cannot send it',
+    ];
+
+    foreach ($secret as $text) {
+        expect(SecretDetector::looksSecret($text))->toBeTrue("should refuse: {$text}");
+    }
+
+    foreach ($prose as $text) {
+        expect(SecretDetector::looksSecret($text))->toBeFalse("should allow: {$text}");
+    }
+});
+
+test('a field named for a credential still catches one, and lets prose through', function () {
+    expect(SecretDetector::looksSecret(['api_token' => 'aBcDeFgH12345678']))->toBeTrue()
+        ->and(SecretDetector::looksSecret(['result' => 'the bearer token path is unusable']))->toBeFalse()
+        ->and(SecretDetector::looksSecret(['token' => 'the one in the settings']))->toBeFalse();
 });

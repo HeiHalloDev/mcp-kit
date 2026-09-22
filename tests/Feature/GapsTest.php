@@ -342,3 +342,118 @@ test('a runaway title is cut to fit, never crashed on', function () {
         // The full sentence survives where there is room for it.
         ->and($gaps[0]->need)->toBe(gapArguments()['need']);
 });
+
+/**
+ * Triage was costing a production database query per question: what came in
+ * today, which id is this, and no way at all to merge two rows describing
+ * one thing.
+ */
+test('the list and the filing both carry the id and the dates', function () {
+    $user = actingWith(acmeUser(), ['acme:things:read'], 'laptop');
+
+    $filed = AcmeServer::actingAs($user)->tool(ReportGapTool::class, gapArguments(['confirm' => true]));
+
+    $filed->assertSee('"id"');
+
+    $list = Mcp::readResource(acmeToken(acmeAdmin(), ['acme:*']), '/mcp/acme', 'acme://gaps');
+
+    $list->assertSuccessful();
+
+    expect((string) $list->getContent())->toContain('Reported '.now()->format('Y-m-d'))
+        ->and((string) $list->getContent())->toContain('Kari Nordmann');
+});
+
+test('a privileged person files and settles in one call, and a plain one cannot', function () {
+    Event::fake([GapReported::class, GapStatusChanged::class]);
+
+    $staff = actingWith(acmeUser(), ['acme:things:read'], 'laptop');
+
+    AcmeServer::actingAs($staff)->tool(ReportGapTool::class, gapArguments([
+        'status' => 'declined',
+        'resolution' => 'Lives in the other connection.',
+        'confirm' => true,
+    ]))->assertHasErrors();
+
+    $admin = actingWith(acmeAdmin(), ['acme:*'], 'laptop');
+
+    AcmeServer::actingAs($admin)->tool(ReportGapTool::class, gapArguments([
+        'status' => 'declined',
+        'resolution' => 'Lives in the other connection: search_contacts answers it.',
+        'confirm' => true,
+    ]))->assertOk()->assertSee('declined');
+
+    $gaps = app(GapStore::class)->list([Gap::DECLINED]);
+
+    expect($gaps)->toHaveCount(1)
+        ->and($gaps[0]->resolution)->toContain('search_contacts')
+        ->and($gaps[0]->resolvedBy)->toBe('Ada Admin');
+
+    Event::assertDispatched(GapStatusChanged::class);
+});
+
+test('a resolution can be reworded after it was settled', function () {
+    $admin = actingWith(acmeAdmin(), ['acme:*'], 'laptop');
+    $gap = app(GapStore::class)->put((new Gap(
+        key: 'cannot-do-the-thing',
+        title: 'cannot do the thing',
+        need: 'Doing the thing.',
+        missing: 'No tool for it.',
+    ))->settled(Gap::PLANNED, 'First draft.', 'Ada Admin'));
+
+    AcmeServer::actingAs($admin)->tool(ReportGapTool::class, [
+        'gap' => (string) $gap->id,
+        'status' => 'planned',
+        'confirm' => true,
+    ])->assertHasErrors();
+
+    AcmeServer::actingAs($admin)->tool(ReportGapTool::class, [
+        'gap' => (string) $gap->id,
+        'status' => 'planned',
+        'resolution' => 'Built, waiting to be deployed. It reads the whole branch in one call.',
+        'confirm' => true,
+    ])->assertOk()->assertSee('one call');
+
+    expect(app(GapStore::class)->find($gap->id)->resolution)->toContain('waiting to be deployed');
+});
+
+test('two rows describing one thing are merged, reporters and all', function () {
+    $store = app(GapStore::class);
+    $admin = actingWith(acmeAdmin(), ['acme:*'], 'laptop');
+
+    $survivor = $store->put(new Gap(
+        key: 'no-way-to-read-a-whole-study',
+        title: 'no way to read a whole study',
+        need: 'Lese et helt studium.',
+        missing: 'One page per call.',
+        reporters: [['name' => 'Kari Nordmann', 'at' => now()->toIso8601String(), 'note' => '']],
+    ));
+
+    $duplicate = $store->put(new Gap(
+        key: 'reading-a-study-takes-hundreds-of-calls',
+        title: 'reading a study takes hundreds of calls',
+        need: 'Lese et helt studium.',
+        missing: 'Same thing, said differently.',
+        blocking: true,
+        reporters: [['name' => 'Per Hansen', 'at' => now()->toIso8601String(), 'note' => 'Ran into the rate limit.']],
+    ));
+
+    AcmeServer::actingAs($admin)->tool(ReportGapTool::class, [
+        'gap' => (string) $duplicate->id,
+        'merge_into' => (string) $survivor->id,
+    ])->assertOk()->assertSee('Per Hansen');
+
+    AcmeServer::actingAs($admin)->tool(ReportGapTool::class, [
+        'gap' => (string) $duplicate->id,
+        'merge_into' => (string) $survivor->id,
+        'confirm' => true,
+    ])->assertOk();
+
+    $merged = $store->find($survivor->id);
+    $closed = $store->find($duplicate->id);
+
+    expect($merged->reports)->toBe(2)
+        ->and(array_column($merged->reporters, 'name'))->toBe(['Kari Nordmann', 'Per Hansen'])
+        ->and($merged->blocking)->toBeTrue()
+        ->and($closed->status)->toBe(Gap::DECLINED)
+        ->and($closed->resolution)->toContain('#'.$survivor->id);
+});

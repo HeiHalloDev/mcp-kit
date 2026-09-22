@@ -512,4 +512,63 @@ return [
     // ability => list of things to try, shown to people whose token holds it
     'suggestions' => [],
 
+    /*
+    |--------------------------------------------------------------------------
+    | The connections next door
+    |--------------------------------------------------------------------------
+    |
+    | What this app does NOT hold, and which connection does. The kit puts it
+    | in every server's instructions and matches a gap report against it
+    | before anything is filed, so an assistant that has run out of road is
+    | told where the road continues instead of working around it — or
+    | reaching for a browser, which is what actually happened.
+    |
+    | **This is your own product family and nothing else.** The list names
+    | connections belonging to the same organisation as this app, because it
+    | is read by that organisation's staff and their assistants. One client's
+    | app must never mention another's: the kit therefore ships this empty,
+    | and no default will ever fill it.
+    |
+    |   'neighbours' => [
+    |       'crm' => [
+    |           'label' => 'Acme CRM',
+    |           'owns' => 'People and everything around them: customers, signups, messages',
+    |           'tools' => ['search_contacts', 'list_signups'],
+    |           'match' => ['customer', 'kunde', 'signup', 'invoice'],
+    |           'ask' => 'You may already have it; if not, ask <name> for a token.',
+    |       ],
+    |   ],
+    |
+    */
+
+    'neighbours' => [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Hints: the shorter road
+    |--------------------------------------------------------------------------
+    |
+    | One tool called over and over, when one call would have done it. A
+    | curriculum sweep spent 434 calls reading a study a page at a time, and
+    | a follow-up round spent ninety looking people up one by one; in both
+    | cases the tool that answers in one call existed and was listed. Nothing
+    | said so at the moment it would have helped.
+    |
+    | Past `after` calls to the same tool in one stretch of work, the kit
+    | appends a sentence to that tool's reply. The call is answered as
+    | normal — this is a nudge, never a refusal.
+    |
+    |   'instead_of' => [
+    |       'get_thing' => ['use' => 'get_things', 'say' => 'takes a whole list at once', 'after' => 5],
+    |   ],
+    |
+    */
+
+    'hints' => [
+        'enabled' => true,
+        'after' => 5,
+        'repeat_every' => 15,
+        'instead_of' => [],
+    ],
+
 ];

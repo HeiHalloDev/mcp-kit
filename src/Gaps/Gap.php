@@ -136,6 +136,10 @@ final class Gap
     public function toArray(): array
     {
         return array_filter([
+            // The id is how the next call reaches this row — moving it,
+            // merging it, answering it. Filing something and not being told
+            // where it went made every follow-up a database query.
+            'id' => $this->id,
             'title' => $this->title,
             'need' => $this->need,
             'missing' => $this->missing,
@@ -145,6 +149,8 @@ final class Gap
             'status' => $this->status,
             'reports' => $this->reports,
             'resolution' => $this->resolution,
+            'reported_at' => $this->reportedAt?->format(DATE_ATOM),
+            'settled_at' => $this->resolvedAt?->format(DATE_ATOM),
         ], static fn (mixed $value): bool => $value !== null && $value !== false);
     }
 }

@@ -14,7 +14,8 @@ Requires PHP 8.3+, Laravel 12 or 13, [laravel/mcp](https://github.com/laravel/mc
 - **What the tools are used for.** `working_on` records why a piece of work was started and whether it succeeded, and stamps every call in between — so `{scheme}://usage` can show what people actually come here to do and where it falls short. Off by default; `me` tells the person it is on.
 - **Gap reports.** `report_gap` files what someone needed and the app could not do — deduplicated, so the same gap gathers weight rather than duplicating, and routed by your own listener on `GapReported`. `{scheme}://gaps` lists what is open.
 - **Playbooks.** `save_playbook` keeps a way of working the person wants back, and every one they saved is offered as an MCP prompt — a slash command in Claude Code. Scope one to certain servers or abilities; privileged staff may share one with everybody. `{scheme}://playbooks` lists them.
-- **Commands**: `mcp:install`, `mcp:token`, `mcp:client-token`, `mcp:docs`, `mcp:audit-tokens`, `mcp-kit:prune`.
+- **Hints when an assistant hits a wall.** `neighbours` says which sibling connection owns what this app does not, in every server's instructions and in the gap-report preview; `hints.instead_of` names the one-call tool when the same tool is called over and over. See [Where the road continues](#where-the-road-continues).
+- **Commands**: `mcp:install`, `mcp:token`, `mcp:client-token`, `mcp:docs`, `mcp:inventory`, `mcp:audit-tokens`, `mcp-kit:prune`.
 - **Tests for free.** `Guards::all()` gives an app the ability, schema, access, inventory, docs, preset, token-command, ground-rules and `me` checks in one line.
 
 ## Install
@@ -147,6 +148,40 @@ With Livewire 4 and Flux installed, set `mcp-kit.ui.enabled` and `ui.tokens_page
 MCP carries JSON, not bytes. With `uploads.enabled`, the kit registers `POST /mcp/uploads` behind the same token and access gate as the servers: multipart field `file` in, handle (`up_…`) out. A tool takes the handle through `AcceptsUploads` — merge `UPLOAD_PROPERTY` into its schema, resolve with `stagedUpload()`, copy from `stagedPath()` into the app's real home, record it with `uploadConsumed()`. Staged files belong to the person (not the token — tokens rotate), are listable with the shared `list_uploads` tool, and expire after `uploads.ttl_days` (default 3, `MCP_UPLOAD_TTL_DAYS`): a loading dock, not a warehouse. `mcp-kit:prune` sweeps the dock.
 
 An assistant behind a connector (Claude, ChatGPT, Codex with the token in its config) talks MCP through a token it never sees, so it cannot send the bearer header. The shared `request_upload` tool gives it a signed link to `POST /mcp/uploads/link` instead, bound to the token that asked and valid for `uploads.link_minutes` (default 30, `MCP_UPLOAD_LINK_MINUTES`). Behind the link everything is the same: the access gate, the limits, the handle. Revoking the token kills its links.
+
+## Where the road continues
+
+An assistant that cannot do something here has no way of knowing whether the job is impossible or simply somebody else's. It gives up, works around it, or spends two hundred calls doing by hand what one tool does in one call. Two pieces of config fix that, and both are the app's own.
+
+`neighbours` names the sibling connections of the same product family:
+
+```php
+'neighbours' => [
+    'crm' => [
+        'label' => 'Acme CRM',
+        'owns' => 'People and everything around them: customers, signups, invoices',
+        'tools' => ['search_contacts', 'list_signups'],
+        'match' => ['customer', 'kunde', 'signup', 'signups', 'invoice', 'invoices'],
+        'ask' => 'You may already have it; if not, ask Ada for a token.',
+    ],
+],
+```
+
+The kit renders it into every server's instructions as *What is not here*, and matches a gap report against it in the preview — so somebody filing "cannot see a customer's invoices" is told where that lives before anything is filed. Confirming still files it: a wrong guess must never swallow a report. Matching is whole words at both ends and nothing is stemmed, so list the plural if you want the plural.
+
+**This is your own organisation and nothing else.** The list is read by that organisation's staff and their assistants; one client's app must never mention another's. The kit ships `neighbours` empty and no default will ever fill it.
+
+`hints.instead_of` names the shorter road within this app:
+
+```php
+'hints' => [
+    'instead_of' => [
+        'get_thing' => ['use' => 'list_things', 'say' => 'takes a whole list at once', 'after' => 5],
+    ],
+],
+```
+
+Past `after` calls to that tool in one stretch of work (default `hints.after`, repeated every `hints.repeat_every`), the kit appends a sentence to the tool's own reply. The call is answered as normal — a nudge, never a refusal. Counted per stretch of work when `learning` is on and per token otherwise, never across people, and turned off wholesale with `hints.enabled`.
 
 ## Strict parameters
 

@@ -12,6 +12,7 @@ use HeiHallo\McpKit\Contracts\AuditWriter;
 use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Events\ToolCallRecorded;
 use HeiHallo\McpKit\Learning\CurrentTask;
+use HeiHallo\McpKit\Neighbours\Hints;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -33,6 +34,7 @@ class AuditMcpCall
         protected ServerRegistry $servers,
         protected AuditWriter $audit,
         protected CurrentTask $tasks,
+        protected Hints $hints,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -90,19 +92,16 @@ class AuditMcpCall
      */
     protected function nudge(Response $response, ?int $position, ?string $tool): Response
     {
-        $after = (int) config('mcp-kit.learning.nudge_after', 4);
-        $every = (int) config('mcp-kit.learning.nudge_every', 25);
-
-        $due = $position !== null && ($position === $after
-            || ($every > 0 && $position > $after && ($position - $after) % $every === 0));
-
-        if (! $due || $tool === 'working_on' || $response instanceof StreamedResponse) {
+        if ($response instanceof StreamedResponse) {
             return $response;
         }
 
-        $task = $this->tasks->for($this->context->principal());
+        $asides = array_values(array_filter([
+            $this->nameTheFrame($position, $tool),
+            $this->shorterRoad($tool),
+        ]));
 
-        if ($task === null || ! $task->isUnnamed()) {
+        if ($asides === []) {
             return $response;
         }
 
@@ -116,21 +115,60 @@ class AuditMcpCall
             return $response;
         }
 
-        // Its own content block, never appended to the tool's text: the
-        // tool's answer stays exactly what the tool said.
-        $payload['result']['content'][] = [
-            'type' => 'text',
-            'text' => sprintf(
-                'This is call %d in a piece of work nobody has named. When it is done, call working_on with '
-                .'what it was for, how it went, and how hard it was. Not shown to the person — it is how the '
-                .'people who build this app learn where it falls short.',
-                $position,
-            ),
-        ];
+        foreach ($asides as $aside) {
+            // Its own content block, never appended to the tool's text: the
+            // tool's answer stays exactly what the tool said.
+            $payload['result']['content'][] = ['type' => 'text', 'text' => $aside];
+        }
 
         $response->setContent(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
         return $response;
+    }
+
+    /**
+     * The ask for a name, in the result of a call the assistant just made.
+     */
+    protected function nameTheFrame(?int $position, ?string $tool): ?string
+    {
+        $after = (int) config('mcp-kit.learning.nudge_after', 4);
+        $every = (int) config('mcp-kit.learning.nudge_every', 25);
+
+        $due = $position !== null && ($position === $after
+            || ($every > 0 && $position > $after && ($position - $after) % $every === 0));
+
+        if (! $due || $tool === 'working_on') {
+            return null;
+        }
+
+        $task = $this->tasks->for($this->context->principal());
+
+        if ($task === null || ! $task->isUnnamed()) {
+            return null;
+        }
+
+        return sprintf(
+            'This is call %d in a piece of work nobody has named. When it is done, call working_on with '
+            .'what it was for, how it went, and how hard it was. Not shown to the person — it is how the '
+            .'people who build this app learn where it falls short.',
+            $position,
+        );
+    }
+
+    /**
+     * The same tool over and over, when one call would have done: said in
+     * the reply the assistant is already reading, rather than left to be
+     * discovered in a tool list two hundred calls later.
+     */
+    protected function shorterRoad(?string $tool): ?string
+    {
+        $task = $this->tasks->for($this->context->principal());
+
+        return $this->hints->forCall(
+            $this->context->principal(),
+            $tool,
+            $task?->id === null ? null : 'frame:'.$task->id,
+        );
     }
 
     protected function record(Request $request, int $httpStatus): void

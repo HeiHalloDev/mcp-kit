@@ -32,6 +32,8 @@ use HeiHallo\McpKit\Exceptions\UiDependenciesMissing;
 use HeiHallo\McpKit\Exceptions\UnguardedMcpServer;
 use HeiHallo\McpKit\Http\Middleware\EnsureMcpAccess;
 use HeiHallo\McpKit\Learning\CurrentTask;
+use HeiHallo\McpKit\Neighbours\Hints;
+use HeiHallo\McpKit\Neighbours\Neighbours;
 use HeiHallo\McpKit\Playbooks\PlaybookLimits;
 use HeiHallo\McpKit\Playbooks\PlaybookPrompts;
 use HeiHallo\McpKit\Servers\ServerRegistry;
@@ -85,6 +87,8 @@ class McpKitServiceProvider extends ServiceProvider
         $this->app->singleton(ActivityStamper::class);
         $this->app->singleton(PlaybookPrompts::class);
         $this->app->scoped(CurrentTask::class);
+        $this->app->singleton(Neighbours::class);
+        $this->app->singleton(Hints::class);
         $this->app->bind(PlaybookLimits::class, fn (): PlaybookLimits => PlaybookLimits::fromConfig());
 
         // Every contract resolves from its config key, as a singleton. An
@@ -115,7 +119,7 @@ class McpKitServiceProvider extends ServiceProvider
         $defaults = require __DIR__.'/../config/mcp-kit.php';
         $config = $this->app['config'];
 
-        foreach (['catalogue', 'tokens', 'routes', 'permission_rules', 'memory', 'activity', 'onboarding', 'docs', 'shared', 'ground_rules', 'me', 'instructions', 'describer_options', 'playbooks', 'gaps', 'learning', 'uploads'] as $section) {
+        foreach (['catalogue', 'tokens', 'routes', 'permission_rules', 'memory', 'activity', 'onboarding', 'docs', 'shared', 'ground_rules', 'me', 'instructions', 'describer_options', 'playbooks', 'gaps', 'learning', 'uploads', 'hints'] as $section) {
             $config->set("mcp-kit.{$section}", array_merge($defaults[$section], (array) $config->get("mcp-kit.{$section}", [])));
         }
 
@@ -167,6 +171,7 @@ class McpKitServiceProvider extends ServiceProvider
                 Console\Commands\TokenCommand::class,
                 Console\Commands\ClientTokenCommand::class,
                 Console\Commands\DocsCommand::class,
+                Console\Commands\InventoryCommand::class,
                 Console\Commands\AuditTokensCommand::class,
                 Console\Commands\InstallCommand::class,
                 PruneMcpActivityCommand::class,
