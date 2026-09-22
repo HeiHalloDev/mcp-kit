@@ -42,6 +42,7 @@ final class Neighbours
                     static fn ($word): string => mb_strtolower(trim((string) $word)),
                     (array) ($neighbour['match'] ?? []),
                 ))),
+                'url' => trim((string) ($neighbour['url'] ?? '')),
                 'ask' => trim((string) ($neighbour['ask'] ?? '')),
             ];
         }
@@ -75,10 +76,7 @@ final class Neighbours
                 $line .= ' Tools there: `'.implode('`, `', array_slice($neighbour['tools'], 0, 8)).'`.';
             }
 
-            if ($neighbour['ask'] !== '') {
-                $line .= ' '.$neighbour['ask'];
-            }
-
+            $line .= $this->howToGetIn($neighbour);
             $lines[] = $line;
         }
 
@@ -153,10 +151,28 @@ final class Neighbours
             $hint .= ' Look for `'.implode('`, `', array_slice((array) $neighbour['tools'], 0, 6)).'`.';
         }
 
-        if (($neighbour['ask'] ?? '') !== '') {
-            $hint .= ' '.$neighbour['ask'];
+        return $hint.$this->howToGetIn($neighbour);
+    }
+
+    /**
+     * How somebody without that connection gets it. Staff mint their own
+     * tokens in each app, so the answer is an address, not a person to
+     * wait for — a hint that ends in "ask somebody" is a hint that ends.
+     *
+     * @param  array<string, mixed>  $neighbour
+     */
+    private function howToGetIn(array $neighbour): string
+    {
+        $directions = '';
+
+        if (($neighbour['url'] ?? '') !== '') {
+            $directions .= ' Already connected? Then the tools are in this same conversation. If not, mint yourself a token at '.$neighbour['url'].' and add the connection.';
         }
 
-        return $hint;
+        if (($neighbour['ask'] ?? '') !== '') {
+            $directions .= ' '.$neighbour['ask'];
+        }
+
+        return $directions;
     }
 }

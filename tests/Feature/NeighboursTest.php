@@ -6,6 +6,7 @@ use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Contracts\GroundRules;
 use HeiHallo\McpKit\Mcp\Tools\ReportGapTool;
 use HeiHallo\McpKit\Neighbours\Neighbours;
+use HeiHallo\McpKit\Testing\Mcp;
 use HeiHallo\McpKit\Tests\Fixtures\Mcp\Servers\AcmeServer;
 
 /**
@@ -19,7 +20,8 @@ beforeEach(function () {
             'owns' => 'People and everything around them: customers, signups, invoices',
             'tools' => ['search_contacts', 'list_signups'],
             'match' => ['customer', 'kunde', 'signup', 'invoice', 'faktura*'],
-            'ask' => 'You may already have it; if not, ask Ada for a token.',
+            'url' => 'https://crm.example.test/settings/tokens',
+            'ask' => 'Ada knows which abilities you need.',
         ],
     ]);
 });
@@ -43,7 +45,8 @@ it('puts what the app does not hold into every server\'s instructions', function
     expect($instructions)->toContain('What is not here')
         ->toContain('Acme CRM')
         ->toContain('search_contacts')
-        ->toContain('ask Ada for a token');
+        ->toContain('https://crm.example.test/settings/tokens')
+        ->toContain('mint yourself a token');
 });
 
 it('matches a report against the neighbours on whole words only', function () {
@@ -71,9 +74,34 @@ it('says where it may belong before a gap is filed, and files it anyway when tol
         ->assertOk()
         ->assertSee('Acme CRM')
         ->assertSee('search_contacts')
-        ->assertSee('ask Ada for a token');
+        ->assertSee('crm.example.test/settings/tokens');
 
     AcmeServer::actingAs($user)->tool(ReportGapTool::class, $arguments + ['confirm' => true])->assertOk();
 
     expect(app(GapStore::class)->list())->toHaveCount(1);
+});
+
+it('says where it lives when a call about it is refused', function () {
+    $token = acmeToken(acmeUser(), ['acme:things:read']);
+
+    $refused = (string) Mcp::call($token, '/mcp/acme', 'list_things', ['query' => str_repeat('x', 300)])->getContent();
+
+    expect($refused)->not->toContain('Acme CRM');
+
+    $aboutTheirs = (string) Mcp::call($token, '/mcp/acme', 'update_thing', ['id' => '999999', 'name' => 'the customer invoice'])->getContent();
+
+    expect($aboutTheirs)->toContain('Acme CRM')
+        ->and($aboutTheirs)->toContain('search_contacts');
+});
+
+it('leaves a successful call alone, and stays quiet when the app turns it off', function () {
+    $token = acmeToken(acmeUser(), ['acme:things:read']);
+
+    expect((string) Mcp::call($token, '/mcp/acme', 'list_things', ['query' => 'customer'])->getContent())
+        ->not->toContain('Acme CRM');
+
+    config()->set('mcp-kit.neighbours_on_refusal', false);
+
+    expect((string) Mcp::call($token, '/mcp/acme', 'update_thing', ['id' => '999999', 'name' => 'the customer invoice'])->getContent())
+        ->not->toContain('Acme CRM');
 });

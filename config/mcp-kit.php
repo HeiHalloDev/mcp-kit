@@ -534,16 +534,22 @@ return [
     |           'label' => 'Acme CRM',
     |           'owns' => 'People and everything around them: customers, signups, messages',
     |           'tools' => ['search_contacts', 'list_signups'],
+    |           'url' => 'https://crm.example.com/settings/tokens',  // where staff mint their own
     |           'match' => ['customer', 'kunde', 'signup', 'faktura*'],
     |           // A word ending in * matches the compound too, which is how
     |           // Norwegian is written; without one, both ends are bounded.
-    |           'ask' => 'You may already have it; if not, ask <name> for a token.',
+    |           'ask' => 'Anything else worth saying about getting in.',
     |       ],
     |   ],
     |
     */
 
     'neighbours' => [],
+
+    // A call that came back refused, about something a neighbour holds,
+    // carries the hint in its own reply — the moment an assistant decides
+    // the job is impossible and reaches for a browser instead.
+    'neighbours_on_refusal' => true,
 
     /*
     |--------------------------------------------------------------------------

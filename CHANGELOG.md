@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.14.2 — 2026-09-22
+
+- **A refused call about somebody else's subject says whose.** The neighbour match now also runs when a tool comes back refused: the arguments and the refusal are checked against the neighbours, and the hint lands in that reply. This is the moment an assistant decides the job is impossible and reaches for a browser, and a paragraph of instructions read an hour ago is not what it is looking at. Off with `neighbours_on_refusal => false`.
+- **Neighbours carry an address, not a person.** A neighbour takes a `url` — where staff mint their own token for that connection — and every hint ends with it: *"Already connected? Then the tools are in this same conversation. If not, mint yourself a token at … and add the connection."* A hint that ends in "ask somebody" is a hint that ends.
+
 ## v1.14.1 — 2026-09-22
 
 - **A match word ending in `*` matches the compound.** Norwegian glues its words together: `karakter` never appears, `karakterfordelingen` does, and strict word boundaries at both ends found neither it nor `studentinnleveringene`. A trailing `*` says plainly that whatever follows still belongs to the word; without one, both ends stay bounded, so `invoice` still does not match `invoicer`. Nothing is stemmed either way.

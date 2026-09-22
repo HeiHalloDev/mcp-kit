@@ -13,6 +13,7 @@ use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Events\ToolCallRecorded;
 use HeiHallo\McpKit\Learning\CurrentTask;
 use HeiHallo\McpKit\Neighbours\Hints;
+use HeiHallo\McpKit\Neighbours\Neighbours;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -35,6 +36,7 @@ class AuditMcpCall
         protected AuditWriter $audit,
         protected CurrentTask $tasks,
         protected Hints $hints,
+        protected Neighbours $neighbours,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -79,7 +81,7 @@ class AuditMcpCall
         $this->record($request, $response->getStatusCode());
         $this->context->end();
 
-        return $this->nudge($response, $position, $parsed['tool']);
+        return $this->nudge($response, $position, $parsed['tool'], $parsed['arguments']);
     }
 
     /**
@@ -90,7 +92,7 @@ class AuditMcpCall
      * again while the frame goes on unnamed, because a long session compacts
      * the first ask away long before the work is over.
      */
-    protected function nudge(Response $response, ?int $position, ?string $tool): Response
+    protected function nudge(Response $response, ?int $position, ?string $tool, array $arguments = []): Response
     {
         if ($response instanceof StreamedResponse) {
             return $response;
@@ -99,6 +101,7 @@ class AuditMcpCall
         $asides = array_values(array_filter([
             $this->nameTheFrame($position, $tool),
             $this->shorterRoad($tool),
+            $this->nextDoor($response, $arguments),
         ]));
 
         if ($asides === []) {
@@ -169,6 +172,37 @@ class AuditMcpCall
             $tool,
             $task?->id === null ? null : 'frame:'.$task->id,
         );
+    }
+
+    /**
+     * A call that came back refused or empty, about something this app does
+     * not hold. This is the moment the assistant decides the job is
+     * impossible and goes to the browser instead — the sentence belongs
+     * here, not in a paragraph of instructions it read an hour ago.
+     *
+     * @param  array<string, mixed>  $arguments
+     */
+    protected function nextDoor(Response $response, array $arguments): ?string
+    {
+        if (! config('mcp-kit.neighbours_on_refusal', true) || ! $this->neighbours->any()) {
+            return null;
+        }
+
+        if (! $this->isErrorResponse($response) && $response->getStatusCode() < 400) {
+            return null;
+        }
+
+        $said = array_filter(array_map(
+            static fn (mixed $value): ?string => is_scalar($value) ? (string) $value : null,
+            $arguments,
+        ));
+
+        $neighbour = $this->neighbours->match(
+            implode(' ', $said),
+            (string) $this->errorMessageFrom($response),
+        );
+
+        return $neighbour === null ? null : $this->neighbours->hint($neighbour);
     }
 
     protected function record(Request $request, int $httpStatus): void
