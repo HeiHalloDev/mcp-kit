@@ -161,13 +161,15 @@ An assistant that cannot do something here has no way of knowing whether the job
         'label' => 'Acme CRM',
         'owns' => 'People and everything around them: customers, signups, invoices',
         'tools' => ['search_contacts', 'list_signups'],
-        'match' => ['customer', 'kunde', 'signup', 'signups', 'invoice', 'invoices'],
+        'match' => ['customer', 'kunde', 'signup', 'signups', 'invoice', 'invoices', 'faktura*'],
         'ask' => 'You may already have it; if not, ask Ada for a token.',
     ],
 ],
 ```
 
-The kit renders it into every server's instructions as *What is not here*, and matches a gap report against it in the preview — so somebody filing "cannot see a customer's invoices" is told where that lives before anything is filed. Confirming still files it: a wrong guess must never swallow a report. Matching is whole words at both ends and nothing is stemmed, so list the plural if you want the plural.
+The kit renders it into every server's instructions as *What is not here*, and matches a gap report against it in the preview — so somebody filing "cannot see a customer's invoices" is told where that lives before anything is filed. Confirming still files it: a wrong guess must never swallow a report.
+
+Matching is whole words at both ends, and nothing is stemmed. A word ending in `*` matches the compound instead — which is how Norwegian is written, where `karakter*` is what catches *karakterfordelingen*.
 
 **This is your own organisation and nothing else.** The list is read by that organisation's staff and their assistants; one client's app must never mention another's. The kit ships `neighbours` empty and no default will ever fill it.
 

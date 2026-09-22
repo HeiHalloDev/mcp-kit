@@ -18,7 +18,7 @@ beforeEach(function () {
             'label' => 'Acme CRM',
             'owns' => 'People and everything around them: customers, signups, invoices',
             'tools' => ['search_contacts', 'list_signups'],
-            'match' => ['customer', 'kunde', 'signup', 'invoice'],
+            'match' => ['customer', 'kunde', 'signup', 'invoice', 'faktura*'],
             'ask' => 'You may already have it; if not, ask Ada for a token.',
         ],
     ]);
@@ -51,7 +51,11 @@ it('matches a report against the neighbours on whole words only', function () {
 
     expect($neighbours->match('Finding a customer signup')['key'])->toBe('crm')
         ->and($neighbours->match('reordering the chapters of a study'))->toBeNull()
-        ->and($neighbours->match('the invoicer broke'))->toBeNull();
+        ->and($neighbours->match('the invoicer broke'))->toBeNull()
+        // Norwegian glues its words together, so a word can say that
+        // whatever follows it belongs to it.
+        ->and($neighbours->match('fakturagrunnlaget mangler')['key'])->toBe('crm')
+        ->and($neighbours->match('en gammel faktura')['key'])->toBe('crm');
 });
 
 it('says where it may belong before a gap is filed, and files it anyway when told to', function () {

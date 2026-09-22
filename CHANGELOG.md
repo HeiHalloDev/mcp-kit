@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.14.1 — 2026-09-22
+
+- **A match word ending in `*` matches the compound.** Norwegian glues its words together: `karakter` never appears, `karakterfordelingen` does, and strict word boundaries at both ends found neither it nor `studentinnleveringene`. A trailing `*` says plainly that whatever follows still belongs to the word; without one, both ends stay bounded, so `invoice` still does not match `invoicer`. Nothing is stemmed either way.
+
 ## v1.14.0 — 2026-09-22
 
 An assistant that runs out of road has no way of knowing whether the job is impossible or simply somebody else's. Three real cases in a fortnight: a curriculum sweep read a study one page at a time for 434 calls with a one-call branch read sitting in the same tool list; a follow-up round checked twenty people against the CRM with ninety single lookups; and a content person went looking for students' homework in the material server, found nothing, and read the student web in a browser — the tool he needed was one connection away, and he already had it.

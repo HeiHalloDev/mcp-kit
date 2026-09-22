@@ -88,9 +88,13 @@ final class Neighbours
     /**
      * The neighbour a piece of text points at, if any: the one whose words
      * appear in it. Whole words, both ends — "invoice" must not match
-     * "invoicer", and "lead" must not match "leader". Nothing is stemmed:
-     * an app that wants the plural lists the plural, which is duller than
-     * guessing at morphology and never surprises anybody.
+     * "invoicer", and "lead" must not match "leader".
+     *
+     * Nothing is stemmed, because stemming guesses. A word ending in `*`
+     * says plainly that whatever follows is still the same word, which is
+     * how Norwegian is written: `karakter*` is what catches
+     * karakterfordeling, `innlevering*` catches studentinnleveringene, and
+     * an app that wants the plural of an English word can simply list it.
      *
      * @return array<string, mixed>|null
      */
@@ -109,7 +113,7 @@ final class Neighbours
             $found = 0;
 
             foreach ($neighbour['match'] as $word) {
-                if ($word !== '' && preg_match('/(?<![\p{L}\p{N}])'.preg_quote($word, '/').'(?![\p{L}\p{N}])/u', $haystack)) {
+                if ($word !== '' && preg_match($this->pattern($word), $haystack)) {
                     $found++;
                 }
             }
@@ -121,6 +125,18 @@ final class Neighbours
         }
 
         return $best;
+    }
+
+    /**
+     * A word to look for: bounded at both ends, unless it ends in `*`, in
+     * which case it only has to start a word.
+     */
+    private function pattern(string $word): string
+    {
+        $open = str_ends_with($word, '*');
+        $word = $open ? rtrim($word, '*') : $word;
+
+        return '/(?<![\p{L}\p{N}])'.preg_quote($word, '/').($open ? '' : '(?![\p{L}\p{N}])').'/u';
     }
 
     /**

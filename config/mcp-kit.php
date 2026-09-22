@@ -534,7 +534,9 @@ return [
     |           'label' => 'Acme CRM',
     |           'owns' => 'People and everything around them: customers, signups, messages',
     |           'tools' => ['search_contacts', 'list_signups'],
-    |           'match' => ['customer', 'kunde', 'signup', 'invoice'],
+    |           'match' => ['customer', 'kunde', 'signup', 'faktura*'],
+    |           // A word ending in * matches the compound too, which is how
+    |           // Norwegian is written; without one, both ends are bounded.
     |           'ask' => 'You may already have it; if not, ask <name> for a token.',
     |       ],
     |   ],
