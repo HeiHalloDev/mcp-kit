@@ -421,18 +421,7 @@ final class Guards
     public static function inventory(string $path): void
     {
         test('the registered tool inventory matches the pinned snapshot', function () use ($path) {
-            expect(is_file($path))->toBeTrue("Missing {$path} — run php artisan mcp:install.");
-
-            $pinned = json_decode((string) file_get_contents($path), true);
-            $actual = app(ToolReference::class)->inventory();
-
-            foreach ((array) $pinned as $server => $names) {
-                $missing = array_values(array_diff((array) $names, $actual[$server] ?? []));
-
-                expect($missing)->toBe([], "[{$server}] lost tools: ".implode(', ', $missing).". Removing or renaming a tool breaks connected clients — if deliberate, update {$path}.");
-            }
-
-            expect($actual)->toBe($pinned, Guards::grownCatalogue($actual, (array) $pinned, $path));
+            Guards::assertInventory($path);
         });
 
         test('tool names are unique within a server', function () {
@@ -478,6 +467,164 @@ final class Guards
                 : 'The catalogue has grown: '.implode(', ', $added).'.',
             $path,
         );
+    }
+
+    /**
+     * What the inventory guard asserts: nothing lost, nothing grown, and
+     * the tools that kept their names still take what they took.
+     */
+    public static function assertInventory(string $path): void
+    {
+        expect(is_file($path))->toBeTrue("Missing {$path} — run php artisan mcp:install.");
+
+        $pinned = (array) json_decode((string) file_get_contents($path), true);
+        $surface = app(ToolReference::class)->surface();
+        $names = array_map(fn (array $tools): array => array_values(array_keys($tools)), $surface);
+
+        foreach ($pinned as $server => $entry) {
+            $missing = array_values(array_diff(self::pinnedTools($entry), $names[$server] ?? []));
+
+            expect($missing)->toBe([], "[{$server}] lost tools: ".implode(', ', $missing).". Removing or renaming a tool breaks connected clients — if deliberate, update {$path}.");
+        }
+
+        $drift = self::changedSurface($surface, $pinned, $path);
+
+        expect($drift)->toBe('', $drift);
+
+        expect(self::comparable($surface, $pinned))->toBe($pinned, self::grownCatalogue($names, self::pinnedCatalogue($pinned), $path));
+    }
+
+    /**
+     * The tool names a pinned server entry holds, whatever shape it is in:
+     * a list of names, or names with the parameters each one takes.
+     *
+     * @return list<string>
+     */
+    public static function pinnedTools(mixed $entry): array
+    {
+        $entry = (array) $entry;
+
+        return self::pinsParameters($entry)
+            ? array_values(array_map('strval', array_keys($entry)))
+            : array_values(array_map('strval', $entry));
+    }
+
+    /**
+     * True when this entry pins parameters, not names alone. An older
+     * snapshot keeps working untouched; an app opts in by re-pinning.
+     *
+     * @param  array<mixed>  $entry
+     */
+    public static function pinsParameters(array $entry): bool
+    {
+        foreach ($entry as $key => $value) {
+            return is_string($key) && is_array($value);
+        }
+
+        return false;
+    }
+
+    /**
+     * The pinned snapshot reduced to names per server, for the messages
+     * that speak about the catalogue rather than the parameters.
+     *
+     * @param  array<string, mixed>  $pinned
+     * @return array<string, list<string>>
+     */
+    public static function pinnedCatalogue(array $pinned): array
+    {
+        return array_map(fn (mixed $entry): array => self::pinnedTools($entry), $pinned);
+    }
+
+    /**
+     * The live surface put in the shape the snapshot was written in, so a
+     * names-only pin is still compared against names.
+     *
+     * @param  array<string, array<string, list<string>>>  $surface
+     * @param  array<string, mixed>  $pinned
+     * @return array<string, mixed>
+     */
+    public static function comparable(array $surface, array $pinned): array
+    {
+        $carriesParameters = false;
+
+        foreach ($pinned as $entry) {
+            $carriesParameters = $carriesParameters || self::pinsParameters((array) $entry);
+        }
+
+        $comparable = [];
+
+        foreach ($surface as $server => $tools) {
+            $withParameters = array_key_exists($server, $pinned)
+                ? self::pinsParameters((array) $pinned[$server])
+                : $carriesParameters;
+
+            $comparable[$server] = $withParameters ? $tools : array_values(array_keys($tools));
+        }
+
+        return $comparable;
+    }
+
+    /**
+     * What the tools that kept their names now take, against what the
+     * snapshot says they took. Empty when nothing moved.
+     *
+     * @param  array<string, array<string, list<string>>>  $surface
+     * @param  array<string, mixed>  $pinned
+     */
+    public static function changedSurface(array $surface, array $pinned, string $path): string
+    {
+        $gained = [];
+        $lost = [];
+
+        foreach ($pinned as $server => $entry) {
+            $entry = (array) $entry;
+
+            if (! self::pinsParameters($entry)) {
+                continue; // pinned by name alone; nothing to compare a parameter against
+            }
+
+            foreach ($entry as $tool => $parameters) {
+                if (! isset($surface[$server][$tool])) {
+                    continue; // gone or renamed: the lost-tools check speaks to that
+                }
+
+                $now = $surface[$server][$tool];
+                $then = array_map('strval', (array) $parameters);
+
+                if ($added = array_values(array_diff($now, $then))) {
+                    $gained[] = "  {$server}/{$tool} gained: ".implode(', ', $added);
+                }
+
+                if ($removed = array_values(array_diff($then, $now))) {
+                    $lost[] = "  {$server}/{$tool} no longer takes: ".implode(', ', $removed);
+                }
+            }
+        }
+
+        if ($gained === [] && $lost === []) {
+            return '';
+        }
+
+        $message = [];
+
+        if ($gained !== []) {
+            $message[] = "The tools kept their names and grew:\n\n".implode("\n", $gained)
+                ."\n\nA parameter is not a detail of a tool. It is something the tool can now be asked to do, and "
+                .'its name is all a caller has to go on. Read each one as the change it is: what is the widest thing '
+                .'the tool does when it is set, is that still behind a confirmation, and does the name say so plainly '
+                .'enough that somebody passing it knows what they are asking for?';
+        }
+
+        if ($lost !== []) {
+            $message[] = "The tools kept their names and stopped taking something:\n\n".implode("\n", $lost)
+                ."\n\nEvery client already sending one of these breaks: the call fails, or the argument is quietly "
+                .'dropped and the tool does something other than what was asked. Keep the parameter, or give the tool '
+                .'a new name to go with its new behaviour.';
+        }
+
+        return implode("\n\n", $message)
+            ."\n\nWhen the surface is what you meant it to be, re-pin: php artisan mcp:inventory.\n\nSnapshot: {$path}";
     }
 
     public static function docsCurrent(): void

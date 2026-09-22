@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.15.0 — 2026-09-22
+
+- **The snapshot pins what each tool takes, not only what it is called.** A tool can gain a path that reaches further than anything it reached yesterday — a scope, a flag that settles whatever it could not match — without its name changing by a letter, and a pin of names alone stays green through that. One such flag in a consuming app was a confirmation away from cancelling thirty paying subscriptions. The inventory snapshot now holds each tool's parameter names, and the guard says what moved: `l5/reconcile_subscriptions gained: scope, settle_missing, confirm`, then asks what the tool does when each one is set and whether that is still behind a confirmation. A parameter that *disappears* is its own message — the clients already sending it break, loudly if the call fails and quietly if the argument is dropped. The command comes last, as it does everywhere else.
+- **Older snapshots keep working.** A file pinned by name alone is compared by name and fails nothing it did not fail yesterday; an app opts in by running `php artisan mcp:inventory` once. `mcp:install` writes the parameter-aware shape from the start, and the command now reports both counts.
+- `Guards::assertInventory($path)` is the guard's body as a callable, so an app can exercise the failure as well as the pass.
+
 ## v1.14.3 — 2026-09-22
 
 - **The inventory guard says what a re-pin means before it says how.** It named the command first, and a message that leads with the remedy gets read as far as the remedy: an assistant clearing a red test runs `mcp:inventory` and the snapshot silently agrees to whatever was registered. Re-pinning is not a chore — it is the moment somebody says these tools belong in the catalogue. The failure now names the new tools (`crm/delete_everything`), says the snapshot is the record of what the app deliberately exposes, asks whether each one belongs, and offers taking the tool out as the other answer. The command comes last. Raised by the session working in a consuming app, whose own catalogue pin exists to force exactly that decision.

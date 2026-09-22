@@ -57,7 +57,8 @@ test('mcp:install scaffolds config, server, ground-rules intro, guard test, docs
         ->and((string) file_get_contents(base_path('tests/Feature/Mcp/KitGuardsTest.php')))->toContain('Guards::all(inventory:')
         ->and((string) file_get_contents(base_path('tests/Pest.php')))->toContain('Guards::actors(')
         ->and((string) file_get_contents(config('mcp-kit.docs.path')))->toContain('<!-- generated:tools:start -->')
-        ->and(json_decode((string) file_get_contents(config('mcp-kit.docs.inventory')), true))->toBe(['acme' => ['admin_only', 'attach_file', 'list_things', 'log_event', 'update_thing'], 'reports' => ['monthly_numbers']]);
+        ->and(array_map('array_keys', json_decode((string) file_get_contents(config('mcp-kit.docs.inventory')), true)))->toBe(['acme' => ['admin_only', 'attach_file', 'list_things', 'log_event', 'update_thing'], 'reports' => ['monthly_numbers']])
+        ->and(json_decode((string) file_get_contents(config('mcp-kit.docs.inventory')), true)['acme']['update_thing'])->toBe(['confirm', 'fail', 'id', 'name']);
 
     // Second run: everything exists, nothing is appended twice.
     $this->artisan('mcp:install')
@@ -122,8 +123,9 @@ test('mcp:inventory re-pins the snapshot the guard compares against', function (
 
     $pinned = json_decode((string) file_get_contents($path), true);
 
-    expect($pinned['acme'])->toBe(app(ToolReference::class)->inventory()['acme'])
-        ->and($pinned['acme'])->toContain('list_things');
+    expect($pinned['acme'])->toBe(app(ToolReference::class)->surface()['acme'])
+        ->and($pinned['acme'])->toHaveKey('list_things')
+        ->and($pinned['acme']['list_things'])->toContain('query');
 
     $this->artisan('mcp:inventory', ['--check' => true])->assertExitCode(0);
 

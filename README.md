@@ -207,6 +207,27 @@ Guards::actors(
 
 Helpers: `Testing\Mcp::token()`, `::actingWith()`, `::listTools()`, `::call()`, `::readResource()`; expectations `toBePreview()`, `toHaveExecuted()`, `toDenyAbility()`.
 
+## The tool snapshot
+
+`tests/Feature/Mcp/tool-inventory.json` is the record of what the app deliberately exposes: each server, the tools on it, and the parameters each tool takes.
+
+```json
+{
+  "crm": {
+    "check_contacts": ["identifiers", "limit"],
+    "log_outcomes": ["confirm", "follow_up_days", "outcomes", "status"]
+  }
+}
+```
+
+The guard reads it in three passes, in the order the damage runs:
+
+- **A tool that is gone or renamed** fails first: every client already calling it breaks.
+- **A tool that kept its name and changed what it takes** fails next — `reconcile_subscriptions gained: scope, settle_missing, confirm`. A parameter is not a detail of a tool; it is something the tool can now be asked to do, and its name is all a caller has to go on. One flag of that kind was the whole of a near-miss in one of these apps: a reconciliation that would have cancelled the subscriptions it could not match. A parameter that *disappears* gets its own message, because the clients sending it break either loudly or quietly.
+- **A tool that appeared** fails last, named, with the question of whether it belongs in the catalogue at all.
+
+Re-pin with `php artisan mcp:inventory` (`--check` in CI). A snapshot pinned by name alone — a list of strings per server — keeps working and is compared by name; running the command once is how an app opts in to parameters.
+
 ## Read-only mode
 
 `MCP_READ_ONLY=true` hides every tool not annotated `#[IsReadOnly]` and makes `previewOrExecute()` refuse `confirm=true`.

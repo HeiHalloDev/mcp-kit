@@ -17,7 +17,7 @@ beforeEach(function () {
 
     file_put_contents($docs, "---\nnav_title: Tools\n---\n\n<!-- generated:tools:start -->\n<!-- generated:tools:end -->\n");
     $this->artisan('mcp:docs')->run();
-    file_put_contents($inventory, json_encode(app(ToolReference::class)->inventory()));
+    file_put_contents($inventory, json_encode(app(ToolReference::class)->surface()));
 });
 
 Guards::all(inventory: __DIR__.'/../tmp/tool-inventory.json');

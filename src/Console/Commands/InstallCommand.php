@@ -192,7 +192,7 @@ class InstallCommand extends Command
             return;
         }
 
-        $inventory = app(ToolReference::class)->inventory();
+        $inventory = app(ToolReference::class)->surface();
 
         $this->write($path, json_encode($inventory === [] ? (object) [] : $inventory, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n");
         $this->components->twoColumnDetail($relative, 'written');

@@ -15,6 +15,8 @@ use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use ReflectionClass;
+use RuntimeException;
+use Throwable;
 
 /**
  * The tool reference: every tool on every server with its domain, ability
@@ -143,6 +145,59 @@ class ToolReference
         }
 
         return $inventory;
+    }
+
+    /**
+     * Tool names with their parameter names per server, sorted — the
+     * parameter-aware inventory snapshot shape.
+     *
+     * A tool's name is a promise; its parameters are the whole of what it
+     * can be asked to do. A tool can gain a path that reaches further than
+     * anything it reached yesterday without its name changing by a letter,
+     * and a snapshot of names alone stays green through that.
+     *
+     * @return array<string, array<string, list<string>>>
+     */
+    public function surface(): array
+    {
+        $surface = [];
+
+        foreach ($this->servers->all() as $key => $definition) {
+            if ($definition->aliasOf !== null) {
+                continue;
+            }
+
+            $tools = [];
+
+            foreach ($this->toolClassesFor($definition->class) as $class) {
+                $tools[$this->toolName($class)] = $this->parameters($class);
+            }
+
+            ksort($tools);
+            $surface[$key] = $tools;
+        }
+
+        return $surface;
+    }
+
+    /**
+     * The parameter names a tool advertises, sorted.
+     *
+     * @param  class-string  $class
+     * @return list<string>
+     */
+    public function parameters(string $class): array
+    {
+        try {
+            $schema = app($class)->toArray()['inputSchema'] ?? [];
+        } catch (Throwable $e) {
+            throw new RuntimeException(class_basename($class).' cannot be built to read its parameters: '.$e->getMessage(), previous: $e);
+        }
+
+        $properties = array_keys((array) (json_decode((string) json_encode($schema), true)['properties'] ?? []));
+        sort($properties);
+
+        return array_values(array_map('strval', $properties));
     }
 
     /**
