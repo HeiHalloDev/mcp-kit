@@ -34,7 +34,9 @@ test('the tokens page mints with a preset and extras, lists, and revokes', funct
         ->assertHasNoErrors()
         ->assertSee('shown only once')
         ->assertSee('claude mcp add acme ')
-        ->assertSee('claude mcp add acme-reports ');
+        ->assertSee('claude mcp add acme-reports ')
+        ->assertSee('Which model')
+        ->assertSee('Sonnet, effort low');
 
     $token = $admin->tokens()->sole();
 

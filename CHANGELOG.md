@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.17.0 — 2026-09-25
+
+- **The tokens page says which model to pick.** Staff ran on whatever their client defaulted to, and the usage record shows why that costs quota: a daily round is two calls, a follow-up list is one, and a heavy model answers those no better than a light one. Below the connect tabs there is now a short block — the rule (thinking power is for deciding what to do or what a number means, wasted when the tool does the work), a three-row table of Light / Default / Heavy with the Claude and Codex choice for each, and the reminder that a new chat per task saves more than any model switch. The same text on every app; the per-task tables live in the staff guide.
+
 ## v1.16.0 — 2026-09-22
 
 - **The tokens page says where to get the client, not only what to paste into it.** Every connect tab handed somebody `claude mcp add …` and assumed `claude` was already on their machine. It is not: the people minting these tokens were told an assistant could read the CRM, not to install a terminal tool. Each client tab now carries the download link, the install line for each platform, the command that proves it worked, and the vendor's own page if any of it has moved. The Claude Desktop tab says plainly that the app's Code tab reads the `claude mcp add` connection — one paste, nothing to edit — and that the JSON block is for the chat side. `mcp:token` ends with the same install line for anybody minting from a terminal.
