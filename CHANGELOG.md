@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.18.1 — 2026-09-30
+
+- **An abandoned frame ends at its last call.** A frame nobody closed is marked `unknown` when the same person next calls a tool after its four hours are up, and it took that moment as its end. The moment can be days later, so the new spans read `28 Sep 07:53–29 Sep 07:39` for half an hour of work. The frame now ends at its last call. A migration moves the end of every frame already marked `unknown` to its last logged call.
+- **An open frame runs to its latest call.** It showed its start alone, which hid a morning's work behind one timestamp.
+
 ## v1.18.0 — 2026-09-30
 
 - **The usage record says when.** `{scheme}://usage` listed each piece of work with its purpose, its outcome and its call count, and never a date, although every frame has carried `created_at` and `closed_at` from the start. Without them the list answers what people did and not when: who works in the morning, how long a round takes, whether somebody came back after a permission change. Every line now ends with its span — `21 Sep 10:31–10:33`, both dates when it ran past midnight, the start alone while it is open — and the file says which timezone the times are in. The usage page shows the same span where it showed the start.

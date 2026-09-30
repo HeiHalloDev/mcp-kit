@@ -91,13 +91,24 @@ class DatabaseTaskStore implements TaskStore
         return (int) $row->refusals;
     }
 
+    /**
+     * The frame ends at its last call, not at the moment somebody came back
+     * and found it stale — that can be days later, and a span running to it
+     * reads as days of work. Every call touches updated_at, so it holds the
+     * last one; the base query leaves it alone while copying it.
+     */
     public function abandonStale(string $tokenId, int $olderThanHours): void
     {
-        $this->model()->newQuery()
+        $query = $this->model()->newQuery()
             ->where('token_id', $tokenId)
             ->where('outcome', Task::OPEN)
             ->where('created_at', '<', now()->subHours($olderThanHours))
-            ->update(['outcome' => Task::UNKNOWN, 'closed_at' => now()]);
+            ->toBase();
+
+        $query->update([
+            'outcome' => Task::UNKNOWN,
+            'closed_at' => DB::raw($query->getGrammar()->wrap('updated_at')),
+        ]);
     }
 
     /**
@@ -138,6 +149,7 @@ class DatabaseTaskStore implements TaskStore
             refusals: (int) ($row->refusals ?? 0),
             startedAt: $row->created_at,
             closedAt: $row->closed_at,
+            lastCallAt: $row->updated_at,
             id: $row->id,
         );
     }

@@ -54,6 +54,8 @@ final class Task
         public readonly ?DateTimeInterface $startedAt = null,
         public readonly ?DateTimeInterface $closedAt = null,
         public readonly int|string|null $id = null,
+        /** When the frame last counted a call. Ends the span of an open frame. */
+        public readonly ?DateTimeInterface $lastCallAt = null,
     ) {}
 
     public function isOpen(): bool
@@ -81,8 +83,8 @@ final class Task
 
     /**
      * When the work happened, as one readable span: "21 Sep 10:31–10:33",
-     * or both dates when it ran past midnight. Open frames show the start
-     * only. The dates are what turn the list into a pattern — who works
+     * or both dates when it ran past midnight. An open frame runs to its
+     * last call so far. The dates are what turn the list into a pattern — who works
      * when, how long a piece of work takes, whether use is growing.
      */
     public function span(): ?string
@@ -92,18 +94,15 @@ final class Task
         }
 
         $start = $this->startedAt->format('j M H:i');
+        $ended = $this->closedAt ?? $this->lastCallAt;
 
-        if ($this->closedAt === null) {
+        if ($ended === null || $this->startedAt->format('Y-m-d H:i') === $ended->format('Y-m-d H:i')) {
             return $start;
         }
 
-        if ($this->startedAt->format('Y-m-d H:i') === $this->closedAt->format('Y-m-d H:i')) {
-            return $start;
-        }
-
-        $end = $this->startedAt->format('Y-m-d') === $this->closedAt->format('Y-m-d')
-            ? $this->closedAt->format('H:i')
-            : $this->closedAt->format('j M H:i');
+        $end = $this->startedAt->format('Y-m-d') === $ended->format('Y-m-d')
+            ? $ended->format('H:i')
+            : $ended->format('j M H:i');
 
         return $start.'–'.$end;
     }
@@ -124,6 +123,7 @@ final class Task
             startedAt: $this->startedAt,
             closedAt: $this->closedAt,
             id: $this->id,
+            lastCallAt: $this->lastCallAt,
         );
     }
 
@@ -163,6 +163,7 @@ final class Task
             startedAt: $this->startedAt,
             closedAt: now(),
             id: $this->id,
+            lastCallAt: $this->lastCallAt,
         );
     }
 

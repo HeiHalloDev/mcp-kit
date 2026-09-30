@@ -284,6 +284,26 @@ test('a span shows the start, the end on the same day, and both dates past midni
         ->and($task('2026-09-29 19:44', '2026-09-30 04:27')->span())->toBe('29 Sep 19:44–30 Sep 04:27');
 });
 
+test('an abandoned frame ends at its last call, not when somebody came back', function () {
+    $token = acmeToken(acmeUser(), ['acme:things:read']);
+
+    $this->travelTo(now()->setDate(2026, 9, 29)->setTime(19, 44));
+    Mcp::call($token, '/mcp/acme', 'list_things');
+    $this->travelTo(now()->setTime(19, 50));
+    Mcp::call($token, '/mcp/acme', 'list_things');
+
+    // Mid-flight, the open frame already runs to its latest call.
+    expect(app(TaskStore::class)->recent()[0]->span())->toBe('29 Sep 19:44–19:50');
+
+    $this->travelTo(now()->addDay()->setTime(4, 27));
+    Mcp::call($token, '/mcp/acme', 'list_things');
+
+    $abandoned = TaskModel::query()->where('outcome', 'unknown')->sole();
+
+    expect($abandoned->closed_at->format('Y-m-d H:i'))->toBe('2026-09-29 19:50')
+        ->and($abandoned->updated_at->format('Y-m-d H:i'))->toBe('2026-09-29 19:50');
+});
+
 test('me tells the person their work is being recorded, and stays quiet when it is not', function () {
     $user = actingWith(acmeUser(), ['acme:things:read']);
 
