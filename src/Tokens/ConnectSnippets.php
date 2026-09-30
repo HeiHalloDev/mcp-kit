@@ -26,6 +26,61 @@ class ConnectSnippets
     }
 
     /**
+     * The addresses a person signs in to with a URL (mcp-kit.oauth), keyed
+     * by the name the client will know each by. Every canonical server a
+     * staff token is made for: an alias answers as its target, so listing
+     * it would only add the same tools twice, and a server without presets
+     * (a customer server) is not one anybody connects to from this page.
+     *
+     * @return array<string, string>
+     */
+    public function signInUrls(): array
+    {
+        $urls = [];
+
+        foreach ($this->servers->canonical() as $server) {
+            if ($server->presets) {
+                $urls[$server->clientName] = $server->url();
+            }
+        }
+
+        return $urls;
+    }
+
+    /**
+     * Claude Code without a token: add the address, then /mcp signs in.
+     *
+     * @return array<string, string>
+     */
+    public function claudeCodeSignInLines(): array
+    {
+        $lines = [];
+
+        foreach ($this->signInUrls() as $name => $url) {
+            $lines[$name] = sprintf('claude mcp add %s --scope user --transport http %s', $name, $url);
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Codex without a token: `codex mcp add` notices the server wants a
+     * sign-in and opens the browser by itself.
+     *
+     * @return array<string, string>
+     */
+    public function codexSignInLines(): array
+    {
+        $lines = [];
+
+        foreach ($this->signInUrls() as $name => $url) {
+            $lines[$name] = sprintf('codex mcp add %s --url %s', $name, $url);
+        }
+
+        return $lines;
+    }
+
+    /**
      * One line per server, keyed by the name the client will know it as, so a
      * page can offer them one at a time as well as all at once.
      *

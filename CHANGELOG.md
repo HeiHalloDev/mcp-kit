@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.22.0 — 2026-09-30
+
+- **The tokens page leads with sign-in when OAuth is on.** With `mcp-kit.oauth.enabled`, the Connect section opens with "Sign in with a URL": each server's address in a box with its own copy button, then steps for Claude (Settings → Connectors → Add custom connector), Claude Code (`claude mcp add … --transport http <url>`, then `/mcp` → Authenticate) and Codex (Settings → Plugins → MCPs, or `codex mcp add <name> --url <url>`, which opens the browser by itself). It links to Connected apps when that page is on. The token tabs follow under "Or connect with a token". Aliases and servers without presets are left out, since offering them would list the same tools twice or point staff at a customer server. `ConnectSnippets` gains `signInUrls()`, `claudeCodeSignInLines()` and `codexSignInLines()`. Nothing changes with OAuth off.
+
 ## v1.21.4 — 2026-09-30
 
 - The service-client guard allows for a family that a merged-away server closed to service clients (v1.21.3). It no longer expects every read to be open to them.

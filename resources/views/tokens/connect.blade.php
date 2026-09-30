@@ -1,6 +1,10 @@
 <div class="space-y-6">
+    @if (config('mcp-kit.oauth.enabled'))
+        @include('mcp-kit::tokens.sign-in')
+    @endif
+
     <div>
-        <flux:heading size="lg">{{ __('Connect') }}</flux:heading>
+        <flux:heading size="lg">{{ config('mcp-kit.oauth.enabled') ? __('Or connect with a token') : __('Connect') }}</flux:heading>
         <flux:text class="mt-1 text-sm">{{ __('The connection is self-describing — once connected, the assistant sees the tools and what they do. One line per server the token reaches. Pick your client:') }}</flux:text>
     </div>
 

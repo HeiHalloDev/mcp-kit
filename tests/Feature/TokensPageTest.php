@@ -238,3 +238,31 @@ test('the default falls back to the first preset the person can actually mint', 
     expect($component->get('preset'))->not->toBe('')
         ->and($component->get('preset'))->not->toBe('no_such_preset');
 });
+
+test('with oauth on, the page leads with the addresses to sign in to, and the tokens become the alternative', function () {
+    config()->set('mcp-kit.oauth.enabled', true);
+    bootUi();
+    $this->actingAs(acmeAdmin());
+
+    Livewire::test(TokensPage::class)
+        ->assertSeeInOrder(['Sign in with a URL', url('/mcp/acme'), 'Or connect with a token'])
+        ->assertSee('Settings → Connectors')
+        ->assertSee('claude mcp add acme --scope user --transport http '.url('/mcp/acme'))
+        ->assertSee('codex mcp add acme --url '.url('/mcp/acme'))
+        ->assertSee('codex mcp add acme-reports --url '.url('/mcp/reports'))
+        // An alias answers as its target: offering it would list the same
+        // tools twice.
+        ->assertDontSee(url('/mcp/legacy'))
+        ->assertDontSee('acme-legacy');
+});
+
+test('with oauth off, nobody is offered a sign-in that does not exist', function () {
+    config()->set('mcp-kit.oauth.enabled', false);
+    bootUi();
+    $this->actingAs(acmeAdmin());
+
+    Livewire::test(TokensPage::class)
+        ->assertDontSee('Sign in with a URL')
+        ->assertDontSee('Or connect with a token')
+        ->assertSee('Connect');
+});
