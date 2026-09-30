@@ -245,7 +245,10 @@ test('with oauth on, the page leads with the addresses to sign in to, and the to
     $this->actingAs(acmeAdmin());
 
     Livewire::test(TokensPage::class)
-        ->assertSeeInOrder(['Sign in with a URL', url('/mcp/acme'), 'Or connect with a token'])
+        // The name is a field to fill in, not a caption: a row and a copy
+        // button of its own, next to the address.
+        ->assertSeeInOrder(['Sign in with a URL', 'Name', 'acme', 'URL', url('/mcp/acme'), 'Or connect with a token'])
+        ->assertSee('Copy Name')
         ->assertSee('Settings → Connectors')
         ->assertSee('claude mcp add acme --scope user --transport http '.url('/mcp/acme'))
         ->assertSee('codex mcp add acme --url '.url('/mcp/acme'))

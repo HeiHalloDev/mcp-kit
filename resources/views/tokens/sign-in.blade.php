@@ -1,8 +1,10 @@
 {{--
     Sign in with a URL (mcp-kit.oauth). Shown above the token tabs when
     OAuth is on: no token to mint, copy or leak, so it is the way to connect
-    and the tokens are the alternative. The address is the whole setup, so
-    it gets a copy button of its own, before any client's steps.
+    and the tokens are the alternative. The name and the address are the
+    whole setup, so each gets a row and a copy button of its own, before any
+    client's steps: a name shown as a mere caption reads as a heading, not
+    as the thing to type into the form.
 --}}
 @php($signInUrls = $this->snippets()->signInUrls())
 @php($claudeCodeSignIn = $this->snippets()->claudeCodeSignInLines())
@@ -18,7 +20,7 @@
 
         <div class="space-y-3">
             @foreach ($signInUrls as $name => $url)
-                @include('mcp-kit::tokens.snippet', ['code' => $url, 'label' => $name])
+                @include('mcp-kit::tokens.fields', ['fields' => [__('Name') => $name, __('URL') => $url]])
             @endforeach
         </div>
 
@@ -33,7 +35,7 @@
                 <ol class="list-decimal space-y-1.5 pl-5 text-sm text-zinc-600 dark:text-zinc-300">
                     <li>{{ __('In Claude (the app or claude.ai), open Settings → Connectors.') }}</li>
                     <li>{{ __('Choose Add custom connector.') }}</li>
-                    <li>{{ __('Give it the name above and paste the address into the URL field. Leave the advanced settings empty.') }}</li>
+                    <li>{{ __('Copy the Name and the URL above into the two fields of the same name. Leave the advanced settings empty.') }}</li>
                     <li>{{ __('Click Add, then Connect. Sign in when the browser asks, and approve on the page that follows.') }}</li>
                 </ol>
                 <flux:text size="sm" class="opacity-70">{{ __('A connector added on claude.ai is there in the desktop and mobile apps too.') }}</flux:text>
@@ -51,7 +53,7 @@
             <flux:tab.panel name="sign-in-codex" class="space-y-3">
                 <ol class="list-decimal space-y-1.5 pl-5 text-sm text-zinc-600 dark:text-zinc-300">
                     <li>{{ __('In the Codex app, open Settings → Plugins → MCPs and choose Add MCP server.') }}</li>
-                    <li>{{ __('Set Type to Streamable HTTP, give it the name above and paste the address into URL. Leave the token and header fields empty.') }}</li>
+                    <li>{{ __('Set Type to Streamable HTTP, then copy the Name and the URL above into the two fields of the same name. Leave the token and header fields empty.') }}</li>
                     <li>{{ __('Save. Sign in when the browser asks, then quit and reopen the app.') }}</li>
                 </ol>
                 @include('mcp-kit::tokens.snippet', [

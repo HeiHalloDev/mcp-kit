@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.22.1 — 2026-09-30
+
+- The sign-in block shows the server's name as a field to fill in, with its own row and copy button next to the URL. Shown as a caption above the address, it read as a heading, and people did not know it was the name to type into the connector form. The client steps now say to copy Name and URL into the fields of the same name.
+
 ## v1.22.0 — 2026-09-30
 
 - **The tokens page leads with sign-in when OAuth is on.** With `mcp-kit.oauth.enabled`, the Connect section opens with "Sign in with a URL": each server's address in a box with its own copy button, then steps for Claude (Settings → Connectors → Add custom connector), Claude Code (`claude mcp add … --transport http <url>`, then `/mcp` → Authenticate) and Codex (Settings → Plugins → MCPs, or `codex mcp add <name> --url <url>`, which opens the browser by itself). It links to Connected apps when that page is on. The token tabs follow under "Or connect with a token". Aliases and servers without presets are left out, since offering them would list the same tools twice or point staff at a customer server. `ConnectSnippets` gains `signInUrls()`, `claudeCodeSignInLines()` and `codexSignInLines()`. Nothing changes with OAuth off.
