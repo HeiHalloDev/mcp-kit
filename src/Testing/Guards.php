@@ -170,8 +170,20 @@ final class Guards
             $catalogue = app(AbilityCatalogue::class);
             $allowed = array_map('strval', (array) config('mcp-kit.catalogue.service_client_writes', []));
 
+            // A family a merged-away server closed to service clients stays
+            // closed, reads included (see allowedForServiceClient).
+            $closed = [];
+
+            foreach (app(ServerRegistry::class)->all() as $definition) {
+                if ($definition->aliasOf !== null && ! $definition->serviceClients && $definition->wildcard !== null && str_ends_with($definition->wildcard, ':*')) {
+                    $closed[] = substr($definition->wildcard, 0, -1);
+                }
+            }
+
+            $inClosedFamily = fn (string $ability): bool => array_filter($closed, fn (string $prefix): bool => str_starts_with($ability, $prefix)) !== [];
+
             foreach ($catalogue->readOnly() as $ability) {
-                expect($catalogue->allowedForServiceClient($ability))->toBeTrue();
+                expect($catalogue->allowedForServiceClient($ability))->toBe(! $inClosedFamily($ability), "{$ability}: service clients may read unless a merged-away server closed its family.");
             }
 
             foreach ($allowed as $ability) {

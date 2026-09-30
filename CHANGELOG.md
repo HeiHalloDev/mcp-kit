@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.21.4 — 2026-09-30
+
+- The service-client guard allows for a family that a merged-away server closed to service clients (v1.21.3). It no longer expects every read to be open to them.
+
 ## v1.21.3 — 2026-09-30
 
 - **A merged-away server that turned service clients away keeps doing so.** `service_clients => false` on a server kept machine tokens off everything on it. Once that server is merged into another, its abilities live on a server that admits service clients. An alias that declares a wildcard and `service_clients => false` now keeps service clients off its ability family, read or write, at minting and on every call. Only apps with such an alias are affected.
