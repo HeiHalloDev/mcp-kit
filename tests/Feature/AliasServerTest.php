@@ -98,3 +98,18 @@ test('the target\'s wildcard does not reach a merged-away server\'s abilities', 
         ->and($catalogue->wildcardsFor('acme:things:read'))->toContain('acme:*')
         ->and($catalogue->serversFor(['legacy:*']))->toBe(['acme']);
 });
+
+test('a merged-away server that turned service clients away keeps them off its abilities', function () {
+    config()->set('mcp-kit.servers.legacy.wildcard', 'legacy:*');
+    config()->set('mcp-kit.servers.legacy.service_clients', false);
+    config()->set('mcp-kit.catalogue.abilities.legacy:read', ['Read what the old server held', 'things', 'acme']);
+
+    $catalogue = app(AbilityCatalogue::class);
+
+    expect($catalogue->allowedForServiceClient('legacy:read'))->toBeFalse()
+        ->and($catalogue->allowedForServiceClient('acme:things:read'))->toBeTrue();
+
+    config()->set('mcp-kit.servers.legacy.service_clients', true);
+
+    expect($catalogue->allowedForServiceClient('legacy:read'))->toBeTrue();
+});

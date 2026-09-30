@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace HeiHallo\McpKit\Abilities;
 
 use HeiHallo\McpKit\Contracts\AbilityCatalogue;
+use HeiHallo\McpKit\Servers\ServerDefinition;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use Illuminate\Contracts\Config\Repository;
 
@@ -200,17 +201,27 @@ class ConfigAbilityCatalogue implements AbilityCatalogue
      */
     protected function ownedByMergedServer(string $ability, string $server): bool
     {
+        return $this->mergedServerFor($ability)?->aliasOf === $server;
+    }
+
+    /**
+     * The alias — a server merged into another — whose wildcard names this
+     * ability's family, if any. It keeps that family's boundaries: its own
+     * wildcard, and whether service clients may touch it.
+     */
+    protected function mergedServerFor(string $ability): ?ServerDefinition
+    {
         foreach ($this->servers->all() as $definition) {
-            if ($definition->aliasOf !== $server || $definition->wildcard === null) {
+            if ($definition->aliasOf === null || $definition->wildcard === null || ! str_ends_with($definition->wildcard, ':*')) {
                 continue;
             }
 
-            if (str_ends_with($definition->wildcard, ':*') && str_starts_with($ability, substr($definition->wildcard, 0, -1))) {
-                return true;
+            if (str_starts_with($ability, substr($definition->wildcard, 0, -1))) {
+                return $definition;
             }
         }
 
-        return false;
+        return null;
     }
 
     protected function familyPrefix(string $ability): ?string
@@ -318,6 +329,12 @@ class ConfigAbilityCatalogue implements AbilityCatalogue
     public function allowedForServiceClient(string $ability): bool
     {
         $ability = $this->canonical($ability);
+
+        // A server merged into another that turned service clients away
+        // keeps doing so for its own ability family, read or write.
+        if ($this->mergedServerFor($ability)?->serviceClients === false) {
+            return false;
+        }
 
         return ! $this->isWrite($ability)
             || in_array($ability, (array) $this->config->get('mcp-kit.catalogue.service_client_writes', []), true);

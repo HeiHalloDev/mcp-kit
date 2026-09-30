@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.21.3 — 2026-09-30
+
+- **A merged-away server that turned service clients away keeps doing so.** `service_clients => false` on a server kept machine tokens off everything on it. Once that server is merged into another, its abilities live on a server that admits service clients. An alias that declares a wildcard and `service_clients => false` now keeps service clients off its ability family, read or write, at minting and on every call. Only apps with such an alias are affected.
+
 ## v1.21.2 — 2026-09-30
 
 - **A merged-away server keeps its wildcard boundary.** When servers merge, the target's server wildcard covered every ability now on it, so after merging `legacy` into `studies`, a `studies:*` token would reach the afpt.no material it was kept apart from on purpose. When an alias declares a wildcard that names an ability's family (`legacy:*`), the target's wildcard (`studies:*`) no longer reaches that ability. The family's own wildcard still does, and the Full preset still carries it (v1.21.1). Only apps with an alias that declares a wildcard are affected.
