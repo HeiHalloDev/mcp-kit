@@ -16,6 +16,12 @@
                 <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
             @endforeach
         </flux:select>
+
+        <flux:select wire:model.live="person" :label="__('Person')" class="max-w-48">
+            @foreach ($this->personOptions as $value => $label)
+                <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+            @endforeach
+        </flux:select>
     </div>
 
     @include('mcp-kit::usage.tally')

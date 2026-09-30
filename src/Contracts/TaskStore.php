@@ -33,16 +33,20 @@ interface TaskStore
     public function noteRefusal(Task $task): int;
 
     /**
+     * Newest first. $person narrows to one person: part of their name, or
+     * their user id.
+     *
      * @param  list<string>  $outcomes
      * @return list<Task>
      */
-    public function recent(array $outcomes = [], int $limit = 100, int $days = 30): array;
+    public function recent(array $outcomes = [], int $limit = 100, int $days = 30, ?string $person = null): array;
 
     /**
-     * Close whatever this token left open, as unknown. Nobody said how it
-     * went, so nothing is claimed about it.
+     * Close whatever this token left open, as unknown: past $olderThanHours
+     * since it opened, or $idleMinutes since its last call. Nobody said how
+     * it went, so nothing is claimed about it.
      */
-    public function abandonStale(string $tokenId, int $olderThanHours): void;
+    public function abandonStale(string $tokenId, int $olderThanHours, ?int $idleMinutes = null): void;
 
     public function countCalls(Task $task): int;
 

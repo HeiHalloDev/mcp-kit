@@ -1,8 +1,9 @@
-# What this is used for
-Times are {{ $timezone }}.
+# What {{ $person !== null ? $person.' used this for' : 'this is used for' }}
+Times are {{ $timezone }}.@if ($capped !== null) Showing the latest {{ $capped }} pieces of work only — older ones in the last {{ $days }} days are left out.@endif
+
 @if ($shortfalls === [] && $hard_won === [] && $done === [] && $unjudged === [] && $refused === [])
 
-Nothing recorded in the last {{ $days }} days. Either nobody has worked through the tools yet, or the assistant is not opening task frames — check that the ground rules reach the servers people actually use.
+Nothing recorded{{ $person !== null ? ' for '.$person : '' }} in the last {{ $days }} days. Either nobody has worked through the tools yet, or the assistant is not opening task frames — check that the ground rules reach the servers people actually use.
 @else
 @if ($refused !== [])
 
@@ -40,7 +41,7 @@ The person got what they came for, so nothing else in this file flags these. Rea
 ## Never closed ({{ count($unjudged) }})
 Opened and left. Nothing is claimed about how these went.
 @foreach ($unjudged as $task)
-- {{ $task->purpose }} _({{ $task->name }}, {{ $task->calls }} calls{{ $task->span() ? ', '.$task->span() : '' }})_
+- {{ $task->isUnnamed() ? ($task->toolSummary() ? 'Used '.$task->toolSummary() : '') : $task->purpose }} _({{ $task->name }}, {{ $task->calls }} calls{{ $task->span() ? ', '.$task->span() : '' }})_
 @endforeach
 @endif
 @endif
@@ -48,7 +49,7 @@ Opened and left. Nothing is claimed about how these went.
 ## Reading this
 - **A refused frame is not an uncooperative assistant.** It tried and the tool would not take what it sent. Fix the tool, not the prompt.
 - **`done` with `fought_it` is the row to act on.** It succeeded, so no outcome flags it and no count catches it — reading before writing and previewing before confirming make a correct write three calls by design. Only the assistant that did the work can say it was harder than it should have been.
-- A frame with no purpose was opened by the middleware and never named. The calls are real; nobody said what for.
+- A frame with no purpose was opened by the middleware and never named. The calls are real; nobody said what for. The tools it used are listed instead — what it touched, not what it was for.
 - The purposes are the assistant's words for what a person wanted. Take them as evidence of intent, not as a transcript.
 - A shortfall that keeps coming back and is not on the gap list is the strongest thing here: people hit it often enough to try, and often enough to give up without saying so.
 - Many calls against one purpose usually means the work needed stitching together by hand. That is a candidate for one tool doing the whole job.

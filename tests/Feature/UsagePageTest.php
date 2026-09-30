@@ -42,7 +42,7 @@ function aFrame(array $attributes = []): Task
     return app(TaskStore::class)->put(new Task(
         purpose: $attributes['purpose'] ?? 'Refunding a module a student bought twice',
         tokenId: $attributes['tokenId'] ?? (string) random_int(1000, 9999),
-        userId: '1',
+        userId: $attributes['userId'] ?? '1',
         name: $attributes['name'] ?? 'Kari Nordmann',
         server: $attributes['server'] ?? 'acme',
         outcome: $attributes['outcome'] ?? Task::DONE,
@@ -189,4 +189,19 @@ test('the page is absent while the switch is off', function () {
     bootUsageUi();
 
     expect(usageRouteExists())->toBeTrue();
+});
+
+test('the person filter narrows the work to one person', function () {
+    bootUsageUi();
+    $this->actingAs(acmeAdmin());
+
+    aFrame(['purpose' => 'Kine following up texts', 'name' => 'Kine Arntzen', 'userId' => '41']);
+    aFrame(['purpose' => 'Espen reading the numbers', 'name' => 'Espen Arntzen', 'userId' => '42']);
+
+    Livewire::test(UsagePage::class)
+        ->assertSee('Kine following up texts')
+        ->assertSee('Espen reading the numbers')
+        ->set('person', '41')
+        ->assertSee('Kine following up texts')
+        ->assertDontSee('Espen reading the numbers');
 });

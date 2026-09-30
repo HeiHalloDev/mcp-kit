@@ -6,6 +6,9 @@ namespace HeiHallo\McpKit\Learning;
 
 use HeiHallo\McpKit\Contracts\TaskStore;
 use HeiHallo\McpKit\Principal;
+use Illuminate\Contracts\Cache\LockProvider;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 /**
@@ -68,19 +71,21 @@ class CurrentTask
 
         try {
             $store = app(TaskStore::class);
-            $store->abandonStale((string) $tokenId, (int) config('mcp-kit.learning.lifetime_hours', 4));
+            $task = $this->locked((string) $tokenId, function () use ($store, $tokenId, $principal, $server): Task {
+                $store->abandonStale(
+                    (string) $tokenId,
+                    (int) config('mcp-kit.learning.lifetime_hours', 8),
+                    (int) config('mcp-kit.learning.idle_minutes', 45),
+                );
 
-            $task = $store->openFor((string) $tokenId);
-
-            if ($task === null) {
-                $task = $store->put(new Task(
+                return $store->openFor((string) $tokenId) ?? $store->put(new Task(
                     purpose: '',
                     tokenId: (string) $tokenId,
                     userId: (string) $principal->id(),
                     name: $principal->name,
                     server: $server,
                 ));
-            }
+            });
 
             $this->set($task);
 
@@ -93,6 +98,31 @@ class CurrentTask
             }
 
             return null;
+        }
+    }
+
+    /**
+     * Two calls arriving together each found no open frame and each opened
+     * one, so the work split across two half-frames. Find-or-open runs under
+     * a per-token lock; a cache store without locks runs it bare, as before.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    protected function locked(string $tokenId, callable $callback): mixed
+    {
+        $store = Cache::getStore();
+
+        if (! $store instanceof LockProvider) {
+            return $callback();
+        }
+
+        try {
+            return Cache::lock('mcp-kit:task-open:'.$tokenId, 10)->block(5, $callback);
+        } catch (LockTimeoutException) {
+            return $callback();
         }
     }
 

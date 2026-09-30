@@ -47,13 +47,29 @@ class UsageResource extends Resource
             return Response::error('What everybody used this for is a developer\'s view. It is a record of colleagues\' work, not a leaderboard.');
         }
 
+        return Response::text($this->render($this->person($request)));
+    }
+
+    /** Everybody, here; one person on the templated twin. */
+    protected function person(Request $request): ?string
+    {
+        return null;
+    }
+
+    protected function render(?string $person): string
+    {
         $store = app(TaskStore::class);
         $days = (int) config('mcp-kit.learning.recent_days', 30);
-        $recent = $store->recent(limit: (int) config('mcp-kit.learning.recent_limit', 100), days: $days);
+        $limit = (int) config('mcp-kit.learning.recent_limit', 500);
+        $recent = $store->recent(limit: $limit, days: $days, person: $person);
 
-        return Response::text(view('mcp-kit::resources.usage', [
+        return view('mcp-kit::resources.usage', [
             'days' => $days,
             'timezone' => (string) config('app.timezone', 'UTC'),
+            'person' => $person,
+            // The record ends at the limit, not at the day window. Say so,
+            // or older work reads as work that never happened.
+            'capped' => count($recent) >= $limit ? $limit : null,
             // An assistant tried to say what it was doing and could not
             // get in. Leads the file: it means the record is lying about
             // itself, and every number under it is short.
@@ -74,6 +90,6 @@ class UsageResource extends Resource
                 $recent,
                 fn (Task $t): bool => in_array($t->outcome, [Task::OPEN, Task::UNKNOWN], true),
             )),
-        ])->render());
+        ])->render();
     }
 }

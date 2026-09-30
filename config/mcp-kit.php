@@ -445,9 +445,15 @@ return [
         'model' => TaskModel::class,
         'store' => DatabaseTaskStore::class,
 
-        // An open frame this old is closed as unknown rather than counted
-        // as a success nobody vouched for.
-        'lifetime_hours' => 4,
+        // A frame nobody has called a tool in for this long is over: closed
+        // as unknown, ending at its last call, rather than swallowing the
+        // next unrelated piece of work. 0 turns the idle check off.
+        'idle_minutes' => 45,
+
+        // The hard cap, for a frame that never goes quiet — a token shared
+        // by parallel threads. Closed as unknown rather than counted as a
+        // success nobody vouched for.
+        'lifetime_hours' => 8,
 
         // The call at which an unnamed frame asks to be named, in the
         // result of that call. Low enough to catch real work, high enough
@@ -459,8 +465,10 @@ return [
         // before the work is over. 0 asks once.
         'nudge_every' => 25,
 
+        // The usage record: this many days, at most this many frames. The
+        // record says so when it hits the limit.
         'recent_days' => 30,
-        'recent_limit' => 100,
+        'recent_limit' => 500,
 
         // null follows activity.retain_days.
         'retain_days' => null,

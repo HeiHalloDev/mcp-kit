@@ -56,7 +56,39 @@ final class Task
         public readonly int|string|null $id = null,
         /** When the frame last counted a call. Ends the span of an open frame. */
         public readonly ?DateTimeInterface $lastCallAt = null,
+        /**
+         * Tool => calls, busiest first. Filled for unnamed frames only: it is
+         * what those frames were, where nobody said.
+         *
+         * @var array<string, int>
+         */
+        public readonly array $tools = [],
     ) {}
+
+    /**
+     * The busiest tools in a line — "search_leads ×25, update_lead_statuses ×8,
+     * 2 more". Null when nothing was tallied.
+     */
+    public function toolSummary(int $top = 4): ?string
+    {
+        if ($this->tools === []) {
+            return null;
+        }
+
+        $shown = array_slice($this->tools, 0, $top, true);
+        $line = implode(', ', array_map(fn (string $tool, int $n): string => $tool.' ×'.$n, array_keys($shown), $shown));
+        $rest = count($this->tools) - count($shown);
+
+        return $rest > 0 ? $line.', '.$rest.' more' : $line;
+    }
+
+    /** The same frame, with its tool tally. */
+    public function withTools(array $tools): self
+    {
+        arsort($tools);
+
+        return new self(...[...get_object_vars($this), 'tools' => $tools]);
+    }
 
     public function isOpen(): bool
     {

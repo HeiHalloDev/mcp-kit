@@ -44,6 +44,8 @@
 
                         @if ($task->result)
                             <flux:text class="text-sm">{{ $task->result }}</flux:text>
+                        @elseif ($task->isUnnamed() && $task->toolSummary())
+                            <flux:text class="text-sm">{{ __('Used :tools', ['tools' => $task->toolSummary()]) }}</flux:text>
                         @endif
 
                         <flux:text class="text-xs opacity-60">

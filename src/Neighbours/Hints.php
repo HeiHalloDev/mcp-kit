@@ -108,6 +108,6 @@ final class Hints
 
     private function ttl(): int
     {
-        return max(600, (int) config('mcp-kit.learning.lifetime_hours', 4) * 3600);
+        return max(600, (int) config('mcp-kit.learning.lifetime_hours', 8) * 3600);
     }
 }

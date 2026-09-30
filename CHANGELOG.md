@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.19.0 — 2026-09-30
+
+- **An unnamed frame says which tools it used.** A frame nobody named was a blank line on the usage record, though the activity log knows every call in it. Each one now reads `Used search_leads ×25, update_lead_statuses ×8, 2 more`: what it touched, not what it was for. One query for the whole record. The page shows the same line.
+- **The usage record for one person.** `{scheme}://usage/{person}` takes part of a name or a user id, and the page has a Person filter. "How has Kine used this lately" was a query against production. The staff server registers the resource next to `{scheme}://usage`, so apps that published their shared list get it without a config change.
+- **The record says when it stopped at its limit.** It read at most 100 frames and said nothing when it hit them. A busy app reaches that inside the 30 days, and older work read as work that never happened. The default is now 500, and the record names the cut when it makes one. An app that published `learning.recent_limit` keeps its own number.
+- **A frame ends when the work stops.** A frame closed four hours after it *opened*, so an active session was cut at four hours, and a morning frame that sat idle swallowed the afternoon's unrelated work. It now closes after `learning.idle_minutes` (45) with no calls, ending at its last call. `lifetime_hours` stays as the hard cap for a token that never goes quiet, raised from 4 to 8.
+- **Two calls at once open one frame.** Calls arriving together each found no open frame and each opened one, splitting the work across two half-frames. Find-or-open now runs under a per-token cache lock. A cache store without locks runs it bare, as before.
+- `TaskStore::recent()` takes an optional `$person` and `abandonStale()` an optional `$idleMinutes`. A custom store needs both parameters added.
+- The 17 strings of the tokens page's "Which model" block are in `lang/en.json`, so the translation ratchet is green again.
+
 ## v1.18.1 — 2026-09-30
 
 - **An abandoned frame ends at its last call.** A frame nobody closed is marked `unknown` when the same person next calls a tool after its four hours are up, and it took that moment as its end. The moment can be days later, so the new spans read `28 Sep 07:53–29 Sep 07:39` for half an hour of work. The frame now ends at its last call. A migration moves the end of every frame already marked `unknown` to its last logged call.

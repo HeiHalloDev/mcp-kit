@@ -48,16 +48,66 @@ class DatabaseTaskStore implements TaskStore
         return $this->toTask($row);
     }
 
-    public function recent(array $outcomes = [], int $limit = 100, int $days = 30): array
+    public function recent(array $outcomes = [], int $limit = 100, int $days = 30, ?string $person = null): array
     {
         $rows = $this->model()->newQuery()
             ->when($outcomes !== [], fn ($query) => $query->whereIn('outcome', $outcomes))
+            ->when($person !== null && trim($person) !== '', function ($query) use ($person): void {
+                $person = trim((string) $person);
+
+                $query->where(fn ($q) => $q
+                    ->whereRaw('lower(name) like ?', ['%'.mb_strtolower($person).'%'])
+                    ->orWhere('user_id', $person));
+            })
             ->where('created_at', '>=', now()->subDays($days))
             ->orderByDesc('id')
             ->limit($limit)
             ->get();
 
-        return $rows->map(fn (TaskModel $row): Task => $this->toTask($row))->all();
+        return $this->withTools($rows->map(fn (TaskModel $row): Task => $this->toTask($row))->all());
+    }
+
+    /**
+     * An unnamed frame is a blank line unless something says what it was.
+     * The activity log does: every call carries the frame id. One query for
+     * the whole page, tallied here so it runs the same on every database.
+     *
+     * @param  list<Task>  $tasks
+     * @return list<Task>
+     */
+    protected function withTools(array $tasks): array
+    {
+        $unnamed = array_values(array_filter($tasks, fn (Task $t): bool => $t->isUnnamed() && $t->id !== null));
+
+        if ($unnamed === []) {
+            return $tasks;
+        }
+
+        $model = (string) config('activitylog.activity_model', Activity::class);
+        $table = (new $model)->getTable();
+        $tally = [];
+
+        DB::table($table)
+            ->where('log_name', (string) config('mcp-kit.activity.log_name', 'mcp'))
+            ->whereIn('properties->task', array_map(fn (Task $t): string => (string) $t->id, $unnamed))
+            ->orderBy('id')
+            ->select(['id', 'properties'])
+            ->chunk(500, function ($rows) use (&$tally): void {
+                foreach ($rows as $row) {
+                    $properties = json_decode((string) $row->properties, true);
+                    $task = $properties['task'] ?? null;
+                    $tool = $properties['tool'] ?? null;
+
+                    if ($task !== null && is_string($tool) && $tool !== '') {
+                        $tally[(string) $task][$tool] = ($tally[(string) $task][$tool] ?? 0) + 1;
+                    }
+                }
+            });
+
+        return array_map(
+            fn (Task $t): Task => isset($tally[(string) $t->id]) ? $t->withTools($tally[(string) $t->id]) : $t,
+            $tasks,
+        );
     }
 
     /**
@@ -92,17 +142,23 @@ class DatabaseTaskStore implements TaskStore
     }
 
     /**
-     * The frame ends at its last call, not at the moment somebody came back
-     * and found it stale — that can be days later, and a span running to it
-     * reads as days of work. Every call touches updated_at, so it holds the
-     * last one; the base query leaves it alone while copying it.
+     * A frame goes stale when nobody has called a tool in it for a while —
+     * the work has stopped — or when it has simply run too long, which is
+     * what catches a token shared by parallel threads that never goes quiet.
+     *
+     * It ends at its last call, not at the moment somebody came back and
+     * found it stale: that can be days later, and a span running to it reads
+     * as days of work. Every call touches updated_at, so it holds the last
+     * one; the base query leaves it alone while copying it.
      */
-    public function abandonStale(string $tokenId, int $olderThanHours): void
+    public function abandonStale(string $tokenId, int $olderThanHours, ?int $idleMinutes = null): void
     {
         $query = $this->model()->newQuery()
             ->where('token_id', $tokenId)
             ->where('outcome', Task::OPEN)
-            ->where('created_at', '<', now()->subHours($olderThanHours))
+            ->where(fn ($q) => $q
+                ->where('created_at', '<', now()->subHours($olderThanHours))
+                ->when($idleMinutes !== null && $idleMinutes > 0, fn ($q) => $q->orWhere('updated_at', '<', now()->subMinutes((int) $idleMinutes))))
             ->toBase();
 
         $query->update([

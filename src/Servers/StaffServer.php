@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace HeiHallo\McpKit\Servers;
 
 use HeiHallo\McpKit\Contracts\GroundRules;
+use HeiHallo\McpKit\Mcp\Resources\UsagePersonResource;
+use HeiHallo\McpKit\Mcp\Resources\UsageResource;
 use HeiHallo\McpKit\Mcp\Tools\WhoAmITool;
 use HeiHallo\McpKit\Playbooks\PlaybookPrompts;
 use Laravel\Mcp\Server;
@@ -64,6 +66,12 @@ abstract class StaffServer extends Server
     {
         foreach ((array) config('mcp-kit.shared.resources', []) as $resource) {
             $this->appendUnique($this->resources, $resource);
+
+            // Its per-person twin rides along, so apps that published the
+            // shared list before it existed get it too.
+            if ($resource === UsageResource::class) {
+                $this->appendUnique($this->resources, UsagePersonResource::class);
+            }
         }
 
         foreach ((array) config('mcp-kit.shared.tools', []) as $tool) {

@@ -11,6 +11,7 @@ use HeiHallo\McpKit\Contracts\TaskStore;
 use HeiHallo\McpKit\Events\GapStatusChanged;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Learning\Task;
+use HeiHallo\McpKit\Models\Task as TaskModel;
 use HeiHallo\McpKit\Principal;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use Illuminate\Contracts\View\View;
@@ -35,6 +36,10 @@ class UsagePage extends Component
     /** Empty means every server in this app. */
     #[Url(as: 'server')]
     public string $server = '';
+
+    /** A user id; empty means everybody. */
+    #[Url(as: 'person')]
+    public string $person = '';
 
     /** live = still open or planned; closed = decided; all = both. */
     #[Url(as: 'gaps')]
@@ -92,12 +97,31 @@ class UsagePage extends Component
     }
 
     /**
+     * Everybody who has worked through the tools in the period, by user id.
+     *
+     * @return array<string, string>
+     */
+    #[Computed]
+    public function personOptions(): array
+    {
+        $model = (string) config('mcp-kit.learning.model', TaskModel::class);
+
+        $people = (new $model)->newQuery()
+            ->where('created_at', '>=', now()->subDays($this->days))
+            ->orderBy('name')
+            ->pluck('name', 'user_id')
+            ->all();
+
+        return ['' => __('Everybody')] + $people;
+    }
+
+    /**
      * @return list<Task>
      */
     #[Computed]
     public function tasks(): array
     {
-        $tasks = app(TaskStore::class)->recent(limit: self::WINDOW, days: $this->days);
+        $tasks = app(TaskStore::class)->recent(limit: self::WINDOW, days: $this->days, person: $this->person === '' ? null : $this->person);
 
         return $this->server === ''
             ? $tasks

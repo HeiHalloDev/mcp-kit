@@ -304,6 +304,71 @@ test('an abandoned frame ends at its last call, not when somebody came back', fu
         ->and($abandoned->updated_at->format('Y-m-d H:i'))->toBe('2026-09-29 19:50');
 });
 
+test('an unnamed frame says which tools it used', function () {
+    $token = acmeToken(acmeUser(), ['acme:things:read', 'acme:things:write']);
+
+    Mcp::call($token, '/mcp/acme', 'list_things');
+    Mcp::call($token, '/mcp/acme', 'list_things');
+    Mcp::call($token, '/mcp/acme', 'list_things');
+
+    Mcp::readResource(acmeToken(acmeAdmin(), ['acme:things:read']), '/mcp/acme', 'acme://usage')
+        ->assertSee('Used list_things ×3');
+});
+
+test('the usage record for one person leaves everybody else out', function () {
+    Mcp::call(acmeToken(acmeUser(attributes: ['name' => 'Kine Arntzen']), ['acme:things:read']), '/mcp/acme', 'working_on', [
+        'purpose' => 'Following up the unanswered texts', 'outcome' => 'done', 'effort' => 'smooth',
+    ]);
+    Mcp::call(acmeToken(acmeUser(attributes: ['name' => 'Espen Arntzen']), ['acme:things:read']), '/mcp/acme', 'working_on', [
+        'purpose' => 'Reading the group numbers', 'outcome' => 'done', 'effort' => 'smooth',
+    ]);
+
+    $admin = acmeToken(acmeAdmin(), ['acme:things:read']);
+
+    Mcp::readResource($admin, '/mcp/acme', 'acme://usage/kine')
+        ->assertSee('What kine used this for')
+        ->assertSee('Following up the unanswered texts')
+        ->assertDontSee('Reading the group numbers');
+
+    Mcp::readResource(acmeToken(acmeUser(), ['acme:things:read']), '/mcp/acme', 'acme://usage/kine')
+        ->assertDontSee('Following up the unanswered texts');
+});
+
+test('the usage record says when it stopped at its limit', function () {
+    config()->set('mcp-kit.learning.recent_limit', 1);
+
+    foreach (['First piece of work', 'Second piece of work'] as $purpose) {
+        Mcp::call(acmeToken(acmeUser(), ['acme:things:read']), '/mcp/acme', 'working_on', [
+            'purpose' => $purpose, 'outcome' => 'done', 'effort' => 'smooth',
+        ]);
+    }
+
+    Mcp::readResource(acmeToken(acmeAdmin(), ['acme:things:read']), '/mcp/acme', 'acme://usage')
+        ->assertSee('Showing the latest 1 pieces of work only')
+        ->assertSee('Second piece of work')
+        ->assertDontSee('First piece of work');
+});
+
+test('a frame nobody has touched for a while is over, however young it is', function () {
+    $token = acmeToken(acmeUser(), ['acme:things:read']);
+
+    $this->travelTo(now()->setDate(2026, 9, 30)->setTime(9, 0));
+    Mcp::call($token, '/mcp/acme', 'list_things');
+    $this->travelTo(now()->setTime(9, 30));
+    Mcp::call($token, '/mcp/acme', 'list_things');
+
+    expect(TaskModel::query()->count())->toBe(1);
+
+    $this->travelTo(now()->setTime(10, 20));
+    Mcp::call($token, '/mcp/acme', 'list_things');
+
+    $over = TaskModel::query()->where('outcome', 'unknown')->sole();
+
+    expect(TaskModel::query()->count())->toBe(2)
+        ->and($over->calls)->toBe(2)
+        ->and($over->closed_at->format('H:i'))->toBe('09:30');
+});
+
 test('me tells the person their work is being recorded, and stays quiet when it is not', function () {
     $user = actingWith(acmeUser(), ['acme:things:read']);
 
