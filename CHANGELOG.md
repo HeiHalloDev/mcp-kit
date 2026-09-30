@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.21.2 — 2026-09-30
+
+- **A merged-away server keeps its wildcard boundary.** When servers merge, the target's server wildcard covered every ability now on it, so after merging `legacy` into `studies`, a `studies:*` token would reach the afpt.no material it was kept apart from on purpose. When an alias declares a wildcard that names an ability's family (`legacy:*`), the target's wildcard (`studies:*`) no longer reaches that ability. The family's own wildcard still does, and the Full preset still carries it (v1.21.1). Only apps with an alias that declares a wildcard are affected.
+
 ## v1.21.1 — 2026-09-30
 
 - **A merged-away server's wildcard keeps working.** When servers merge, the old entry becomes an `alias_of` with `presets => false`, so it is never offered as a server of its own. That also dropped its `wildcard` from the `wildcards` preset, and a Full token minted after the merge lost everything the old server held. An alias's wildcard now counts toward that preset, and `serverFor()` maps it to the target server.

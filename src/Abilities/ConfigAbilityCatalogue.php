@@ -191,6 +191,28 @@ class ConfigAbilityCatalogue implements AbilityCatalogue
     /**
      * The catalogue prefix a family wildcard covers ("staff:imports:"), or null.
      */
+    /**
+     * A server merged into another keeps its wildcard boundary: when an
+     * alias of $server declares a wildcard that names this ability's family
+     * (legacy:* on a legacy alias of studies), the target's own wildcard
+     * (studies:*) does not reach it. Merging servers is about one
+     * connection, not about widening what a wildcard token already held.
+     */
+    protected function ownedByMergedServer(string $ability, string $server): bool
+    {
+        foreach ($this->servers->all() as $definition) {
+            if ($definition->aliasOf !== $server || $definition->wildcard === null) {
+                continue;
+            }
+
+            if (str_ends_with($definition->wildcard, ':*') && str_starts_with($ability, substr($definition->wildcard, 0, -1))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     protected function familyPrefix(string $ability): ?string
     {
         if (! str_ends_with($ability, ':*')) {
@@ -251,7 +273,8 @@ class ConfigAbilityCatalogue implements AbilityCatalogue
 
         $server = $this->serverFor($ability);
 
-        if ($server !== null && ($serverWildcard = $this->servers->get($server)?->wildcard) !== null) {
+        if ($server !== null && ! $this->ownedByMergedServer($ability, $server)
+            && ($serverWildcard = $this->servers->get($server)?->wildcard) !== null) {
             $wildcards[] = $serverWildcard;
         }
 

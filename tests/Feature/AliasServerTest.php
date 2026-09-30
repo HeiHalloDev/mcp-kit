@@ -87,3 +87,14 @@ test('a merged-away server\'s wildcard stays in the full preset and reaches the 
         ->and($catalogue->serversFor(['legacy:*']))->toBe(['acme'])
         ->and(app(PresetResolver::class)->abilitiesFor(acmeAdmin(), 'full'))->toContain('legacy:*');
 });
+
+test('the target\'s wildcard does not reach a merged-away server\'s abilities', function () {
+    config()->set('mcp-kit.servers.legacy.wildcard', 'legacy:*');
+    config()->set('mcp-kit.catalogue.abilities.legacy:read', ['Read what the old server held', 'things', 'acme']);
+
+    $catalogue = app(AbilityCatalogue::class);
+
+    expect($catalogue->wildcardsFor('legacy:read'))->toContain('legacy:*')->not->toContain('acme:*')
+        ->and($catalogue->wildcardsFor('acme:things:read'))->toContain('acme:*')
+        ->and($catalogue->serversFor(['legacy:*']))->toBe(['acme']);
+});
