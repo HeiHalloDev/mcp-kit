@@ -309,9 +309,10 @@ class ConfigAbilityCatalogue implements AbilityCatalogue
             return $entry[2] ?? $this->servers->firstKey();
         }
 
-        foreach ($this->servers->all() as $key => $definition) {
+        foreach ($this->servers->all() as $definition) {
             if ($definition->wildcard === $ability) {
-                return $key;
+                // A merged-away server's wildcard lives on its target.
+                return $definition->effectiveKey();
             }
         }
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.21.1 — 2026-09-30
+
+- **A merged-away server's wildcard keeps working.** When servers merge, the old entry becomes an `alias_of` with `presets => false`, so it is never offered as a server of its own. That also dropped its `wildcard` from the `wildcards` preset, and a Full token minted after the merge lost everything the old server held. An alias's wildcard now counts toward that preset, and `serverFor()` maps it to the target server.
+
 ## v1.21.0 — 2026-09-30
 
 Sign-in for apps whose login is a central auth service, and a face for each server. **Nothing changes for an app that does not turn these on.**

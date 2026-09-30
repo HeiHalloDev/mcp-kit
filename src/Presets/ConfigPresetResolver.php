@@ -153,7 +153,10 @@ class ConfigPresetResolver implements PresetResolver
         $wildcards = [];
 
         foreach ($this->servers->all() as $definition) {
-            if ($definition->presets && $definition->wildcard !== null) {
+            // An alias opts out of presets so it is never offered as a
+            // server of its own, but the wildcard of a server merged into
+            // another still names abilities the full preset must carry.
+            if (($definition->presets || $definition->aliasOf !== null) && $definition->wildcard !== null) {
                 $wildcards[] = $definition->wildcard;
             }
         }

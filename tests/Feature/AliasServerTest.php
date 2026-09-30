@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use HeiHallo\McpKit\Contracts\AbilityCatalogue;
+use HeiHallo\McpKit\Contracts\PresetResolver;
 use HeiHallo\McpKit\Docs\ToolReference;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use HeiHallo\McpKit\Testing\Mcp;
@@ -73,4 +75,15 @@ test('a server sends its avatar in serverInfo, and none when there is none', fun
     // The alias path shows the same face.
     expect(Mcp::rpc($token, '/mcp/legacy', 'initialize', ['protocolVersion' => '2025-11-25', 'capabilities' => (object) [], 'clientInfo' => ['name' => 't', 'version' => '1']])
         ->json('result.serverInfo.icons.0.src'))->toBe('https://example.test/avatar.svg');
+});
+
+test('a merged-away server\'s wildcard stays in the full preset and reaches the target', function () {
+    config()->set('mcp-kit.servers.legacy.wildcard', 'legacy:*');
+    config()->set('mcp-kit.catalogue.abilities.legacy:read', ['Read what the old server held', 'things', 'acme']);
+
+    $catalogue = app(AbilityCatalogue::class);
+
+    expect($catalogue->serverFor('legacy:*'))->toBe('acme')
+        ->and($catalogue->serversFor(['legacy:*']))->toBe(['acme'])
+        ->and(app(PresetResolver::class)->abilitiesFor(acmeAdmin(), 'full'))->toContain('legacy:*');
 });
