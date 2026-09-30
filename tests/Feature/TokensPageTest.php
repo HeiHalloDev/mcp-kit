@@ -5,8 +5,11 @@ declare(strict_types=1);
 use HeiHallo\McpKit\Contracts\MemoryStore;
 use HeiHallo\McpKit\Exceptions\UiDependenciesMissing;
 use HeiHallo\McpKit\Livewire\AssistantMemory;
+use HeiHallo\McpKit\Livewire\ConnectedApps;
 use HeiHallo\McpKit\Livewire\TokensPage;
 use HeiHallo\McpKit\McpKitServiceProvider;
+use HeiHallo\McpKit\Models\OAuthClient;
+use HeiHallo\McpKit\Models\OAuthGrant;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 
@@ -24,7 +27,7 @@ test('the tokens page mints with a preset and extras, lists, and revokes', funct
     $this->actingAs($admin);
 
     $component = Livewire::test(TokensPage::class)
-        ->assertSee('API tokens')
+        ->assertSee('Connect AI')
         // The configured default (work), not whatever preset happens to list first.
         ->assertSet('preset', 'work')
         ->set('name', 'Laptop')
@@ -35,8 +38,7 @@ test('the tokens page mints with a preset and extras, lists, and revokes', funct
         ->assertSee('shown only once')
         ->assertSee('claude mcp add acme ')
         ->assertSee('claude mcp add acme-reports ')
-        ->assertSee('Which model')
-        ->assertSee('Sonnet, effort low');
+        ->assertDontSee('Which model');
 
     $token = $admin->tokens()->sole();
 
@@ -82,7 +84,7 @@ test('the tokens route is registered when enabled and absent when not', function
 
     $route = Route::getRoutes()->getByName('mcp-kit.tokens');
 
-    expect($route->uri())->toBe('settings/tokens')->and($route->middleware())->toBe(['web', 'auth']);
+    expect($route->uri())->toBe('settings/connect')->and($route->middleware())->toBe(['web', 'auth']);
 });
 
 test('the assistant-memory component shows what is remembered and clears it', function () {
@@ -239,33 +241,105 @@ test('the default falls back to the first preset the person can actually mint', 
         ->and($component->get('preset'))->not->toBe('no_such_preset');
 });
 
-test('with oauth on, the page leads with the addresses to sign in to, and the tokens become the alternative', function () {
+test('with oauth on, the page opens on signing in: three steps, then what to ask', function () {
     config()->set('mcp-kit.oauth.enabled', true);
     bootUi();
     $this->actingAs(acmeAdmin());
 
     Livewire::test(TokensPage::class)
+        ->assertSet('tab', 'mcp')
+        ->assertSee('Connect AI')
+        // One switch between the two halves, styled unlike the client tabs.
+        ->assertSeeHtml('variant="segmented"')
+        ->assertSee('API tokens')
         // The name is a field to fill in, not a caption: a row and a copy
-        // button of its own, next to the address.
-        ->assertSeeInOrder(['Sign in with a URL', 'Name', 'acme', 'URL', url('/mcp/acme'), 'Or connect with a token'])
+        // button of its own, next to the address. Then the client steps,
+        // then the first message as the last step, then what to ask.
+        ->assertSeeInOrder([
+            'Copy the name and the address', 'Name', 'acme', 'URL', url('/mcp/acme'),
+            'Add it to your assistant', 'Settings → Connectors',
+            'Send the first message',
+            'Things to ask',
+        ])
         ->assertSee('Copy Name')
-        ->assertSee('Settings → Connectors')
         ->assertSee('claude mcp add acme --scope user --transport http '.url('/mcp/acme'))
         ->assertSee('codex mcp add acme --url '.url('/mcp/acme'))
         ->assertSee('codex mcp add acme-reports --url '.url('/mcp/reports'))
         // An alias answers as its target: offering it would list the same
         // tools twice.
         ->assertDontSee(url('/mcp/legacy'))
-        ->assertDontSee('acme-legacy');
+        ->assertDontSee('acme-legacy')
+        ->assertDontSee('Which model');
 });
 
-test('with oauth off, nobody is offered a sign-in that does not exist', function () {
+test('with oauth on, the tokens are one segment away, and minting keeps you there', function () {
+    config()->set('mcp-kit.oauth.enabled', true);
+    bootUi();
+    $this->actingAs(acmeAdmin());
+
+    Livewire::withQueryParams(['tab' => 'tokens'])
+        ->test(TokensPage::class)
+        ->assertSet('tab', 'tokens')
+        ->assertSee('Add token')
+        ->assertSee('Connect with the token')
+        ->set('tab', 'mcp')
+        ->call('toggleForm')
+        ->set('name', 'Laptop')
+        ->set('preset', 'full')
+        ->call('create')
+        ->assertHasNoErrors()
+        ->assertSet('tab', 'tokens')
+        ->assertSee('shown only once');
+});
+
+test('an unknown tab falls back to the sign-in half', function () {
+    config()->set('mcp-kit.oauth.enabled', true);
+    bootUi();
+    $this->actingAs(acmeAdmin());
+
+    Livewire::withQueryParams(['tab' => 'nonsense'])->test(TokensPage::class)->assertSet('tab', 'mcp');
+});
+
+test('the sign-ins a person made are listed under the steps, with a way to end each', function () {
+    config()->set('mcp-kit.oauth.enabled', true);
+    bootUi();
+    $admin = acmeAdmin();
+    $this->actingAs($admin);
+
+    // Nothing connected yet: no empty section to read past.
+    Livewire::test(ConnectedApps::class, ['embedded' => true])->assertDontSee('Connected apps');
+
+    $client = OAuthClient::query()->create(['client_id' => 'mcpc_test', 'name' => 'Claude', 'redirect_uris' => ['https://claude.ai/api/mcp/auth_callback']]);
+    OAuthGrant::query()->create(['client_id' => $client->id, 'user_id' => (string) $admin->getAuthIdentifier(), 'abilities' => ['acme:things:read'], 'refresh_expires_at' => now()->addDays(30)]);
+
+    Livewire::test(ConnectedApps::class, ['embedded' => true])
+        ->assertSee('Connected apps')
+        ->assertSee('Claude')
+        ->assertSee('Disconnect');
+});
+
+test('with oauth off, there is nothing to switch between: the tokens, then what to ask', function () {
     config()->set('mcp-kit.oauth.enabled', false);
     bootUi();
     $this->actingAs(acmeAdmin());
 
     Livewire::test(TokensPage::class)
-        ->assertDontSee('Sign in with a URL')
-        ->assertDontSee('Or connect with a token')
-        ->assertSee('Connect');
+        ->assertSet('tab', 'tokens')
+        ->assertDontSeeHtml('variant="segmented"')
+        ->assertDontSee('Copy the name and the address')
+        ->assertSeeInOrder(['Connect AI', 'Add token', 'Connect with the token', 'Things to ask'])
+        ->assertDontSee('Which model');
+});
+
+test('old addresses of the page and of connected apps lead to the Connect page', function () {
+    config()->set('mcp-kit.oauth.enabled', true);
+    config()->set('mcp-kit.ui.tokens_page.redirect_from', ['settings/tokens']);
+    config()->set('mcp-kit.ui.connected_apps_page.enabled', true);
+    config()->set('mcp-kit.ui.connected_apps_page.redirect_to', 'mcp-kit.tokens');
+    bootUi();
+    Route::getRoutes()->refreshNameLookups();
+    $this->actingAs(acmeAdmin());
+
+    $this->get('/settings/tokens')->assertStatus(301)->assertRedirect('/settings/connect');
+    $this->get('/settings/connected-apps')->assertRedirect(route('mcp-kit.tokens', ['tab' => 'mcp']));
 });

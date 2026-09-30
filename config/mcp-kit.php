@@ -274,11 +274,15 @@ return [
         'enabled' => (bool) env('MCP_KIT_UI', false),
         'layout' => null,
         'check_dependencies' => true,
+        // The Connect AI page: sign in with a URL (with oauth on) and
+        // personal tokens. redirect_from lists where it used to live, and
+        // each answers with a permanent redirect.
         'tokens_page' => [
             'enabled' => (bool) env('MCP_KIT_TOKENS_PAGE', false),
-            'path' => 'settings/tokens',
+            'path' => 'settings/connect',
             'middleware' => ['web', 'auth'],
             'name' => 'mcp-kit.tokens',
+            'redirect_from' => [],
         ],
 
         // What the tools were used for and what people could not get.
@@ -296,6 +300,9 @@ return [
             'path' => 'settings/connected-apps',
             'middleware' => ['web', 'auth'],
             'name' => 'mcp-kit.connected-apps',
+            // A route name, usually the Connect page's. When set, this page
+            // redirects there, since the Connect page lists the sign-ins.
+            'redirect_to' => null,
         ],
         // Where the assistant-memory section lives, for the link in {scheme}://me
         'memory_url' => null,

@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.23.0 — 2026-09-30
+
+- **The tokens page is now "Connect AI".** With `mcp-kit.oauth` on, it opens on signing in with a URL, in three numbered steps: copy the name and the address, add it to your assistant (Claude, Claude Code, Codex), and send the first message. Then come things to ask and the sign-ins the person already made, each with Disconnect (the Connected apps component, embedded). Personal tokens move behind a segmented switch, **MCP | API tokens**; minting or revoking keeps the page on the tokens half, and `?tab=tokens` opens it there. With OAuth off there is no switch: the tokens, then things to ask. The "Which model" table is gone. What the assistant remembers sits in a collapsed section at the bottom.
+- The default path is `settings/connect` (the route name stays `mcp-kit.tokens`). New `ui.tokens_page.redirect_from` lists old paths that answer with a permanent redirect. New `ui.connected_apps_page.redirect_to` (a route name) makes the standalone Connected apps page redirect there.
+- The component has a second alias, `mcp-kit.connect`; `mcp-kit.tokens-page` keeps working. `ConnectedApps` and `AssistantMemory` take `embedded` to drop their own heading.
+- A neighbour's directions say "connect it from {url}" rather than "mint yourself a token at {url}".
+
 ## v1.22.1 — 2026-09-30
 
 - The sign-in block shows the server's name as a field to fill in, with its own row and copy button next to the URL. Shown as a caption above the address, it read as a heading, and people did not know it was the name to type into the connector form. The client steps now say to copy Name and URL into the fields of the same name.

@@ -1,27 +1,38 @@
 {{--
-    Sign in with a URL (mcp-kit.oauth). Shown above the token tabs when
-    OAuth is on: no token to mint, copy or leak, so it is the way to connect
-    and the tokens are the alternative. The name and the address are the
-    whole setup, so each gets a row and a copy button of its own, before any
-    client's steps: a name shown as a mere caption reads as a heading, not
-    as the thing to type into the form.
+    The MCP tab of the Connect page (mcp-kit.oauth): sign in with a URL.
+    With OAuth on this is the whole first view, so it holds only what a
+    person needs to connect: three numbered steps, things to ask, and the
+    sign-ins they already made. Tokens live on the other tab.
+
+    The name and the address each get a row and a copy button of their own:
+    a name shown as a caption reads as a heading, not as the thing to type
+    into the connector form.
 --}}
 @php($signInUrls = $this->snippets()->signInUrls())
 @php($claudeCodeSignIn = $this->snippets()->claudeCodeSignInLines())
 @php($codexSignIn = $this->snippets()->codexSignInLines())
-@php($connectedApps = config('mcp-kit.ui.connected_apps_page.enabled') && \Illuminate\Support\Facades\Route::has((string) config('mcp-kit.ui.connected_apps_page.name')) ? route((string) config('mcp-kit.ui.connected_apps_page.name')) : null)
+@php($codexRecords = config('mcp-kit.learning.enabled', false) || config('mcp-kit.gaps.enabled', true))
 
-@if ($signInUrls !== [])
-    <div class="space-y-6">
-        <div>
-            <flux:heading size="lg">{{ __('Sign in with a URL') }}</flux:heading>
-            <flux:text class="mt-1 text-sm">{{ __('No token needed. Add the address to your assistant and sign in with your usual login when the browser opens. The assistant can do what you can do here and nothing more, and it follows your permissions when they change.') }}</flux:text>
+<div class="space-y-10">
+    <flux:text>{{ __('No token needed. Add the address to your assistant and sign in with your usual login when the browser opens. The assistant can do what you can do here and nothing more, and it follows your permissions when they change.') }}</flux:text>
+
+    <section class="space-y-4">
+        <div class="flex items-center gap-3">
+            <flux:badge size="sm">1</flux:badge>
+            <flux:heading size="lg">{{ __('Copy the name and the address') }}</flux:heading>
         </div>
 
         <div class="space-y-3">
             @foreach ($signInUrls as $name => $url)
                 @include('mcp-kit::tokens.fields', ['fields' => [__('Name') => $name, __('URL') => $url]])
             @endforeach
+        </div>
+    </section>
+
+    <section class="space-y-4">
+        <div class="flex items-center gap-3">
+            <flux:badge size="sm">2</flux:badge>
+            <flux:heading size="lg">{{ __('Add it to your assistant') }}</flux:heading>
         </div>
 
         <flux:tab.group>
@@ -61,16 +72,32 @@
                     'label' => __('Or from a terminal. Codex opens the browser for the sign-in by itself:'),
                     'copyLabel' => count($codexSignIn) > 1 ? __('Copy all') : __('Copy'),
                 ])
+
+                @if ($codexRecords)
+                    @include('mcp-kit::tokens.snippet', [
+                        'code' => $this->snippets()->codexInstructionsTerminal(),
+                        'label' => __('Then tell Codex to record its work. Codex reads ~/.codex/AGENTS.md at the start of every thread. Paste this once in a terminal; running it again replaces the block instead of adding a second:'),
+                        'copyLabel' => __('Copy'),
+                    ])
+                @endif
             </flux:tab.panel>
         </flux:tab.group>
+    </section>
 
-        @if ($connectedApps)
-            <flux:text size="sm" class="opacity-70">
-                {{ __('See or end the sign-ins you have made:') }}
-                <flux:link href="{{ $connectedApps }}">{{ __('Connected apps') }}</flux:link>
-            </flux:text>
-        @endif
-    </div>
+    <section class="space-y-4">
+        <div class="flex items-center gap-3">
+            <flux:badge size="sm">3</flux:badge>
+            <flux:heading size="lg">{{ __('Send the first message') }}</flux:heading>
+        </div>
 
-    <flux:separator />
-@endif
+        <flux:text class="text-sm">{{ __('Open a new chat and send this before anything else. The assistant connects, reads who you are and the house rules, and tells you what it can help with.') }}</flux:text>
+        @include('mcp-kit::tokens.snippet', ['code' => trim(view('mcp-kit::tokens.first-message')->render()), 'wrap' => true])
+    </section>
+
+    <section class="space-y-3">
+        <flux:heading size="lg">{{ __('Things to ask') }}</flux:heading>
+        @include('mcp-kit::tokens.examples')
+    </section>
+
+    <livewire:mcp-kit.connected-apps :embedded="true" />
+</div>

@@ -283,7 +283,10 @@ class McpKitServiceProvider extends ServiceProvider
             throw UiDependenciesMissing::create();
         }
 
+        // One page, two names: mcp-kit.connect is what it is now, and
+        // mcp-kit.tokens-page stays because apps embed it by that name.
         \Livewire\Livewire::component('mcp-kit.tokens-page', $this->livewireComponent('McpTokensPage', Livewire\TokensPage::class));
+        \Livewire\Livewire::component('mcp-kit.connect', $this->livewireComponent('McpTokensPage', Livewire\TokensPage::class));
         \Livewire\Livewire::component('mcp-kit.assistant-memory', $this->livewireComponent('AssistantMemory', Livewire\AssistantMemory::class));
         \Livewire\Livewire::component('mcp-kit.usage-page', $this->livewireComponent('McpUsagePage', Livewire\UsagePage::class));
         \Livewire\Livewire::component('mcp-kit.connected-apps', $this->livewireComponent('McpConnectedApps', Livewire\ConnectedApps::class));

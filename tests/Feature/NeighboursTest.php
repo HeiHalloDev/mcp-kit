@@ -46,7 +46,7 @@ it('puts what the app does not hold into every server\'s instructions', function
         ->toContain('Acme CRM')
         ->toContain('search_contacts')
         ->toContain('https://crm.example.test/settings/tokens')
-        ->toContain('mint yourself a token');
+        ->toContain('connect it from');
 });
 
 it('matches a report against the neighbours on whole words only', function () {

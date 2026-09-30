@@ -1,6 +1,14 @@
+{{-- Its own page, or embedded as the last part of the Connect page's MCP tab, where it shows only once there is something to disconnect. --}}
 <div class="w-full max-w-3xl space-y-6">
+    @if ($embedded && $this->grants->isEmpty())
+        {{-- Nothing connected yet: the steps above are the whole story. --}}
+    @else
     <div>
-        <flux:heading size="xl" level="1">{{ __('Connected apps') }}</flux:heading>
+        @if ($embedded)
+            <flux:heading size="lg">{{ __('Connected apps') }}</flux:heading>
+        @else
+            <flux:heading size="xl" level="1">{{ __('Connected apps') }}</flux:heading>
+        @endif
         <flux:text class="mt-1 opacity-60">{{ __('AI assistants you have signed in to with this account. Each can do what you allowed when you connected it, and never more than your own account may. Disconnect one and it loses access at once.') }}</flux:text>
     </div>
 
@@ -31,4 +39,5 @@
     @empty
         <flux:text>{{ __('No assistants are connected to your account.') }}</flux:text>
     @endforelse
+    @endif
 </div>

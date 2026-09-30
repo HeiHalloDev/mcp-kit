@@ -18,6 +18,9 @@ use Livewire\Component;
  */
 class AssistantMemory extends Component
 {
+    /** Inside another page (the Connect page's collapsed section), which carries the heading. */
+    public bool $embedded = false;
+
     #[Computed]
     public function memory(): Memory
     {

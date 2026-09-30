@@ -166,7 +166,7 @@ final class Neighbours
         $directions = '';
 
         if (($neighbour['url'] ?? '') !== '') {
-            $directions .= ' Already connected? Then the tools are in this same conversation. If not, mint yourself a token at '.$neighbour['url'].' and add the connection.';
+            $directions .= ' Already connected? Then the tools are in this same conversation. If not, connect it from '.$neighbour['url'].'.';
         }
 
         if (($neighbour['ask'] ?? '') !== '') {

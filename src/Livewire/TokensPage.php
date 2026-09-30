@@ -18,13 +18,16 @@ use Illuminate\Support\Collection;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
 /**
- * Personal tokens: mint with a preset (filtered by the person's own
- * permissions), revoke, copy the connect snippets. Privileged users see
- * and may revoke everyone's tokens — offboarding is their job.
+ * The Connect AI page. With OAuth on it opens on signing in with a URL and
+ * keeps personal tokens on a second tab; with it off, it is the tokens.
+ * Tokens: mint with a preset (filtered by the person's own permissions),
+ * revoke, copy the connect snippets. Privileged users see and may revoke
+ * everyone's tokens — offboarding is their job.
  */
 class TokensPage extends Component
 {
@@ -39,6 +42,10 @@ class TokensPage extends Component
     public ?int $expiresDays = null;
 
     public ?string $plainTextToken = null;
+
+    /** Which half of the page shows with OAuth on: mcp (sign in) or tokens. */
+    #[Url]
+    public string $tab = '';
 
     /** Minting is deliberate rather than the first thing on the page. */
     public bool $showForm = false;
@@ -65,6 +72,10 @@ class TokensPage extends Component
 
         $this->preset = isset($this->presets[$default]) ? $default : (array_key_first($this->presets) ?? '');
         $this->expiresDays = app(TokenPolicy::class)->defaultDays() ?? array_key_first($this->expiryOptions);
+
+        if (! in_array($this->tab, ['mcp', 'tokens'], true) || ! config('mcp-kit.oauth.enabled')) {
+            $this->tab = config('mcp-kit.oauth.enabled') ? 'mcp' : 'tokens';
+        }
     }
 
     #[Computed]
@@ -180,6 +191,7 @@ class TokensPage extends Component
         $this->plainTextToken = $token->plainTextToken;
         $this->mintedAbilities = $abilities;
         $this->showForm = false;
+        $this->tab = 'tokens';
         $this->reset('name', 'extras');
         unset($this->tokens, $this->servers);
 
@@ -200,6 +212,7 @@ class TokensPage extends Component
         app(TokenMinter::class)->revoke($token, app(PrincipalResolver::class)->resolve($user));
 
         unset($this->tokens);
+        $this->tab = 'tokens';
 
         $this->toast(__('Token revoked.'));
     }

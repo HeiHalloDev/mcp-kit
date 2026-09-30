@@ -1,10 +1,12 @@
+{{--
+    Connecting with a personal token: one line per server the token reaches,
+    per client. On the Connect page this is the API tokens tab (or the whole
+    page with OAuth off). What to ask the assistant lives with sign-in, or
+    under this block when OAuth is off.
+--}}
 <div class="space-y-6">
-    @if (config('mcp-kit.oauth.enabled'))
-        @include('mcp-kit::tokens.sign-in')
-    @endif
-
     <div>
-        <flux:heading size="lg">{{ config('mcp-kit.oauth.enabled') ? __('Or connect with a token') : __('Connect') }}</flux:heading>
+        <flux:heading size="lg">{{ __('Connect with the token') }}</flux:heading>
         <flux:text class="mt-1 text-sm">{{ __('The connection is self-describing — once connected, the assistant sees the tools and what they do. One line per server the token reaches. Pick your client:') }}</flux:text>
     </div>
 
@@ -14,7 +16,6 @@
             <flux:tab name="claude-desktop">Claude Desktop</flux:tab>
             <flux:tab name="codex">Codex</flux:tab>
             <flux:tab name="curl">cURL</flux:tab>
-            <flux:tab name="prompts">{{ __('Examples') }}</flux:tab>
         </flux:tabs>
 
         <flux:tab.panel name="claude-code" class="space-y-5">
@@ -121,47 +122,7 @@
                 'label' => __('List the tools directly:'),
             ])
         </flux:tab.panel>
-
-        <flux:tab.panel name="prompts">
-            @include('mcp-kit::tokens.examples')
-        </flux:tab.panel>
     </flux:tab.group>
-
-    <div class="space-y-3">
-        <flux:heading size="lg">{{ __('Which model') }}</flux:heading>
-        <flux:text class="text-sm">{{ __('Thinking power is for deciding what to do, or what a number means. It is wasted when the tool already does the work — a heavier model gives the same answer to a lookup, only slower and against more of your quota. Every message resends the whole chat, so a new chat per task saves more than any model switch.') }}</flux:text>
-
-        <flux:table>
-            <flux:table.columns>
-                <flux:table.column>{{ __('Tier') }}</flux:table.column>
-                <flux:table.column>{{ __('When') }}</flux:table.column>
-                <flux:table.column>Claude</flux:table.column>
-                <flux:table.column>Codex</flux:table.column>
-            </flux:table.columns>
-            <flux:table.rows>
-                <flux:table.row>
-                    <flux:table.cell>{{ __('Light') }}</flux:table.cell>
-                    <flux:table.cell>{{ __('Lookups, lists, what is on today, logging an outcome, a short draft') }}</flux:table.cell>
-                    <flux:table.cell>{{ __('Sonnet, effort low') }}</flux:table.cell>
-                    <flux:table.cell>{{ __('Luna, reasoning low') }}</flux:table.cell>
-                </flux:table.row>
-                <flux:table.row>
-                    <flux:table.cell>{{ __('Default') }}</flux:table.cell>
-                    <flux:table.cell>{{ __('Most work: content entry, multi-step changes with preview and confirm, longer drafts') }}</flux:table.cell>
-                    <flux:table.cell>{{ __('Sonnet, effort default') }}</flux:table.cell>
-                    <flux:table.cell>{{ __('Sol, reasoning medium') }}</flux:table.cell>
-                </flux:table.row>
-                <flux:table.row>
-                    <flux:table.cell>{{ __('Heavy') }}</flux:table.cell>
-                    <flux:table.cell>{{ __('Interpreting numbers, reviewing a whole module, anything where a wrong conclusion costs more than the tokens') }}</flux:table.cell>
-                    <flux:table.cell>{{ __('Opus, effort default or high') }}</flux:table.cell>
-                    <flux:table.cell>{{ __('Sol, reasoning high') }}</flux:table.cell>
-                </flux:table.row>
-            </flux:table.rows>
-        </flux:table>
-
-        <flux:text size="sm" class="opacity-70">{{ __('Raising the effort never makes up for a tool that is missing — ask the assistant to report the gap instead.') }}</flux:text>
-    </div>
 
     <flux:field>
         <flux:label>{{ __('First message to the assistant') }}</flux:label>

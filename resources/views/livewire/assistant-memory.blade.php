@@ -1,6 +1,8 @@
 <div class="space-y-4">
     <div>
-        <flux:heading size="lg">{{ __('What the assistant remembers about you') }}</flux:heading>
+        @unless ($embedded)
+            <flux:heading size="lg">{{ __('What the assistant remembers about you') }}</flux:heading>
+        @endunless
         <flux:text class="mt-1 text-sm">{{ __('Saved only when you confirmed it in a conversation. It helps the assistant with defaults; it never limits what you can ask.') }}</flux:text>
     </div>
 

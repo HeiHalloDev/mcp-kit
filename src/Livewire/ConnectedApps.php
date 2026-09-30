@@ -20,6 +20,9 @@ use Livewire\Component;
  */
 class ConnectedApps extends Component
 {
+    /** The last part of the Connect page's MCP tab rather than a page of its own. */
+    public bool $embedded = false;
+
     /**
      * @return Collection<int, OAuthGrant>
      */
