@@ -22,6 +22,14 @@ class DefaultTokenPolicy implements TokenPolicy
 
     public function isKitToken(string $tokenName): bool
     {
+        // A sign-in's token belongs to its grant and is managed under
+        // Connected apps, not listed or revoked one by one on the tokens page.
+        $oauth = (string) config('mcp-kit.oauth.token_prefix', 'oauth: ');
+
+        if (config('mcp-kit.oauth.enabled') && $oauth !== '' && str_starts_with($tokenName, $oauth)) {
+            return false;
+        }
+
         return $this->prefix() === '' || str_starts_with($tokenName, $this->prefix());
     }
 

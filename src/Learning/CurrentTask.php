@@ -30,7 +30,7 @@ class CurrentTask
 
         $this->resolved = true;
 
-        $tokenId = $principal?->tokenId();
+        $tokenId = $principal?->frameKey();
 
         if (! config('mcp-kit.learning.enabled', false) || $tokenId === null) {
             return $this->task = null;
@@ -63,7 +63,7 @@ class CurrentTask
             return null;
         }
 
-        $tokenId = $principal?->tokenId();
+        $tokenId = $principal?->frameKey();
 
         if ($tokenId === null || ! $principal->isPerson() || $principal->blocked) {
             return null;

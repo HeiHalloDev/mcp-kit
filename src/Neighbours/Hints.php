@@ -97,7 +97,7 @@ final class Hints
      */
     private function key(?Principal $principal, ?string $tool, ?string $frame): ?string
     {
-        $token = $principal?->tokenId();
+        $token = $principal?->frameKey();
 
         if ($token === null || $tool === null) {
             return null;

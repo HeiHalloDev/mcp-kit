@@ -30,6 +30,7 @@ use HeiHallo\McpKit\Models\GapReport;
 use HeiHallo\McpKit\Models\Playbook as PlaybookModel;
 use HeiHallo\McpKit\Models\ServiceClient;
 use HeiHallo\McpKit\Models\Task as TaskModel;
+use HeiHallo\McpKit\OAuth\SessionConfirmsFreshLogin;
 use HeiHallo\McpKit\Onboarding\ConfigSuggestions;
 use HeiHallo\McpKit\Onboarding\DefaultQuestions;
 use HeiHallo\McpKit\Permissions\GatePermissionChecker;
@@ -288,6 +289,14 @@ return [
             'middleware' => ['web', 'auth'],
             'name' => 'mcp-kit.usage',
         ],
+        // The AI clients a person signed in to (mcp-kit.oauth), and a way to
+        // disconnect each. For everyone who can sign in, not only staff.
+        'connected_apps_page' => [
+            'enabled' => (bool) env('MCP_KIT_CONNECTED_APPS_PAGE', false),
+            'path' => 'settings/connected-apps',
+            'middleware' => ['web', 'auth'],
+            'name' => 'mcp-kit.connected-apps',
+        ],
         // Where the assistant-memory section lives, for the link in {scheme}://me
         'memory_url' => null,
     ],
@@ -344,6 +353,53 @@ return [
         'max_kb' => 51200,
         // Empty accepts anything; list client mime types to narrow.
         'mimes' => [],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sign in with a URL (OAuth)
+    |--------------------------------------------------------------------------
+    |
+    | Off by default: an app that never turns this on runs exactly the code it
+    | ran before. With it on, a person adds the server URL to Claude, ChatGPT
+    | or Codex, signs in in the browser and says yes to what the client may
+    | do — no token to copy.
+    |
+    | mode: 'local' — this app is the authorization server. Sign-in is the
+    | app's own login (the consent page sits behind consent_middleware), and
+    | the access token is an ordinary kit token, short-lived and rotated.
+    |
+    | redirect_hosts: the only https hosts a client may register a redirect
+    | on. Loopback (127.0.0.1, localhost, [::1], any port) is for the Claude
+    | Code and Codex CLIs. preset: what the consent screen offers, before
+    | explicit-only abilities are taken out — those are never granted this
+    | way. unticked: abilities offered but not ticked by default.
+    |
+    */
+
+    'oauth' => [
+        'enabled' => (bool) env('MCP_KIT_OAUTH', false),
+        'mode' => env('MCP_KIT_OAUTH_MODE', 'local'),
+        'route_prefix' => 'oauth',
+        'token_prefix' => 'oauth: ',
+        'preset' => 'work',
+        'unticked' => [],
+        'access_minutes' => 60,
+        'refresh_days' => 30,
+        'refresh_grace_seconds' => 60,
+        'code_seconds' => 60,
+        'client_idle_days' => 90,
+        'register_per_minute' => 10,
+        'redirect_hosts' => ['claude.ai', 'claude.com', 'chatgpt.com', 'chat.openai.com'],
+        'loopback' => true,
+        'consent_middleware' => ['web', 'auth'],
+        // How recently the person must have confirmed who they are before a
+        // client is let in on their behalf; null skips the check.
+        'confirm_minutes' => 10,
+        'confirms' => SessionConfirmsFreshLogin::class,
+        // A Blade component to wrap the consent page in (it gets `title`);
+        // null uses the kit's own plain page.
+        'layout' => null,
     ],
 
     'shared' => [

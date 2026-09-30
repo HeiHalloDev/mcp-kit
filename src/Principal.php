@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace HeiHallo\McpKit;
 
 use HeiHallo\McpKit\Enums\PrincipalKind;
+use HeiHallo\McpKit\Models\OAuthGrant;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -15,6 +16,8 @@ use Laravel\Sanctum\PersonalAccessToken;
  */
 final class Principal
 {
+    private string|false|null $frameKey = false;
+
     public function __construct(
         public readonly PrincipalKind $kind,
         public readonly Authenticatable $tokenable,
@@ -67,6 +70,36 @@ final class Principal
         $id = $this->token?->id;
 
         return is_int($id) || is_string($id) ? $id : null;
+    }
+
+    /**
+     * What task frames, hints and the frame lock are kept under. The token
+     * id, except for a token issued by a sign-in: that one turns over every
+     * hour, so its frames belong to the grant, which does not.
+     */
+    public function frameKey(): ?string
+    {
+        if ($this->frameKey !== false) {
+            return $this->frameKey;
+        }
+
+        $tokenId = $this->tokenId();
+
+        if ($tokenId === null) {
+            return $this->frameKey = null;
+        }
+
+        $prefix = (string) config('mcp-kit.oauth.token_prefix', 'oauth: ');
+
+        if (config('mcp-kit.oauth.enabled') && $prefix !== '' && str_starts_with((string) $this->tokenName(), $prefix)) {
+            $grant = OAuthGrant::query()->where('access_token_id', $tokenId)->first();
+
+            if ($grant !== null) {
+                return $this->frameKey = $grant->frameKey();
+            }
+        }
+
+        return $this->frameKey = (string) $tokenId;
     }
 
     public function tokenExpiresAt(): ?\DateTimeInterface

@@ -13,6 +13,7 @@ final class ServerDefinition
 {
     /**
      * @param  class-string<Server>  $class
+     * @param  list<string>  $openAbilities
      */
     public function __construct(
         public readonly string $key,
@@ -29,6 +30,8 @@ final class ServerDefinition
         public readonly string $icon,
         public readonly string $description,
         public readonly ?string $aliasOf = null,
+        public readonly array $openAbilities = [],
+        public readonly bool $listGrantedOnly = false,
     ) {}
 
     /**
@@ -51,6 +54,8 @@ final class ServerDefinition
             icon: (string) ($config['icon'] ?? 'wrench-screwdriver'),
             description: (string) ($config['description'] ?? ''),
             aliasOf: isset($config['alias_of']) ? (string) $config['alias_of'] : null,
+            openAbilities: array_values(array_map('strval', (array) ($config['open_abilities'] ?? []))),
+            listGrantedOnly: (bool) ($config['list_granted_only'] ?? false),
         );
     }
 
@@ -62,6 +67,49 @@ final class ServerDefinition
     public function effectiveKey(): string
     {
         return $this->aliasOf ?? $this->key;
+    }
+
+    /**
+     * Whether a person must be staff to use this ability. A staff server can
+     * open named abilities to people who are not staff (a practice owner on
+     * the same server as the back office); everything else keeps the
+     * server's own rule. Patterns may end in `*`.
+     */
+    public function abilityNeedsStaff(string $ability): bool
+    {
+        return $this->requiresStaff && ! $this->isOpen($ability);
+    }
+
+    /**
+     * A person who is not staff passes the door of a staff server only when
+     * their token carries at least one ability the server opened to them.
+     *
+     * @param  list<string>  $abilities
+     */
+    public function admitsNonStaff(array $abilities): bool
+    {
+        if (! $this->requiresStaff) {
+            return true;
+        }
+
+        foreach ($abilities as $ability) {
+            if ($this->isOpen($ability)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function isOpen(string $ability): bool
+    {
+        foreach ($this->openAbilities as $pattern) {
+            if ($pattern === $ability || (str_ends_with($pattern, '*') && str_starts_with($ability, substr($pattern, 0, -1)))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function routeName(): string

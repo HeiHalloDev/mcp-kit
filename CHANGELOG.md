@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.20.0 — 2026-09-30
+
+Sign in with a URL, and one server for staff and customers. **Nothing changes for an app that does not turn these on**: no routes, no pages, the same 401, the same tool list. The three new tables are migrated regardless and stay empty.
+
+- **`oauth` (off by default, `MCP_KIT_OAUTH`).** A person adds the server URL to Claude, ChatGPT or Codex and signs in with the app's own login instead of copying a token. `mode = local`: the app is the authorization server — dynamic client registration on an allow-list of redirect hosts plus loopback on any port, PKCE S256 required, a consent page behind the app's login that offers the configured preset for that one server and never an explicit-only ability, and a refresh token that rotates with a short grace window before a replay revokes the grant. The access token is an ordinary kit token that lives an hour, so every guard, the audit log and the permission re-check on each call work exactly as for a pasted one. `mode = delegated` (the group auth service, per `docs/specs/oauth-sign-in.md`) refuses to boot until it lands.
+- **Frames follow the grant, not the token.** `Principal::frameKey()` is the token id for a pasted token and the grant for a sign-in, and task frames, hints and the frame lock all use it — otherwise the hourly rotation would split every piece of work and leave the old half open for good.
+- **`TokenMinter::mintForGrant()`** takes an expiry time instead of days and writes no audit row or event per rotation. Grants and revocations are audited as `token_oauth_granted` and `token_oauth_revoked`.
+- **Connected apps** (`ui.connected_apps_page`, off by default): the person's own sign-ins, and a disconnect that ends one at once. Sign-in tokens never appear on the tokens page.
+- **`open_abilities` on a server entry.** A staff server can open named abilities to people who are not staff; everything else stays staff-only at the door, in every call and at minting. **`list_granted_only`** makes `tools/list` show each caller only the tools their token can use, through a replaced `tools/list` handler rather than `shouldRegister()`, so a call to an unlisted tool still gets the refusal naming the ability instead of "not found".
+- `request_upload` links never outlive the token they stand in for.
+- `mcp-kit:prune` also ends expired grants, drops spent codes and forgets idle clients — only with `oauth.enabled`.
+
 ## v1.19.0 — 2026-09-30
 
 - **An unnamed frame says which tools it used.** A frame nobody named was a blank line on the usage record, though the activity log knows every call in it. Each one now reads `Used search_leads ×25, update_lead_statuses ×8, 2 more`: what it touched, not what it was for. One query for the whole record. The page shows the same line.

@@ -53,6 +53,13 @@ class RequestUploadTool extends Tool
 
         $minutes = max(1, (int) config('mcp-kit.uploads.link_minutes', 30));
         $expires = now()->addMinutes($minutes);
+        $tokenExpires = $principal->tokenExpiresAt();
+
+        // Never outlive the token it stands in for — a sign-in's token turns
+        // over hourly, and a link that says 30 minutes should mean it.
+        if ($tokenExpires !== null && $tokenExpires < $expires) {
+            $expires = now()->setTimestamp($tokenExpires->getTimestamp());
+        }
 
         // The token rather than the person: revoking the token kills the link.
         $url = URL::temporarySignedRoute('mcp-kit.uploads.link', $expires, ['token' => $principal->token->getKey()]);

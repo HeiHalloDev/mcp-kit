@@ -149,6 +149,20 @@ MCP carries JSON, not bytes. With `uploads.enabled`, the kit registers `POST /mc
 
 An assistant behind a connector (Claude, ChatGPT, Codex with the token in its config) talks MCP through a token it never sees, so it cannot send the bearer header. The shared `request_upload` tool gives it a signed link to `POST /mcp/uploads/link` instead, bound to the token that asked and valid for `uploads.link_minutes` (default 30, `MCP_UPLOAD_LINK_MINUTES`). Behind the link everything is the same: the access gate, the limits, the handle. Revoking the token kills its links.
 
+## Sign in with a URL (OAuth)
+
+Off unless `oauth.enabled` (`MCP_KIT_OAUTH=true`). With it on, a person adds the server URL to Claude, ChatGPT or Codex and signs in in the browser — no token to copy. `oauth.mode = local` makes the app its own authorization server: OAuth 2.1 with public clients only, authorization code with PKCE (S256, required), dynamic client registration restricted to `oauth.redirect_hosts` and loopback on any port, and a refresh token that rotates. The consent page sits behind `oauth.consent_middleware` (default `web, auth`), so signing in is whatever the app already does; `ConfirmsFreshLogin` sends a person whose login is older than `oauth.confirm_minutes` through the app's `password.confirm` step first.
+
+The access token is an ordinary kit token minted through `TokenMinter`, named under `oauth.token_prefix`, and lives `oauth.access_minutes` (60). Every guard treats it like a pasted one: the owner must still hold each permission on every call. The consent screen offers the `oauth.preset` narrowed to the server the client asked for (the RFC 8707 `resource`), and never a wildcard or an explicit-only ability. A refresh deletes the previous access token; the old refresh token gets the same new pair back for `oauth.refresh_grace_seconds`, and after that a replay revokes the whole grant. Task frames and hints are keyed on the grant (`Principal::frameKey()`), so the hourly rotation does not split a piece of work. Grants, not rotations, go in the audit log.
+
+`ui.connected_apps_page.enabled` adds `settings/connected-apps`, where anyone who signed in sees their connections and disconnects one at once. Sign-in tokens never show on the tokens page. `mcp-kit:prune` ends grants whose refresh token ran out and forgets clients nobody has used in `oauth.client_idle_days`. The tables are migrated whether or not the feature is on.
+
+`mode = delegated` (the group auth service as authorization server, see `docs/specs/oauth-sign-in.md`) is planned and refuses to boot in this version.
+
+## One server for staff and customers
+
+A staff server can open named abilities to people who are not staff: `open_abilities => ['app:practice:*']` on the server entry. Such a person passes the door when their token holds an opened ability; every other ability stays staff-only in each call and at minting. Add `list_granted_only => true` and `tools/list` shows each caller only the tools their token can use. Only the list is filtered — a call to an unlisted tool still gets the refusal that names the ability.
+
 ## Where the road continues
 
 An assistant that cannot do something here has no way of knowing whether the job is impossible or simply somebody else's. It gives up, works around it, or spends two hundred calls doing by hand what one tool does in one call. Two pieces of config fix that, and both are the app's own.

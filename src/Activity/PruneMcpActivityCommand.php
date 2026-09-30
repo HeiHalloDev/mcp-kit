@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace HeiHallo\McpKit\Activity;
 
 use HeiHallo\McpKit\Contracts\TaskStore;
+use HeiHallo\McpKit\Models\OAuthClient;
+use HeiHallo\McpKit\Models\OAuthCode;
+use HeiHallo\McpKit\Models\OAuthGrant;
+use HeiHallo\McpKit\OAuth\AuthorizationServer;
 use HeiHallo\McpKit\Uploads\Uploads;
 use Illuminate\Console\Command;
 use Spatie\Activitylog\Models\Activity;
@@ -57,6 +61,37 @@ class PruneMcpActivityCommand extends Command
         $this->info("Pruned {$pruned} expired staged upload(s).");
     }
 
+    /**
+     * Sign-ins: spent codes, grants whose refresh token ran out, revoked
+     * grants past retention, and clients nobody has used in a while.
+     */
+    protected function pruneOAuth(int $days): void
+    {
+        if (! config('mcp-kit.oauth.enabled', false)) {
+            return;
+        }
+
+        $codes = OAuthCode::query()->where('expires_at', '<', now()->subDay())->delete();
+
+        $server = app(AuthorizationServer::class);
+        $expired = 0;
+
+        OAuthGrant::query()->active()->where('refresh_expires_at', '<', now())->each(function (OAuthGrant $grant) use ($server, &$expired): void {
+            $server->revoke($grant, 'refresh_expired');
+            $expired++;
+        });
+
+        $grants = OAuthGrant::query()->whereNotNull('revoked_at')->where('revoked_at', '<', now()->subDays($days))->delete();
+
+        $idle = now()->subDays(max(1, (int) config('mcp-kit.oauth.client_idle_days', 90)));
+        $clients = OAuthClient::query()
+            ->whereDoesntHave('grants', fn ($query) => $query->whereNull('revoked_at'))
+            ->where(fn ($query) => $query->where('last_used_at', '<', $idle)->orWhere(fn ($query) => $query->whereNull('last_used_at')->where('created_at', '<', $idle)))
+            ->delete();
+
+        $this->info("Pruned {$codes} sign-in code(s), {$grants} old grant(s) and {$clients} idle client(s); ended {$expired} expired grant(s).");
+    }
+
     public function handle(): int
     {
         $days = (int) ($this->option('days') ?: config('mcp-kit.activity.retain_days', 90));
@@ -85,6 +120,7 @@ class PruneMcpActivityCommand extends Command
 
         $this->pruneTasks();
         $this->pruneUploads();
+        $this->pruneOAuth($days);
 
         return self::SUCCESS;
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace HeiHallo\McpKit\Servers;
 
 use HeiHallo\McpKit\Contracts\GroundRules;
+use HeiHallo\McpKit\Mcp\Methods\ListGrantedTools;
 use HeiHallo\McpKit\Mcp\Resources\UsagePersonResource;
 use HeiHallo\McpKit\Mcp\Resources\UsageResource;
 use HeiHallo\McpKit\Mcp\Tools\WhoAmITool;
@@ -37,6 +38,10 @@ abstract class StaffServer extends Server
 
         if (config('mcp-kit.read_only', false)) {
             $this->tools = ReadOnlyFilter::apply($this->tools);
+        }
+
+        if ($definition?->listGrantedOnly) {
+            $this->addMethod('tools/list', ListGrantedTools::class);
         }
     }
 

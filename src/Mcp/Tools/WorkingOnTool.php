@@ -93,7 +93,7 @@ class WorkingOnTool extends StaffTool
             return Response::error('This app does not record what its tools are used for.');
         }
 
-        $tokenId = $principal->tokenId();
+        $tokenId = $principal->frameKey();
 
         if ($tokenId === null) {
             return Response::error('A task frame belongs to a token, and this call has none.');

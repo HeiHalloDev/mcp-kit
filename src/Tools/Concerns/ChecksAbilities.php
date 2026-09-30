@@ -231,7 +231,7 @@ trait ChecksAbilities
         $server = $catalogue->serverFor($ability);
         $definition = $server !== null ? app(ServerRegistry::class)->get($server) : null;
 
-        if ($definition?->requiresStaff && ! $principal->staff) {
+        if ($definition !== null && $definition->abilityNeedsStaff($ability) && ! $principal->staff) {
             $staffPermission = config('mcp-kit.permission_rules.staff_permission');
 
             return is_string($staffPermission) && $staffPermission !== ''

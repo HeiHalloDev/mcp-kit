@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HeiHallo\McpKit\Tokens;
 
+use Carbon\CarbonInterface;
 use HeiHallo\McpKit\Contracts\AbilityCatalogue;
 use HeiHallo\McpKit\Contracts\AuditWriter;
 use HeiHallo\McpKit\Contracts\PermissionChecker;
@@ -14,6 +15,8 @@ use HeiHallo\McpKit\Events\TokenMinted;
 use HeiHallo\McpKit\Events\TokenRevoked;
 use HeiHallo\McpKit\Exceptions\TokenRefused;
 use HeiHallo\McpKit\Principal;
+use HeiHallo\McpKit\Servers\ServerDefinition;
+use HeiHallo\McpKit\Servers\ServerRegistry;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Sanctum\NewAccessToken;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -75,6 +78,40 @@ class TokenMinter
     }
 
     /**
+     * The access token behind a sign-in (oauth.mode = local): the same
+     * checks as mint(), a lifetime in minutes rather than days, and a name
+     * under the oauth prefix so the tokens page leaves it to Connected apps.
+     * Not audited and no event: it turns over every hour, and the grant it
+     * belongs to carries the audit trail instead.
+     *
+     * @param  list<string>  $abilities
+     *
+     * @throws TokenRefused
+     */
+    public function mintForGrant(Authenticatable $owner, string $clientName, array $abilities, CarbonInterface $expiresAt): NewAccessToken
+    {
+        $principal = $this->principals->resolve($owner);
+
+        if ($principal === null || ! $principal->isPerson() || $principal->blocked) {
+            throw new TokenRefused('This account cannot sign in to the MCP server.');
+        }
+
+        if (! method_exists($owner, 'createToken')) {
+            throw new TokenRefused('The users model does not use Laravel\Sanctum\HasApiTokens.');
+        }
+
+        $abilities = $this->validate($principal, $abilities);
+
+        if ($abilities === []) {
+            throw new TokenRefused('No abilities to grant — check the user\'s role and permissions.');
+        }
+
+        $name = (string) config('mcp-kit.oauth.token_prefix', 'oauth: ').mb_substr($clientName, 0, 100);
+
+        return $owner->createToken($name, $abilities, $expiresAt);
+    }
+
+    /**
      * @param  list<string>  $abilities
      * @return list<string>
      *
@@ -105,6 +142,14 @@ class TokenMinter
                 throw new TokenRefused("{$ability} can only be held by someone with {$label} — {$principal->name} is not.");
             }
 
+            // Only a server that opened abilities to people who are not staff
+            // can be reached by one; there, the rest stay staff-only.
+            $definition = $this->serverOf($ability);
+
+            if ($definition !== null && $definition->openAbilities !== [] && ! $principal->staff && $definition->abilityNeedsStaff($ability)) {
+                throw new TokenRefused("{$ability} is for staff — {$principal->name} is not.");
+            }
+
             $permissions = $this->catalogue->requiredPermissions($ability);
 
             if ($permissions !== [] && ! $this->permissions->hasAnyPermission($owner, $permissions)) {
@@ -113,6 +158,13 @@ class TokenMinter
         }
 
         return $abilities;
+    }
+
+    protected function serverOf(string $ability): ?ServerDefinition
+    {
+        $server = $ability === '*' ? null : $this->catalogue->serverFor($ability);
+
+        return $server !== null ? app(ServerRegistry::class)->get($server) : null;
     }
 
     /**

@@ -29,8 +29,9 @@ use Symfony\Component\HttpFoundation\Response;
  * 3. The token holds at least one catalogue ability that reaches THIS
  *    server: a reports-only token is turned away at /mcp/crm before the
  *    handshake.
- * 4. The server requires staff and the owner is staff; service clients
- *    are allowed on the server.
+ * 4. The server requires staff and the owner is staff, or the token
+ *    carries an ability the server opened to people who are not staff
+ *    (`open_abilities`); service clients are allowed on the server.
  *
  * Runs before the handshake, so an unauthorised caller never sees the
  * instructions or the tool catalogue.
@@ -85,7 +86,7 @@ class EnsureMcpAccess
                 return $this->deny($request, $principal, "Service clients may not use the {$definition->key} server.");
             }
 
-            if ($definition->requiresStaff && $principal->isPerson() && ! $principal->staff) {
+            if ($principal->isPerson() && ! $principal->staff && ! $definition->admitsNonStaff($principal->abilities())) {
                 return $this->deny($request, $principal, "The {$definition->key} server is for staff.");
             }
         }

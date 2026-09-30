@@ -10,6 +10,7 @@ use HeiHallo\McpKit\Activity\PruneMcpActivityCommand;
 use HeiHallo\McpKit\Audit\McpCallContext;
 use HeiHallo\McpKit\Contracts\AbilityCatalogue;
 use HeiHallo\McpKit\Contracts\AuditWriter;
+use HeiHallo\McpKit\Contracts\ConfirmsFreshLogin;
 use HeiHallo\McpKit\Contracts\DocsRenderer;
 use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Contracts\GroundRules;
@@ -75,6 +76,7 @@ class McpKitServiceProvider extends ServiceProvider
         SuggestsTasks::class => 'mcp-kit.suggestions_class',
         ResolvesActivityChannel::class => 'mcp-kit.activity.channel_resolver',
         ResolvesActivitySource::class => 'mcp-kit.activity.source_resolver',
+        ConfirmsFreshLogin::class => 'mcp-kit.oauth.confirms',
     ];
 
     public function register(): void
@@ -119,7 +121,7 @@ class McpKitServiceProvider extends ServiceProvider
         $defaults = require __DIR__.'/../config/mcp-kit.php';
         $config = $this->app['config'];
 
-        foreach (['catalogue', 'tokens', 'routes', 'permission_rules', 'memory', 'activity', 'onboarding', 'docs', 'shared', 'ground_rules', 'me', 'instructions', 'describer_options', 'playbooks', 'gaps', 'learning', 'uploads', 'hints'] as $section) {
+        foreach (['catalogue', 'tokens', 'routes', 'permission_rules', 'memory', 'activity', 'onboarding', 'docs', 'shared', 'ground_rules', 'me', 'instructions', 'describer_options', 'playbooks', 'gaps', 'learning', 'uploads', 'hints', 'oauth'] as $section) {
             $config->set("mcp-kit.{$section}", array_merge($defaults[$section], (array) $config->get("mcp-kit.{$section}", [])));
         }
 
@@ -128,6 +130,7 @@ class McpKitServiceProvider extends ServiceProvider
         $config->set('mcp-kit.ui', array_merge($defaults['ui'], (array) $config->get('mcp-kit.ui', [])));
         $config->set('mcp-kit.ui.tokens_page', array_merge($defaults['ui']['tokens_page'], (array) $config->get('mcp-kit.ui.tokens_page', [])));
         $config->set('mcp-kit.ui.usage_page', array_merge($defaults['ui']['usage_page'], (array) $config->get('mcp-kit.ui.usage_page', [])));
+        $config->set('mcp-kit.ui.connected_apps_page', array_merge($defaults['ui']['connected_apps_page'], (array) $config->get('mcp-kit.ui.connected_apps_page', [])));
     }
 
     /**
@@ -163,6 +166,7 @@ class McpKitServiceProvider extends ServiceProvider
         $this->registerStamper();
         $this->registerUi();
         $this->registerUploads();
+        $this->registerOAuth();
 
         $this->app->booted(fn () => $this->enforceGuardedServers());
 
@@ -248,6 +252,25 @@ class McpKitServiceProvider extends ServiceProvider
         }
     }
 
+    /**
+     * Sign in with a URL. Nothing here exists unless an app turns it on;
+     * the tables are migrated regardless and sit empty.
+     */
+    protected function registerOAuth(): void
+    {
+        $config = $this->app['config'];
+
+        if (! $config->get('mcp-kit.oauth.enabled')) {
+            return;
+        }
+
+        if ($config->get('mcp-kit.oauth.mode', 'local') !== 'local') {
+            throw new \RuntimeException("mcp-kit: oauth.mode '{$config->get('mcp-kit.oauth.mode')}' is not available in this version — only 'local'.");
+        }
+
+        $this->loadRoutesFrom(__DIR__.'/../routes/oauth.php');
+    }
+
     protected function registerUi(): void
     {
         $config = $this->app['config'];
@@ -263,8 +286,9 @@ class McpKitServiceProvider extends ServiceProvider
         \Livewire\Livewire::component('mcp-kit.tokens-page', $this->livewireComponent('McpTokensPage', Livewire\TokensPage::class));
         \Livewire\Livewire::component('mcp-kit.assistant-memory', $this->livewireComponent('AssistantMemory', Livewire\AssistantMemory::class));
         \Livewire\Livewire::component('mcp-kit.usage-page', $this->livewireComponent('McpUsagePage', Livewire\UsagePage::class));
+        \Livewire\Livewire::component('mcp-kit.connected-apps', $this->livewireComponent('McpConnectedApps', Livewire\ConnectedApps::class));
 
-        if ($config->get('mcp-kit.ui.tokens_page.enabled') || $config->get('mcp-kit.ui.usage_page.enabled')) {
+        if ($config->get('mcp-kit.ui.tokens_page.enabled') || $config->get('mcp-kit.ui.usage_page.enabled') || $config->get('mcp-kit.ui.connected_apps_page.enabled')) {
             $this->loadRoutesFrom(__DIR__.'/../routes/ui.php');
         }
 
