@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use HeiHallo\McpKit\Docs\ToolReference;
+use HeiHallo\McpKit\Servers\ServerRegistry;
 use HeiHallo\McpKit\Testing\Mcp;
 
 /*
@@ -47,4 +48,29 @@ test('a blocked owner is rejected at the alias too', function () {
     $token = acmeToken(acmeAdmin(['blocked_at' => now()]), ['acme:*']);
 
     Mcp::listTools($token, '/mcp/legacy')->assertForbidden();
+});
+
+test('an alias listed before its target still boots with the target\'s settings', function () {
+    $servers = config('mcp-kit.servers');
+    config()->set('mcp-kit.servers', ['legacy' => $servers['legacy'], ...array_diff_key($servers, ['legacy' => true])]);
+
+    $definition = app(ServerRegistry::class)->forClass($servers['acme']['class']);
+
+    expect($definition->key)->toBe('acme');
+});
+
+test('a server sends its avatar in serverInfo, and none when there is none', function () {
+    $token = acmeToken(acmeUser(['staff', 'things']), ['acme:things:read']);
+
+    expect(Mcp::rpc($token, '/mcp/acme', 'initialize', ['protocolVersion' => '2025-11-25', 'capabilities' => (object) [], 'clientInfo' => ['name' => 't', 'version' => '1']])
+        ->json('result.serverInfo.icons'))->toBeNull();
+
+    config()->set('mcp-kit.servers.acme.avatar', 'https://example.test/avatar.svg');
+
+    expect(Mcp::rpc($token, '/mcp/acme', 'initialize', ['protocolVersion' => '2025-11-25', 'capabilities' => (object) [], 'clientInfo' => ['name' => 't', 'version' => '1']])
+        ->json('result.serverInfo.icons'))->toBe([['src' => 'https://example.test/avatar.svg', 'mimeType' => 'image/svg+xml', 'sizes' => ['any']]]);
+
+    // The alias path shows the same face.
+    expect(Mcp::rpc($token, '/mcp/legacy', 'initialize', ['protocolVersion' => '2025-11-25', 'capabilities' => (object) [], 'clientInfo' => ['name' => 't', 'version' => '1']])
+        ->json('result.serverInfo.icons.0.src'))->toBe('https://example.test/avatar.svg');
 });

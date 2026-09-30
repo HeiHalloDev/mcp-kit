@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.21.0 — 2026-09-30
+
+Sign-in for apps whose login is a central auth service, and a face for each server. **Nothing changes for an app that does not turn these on.**
+
+- **`SsoConfirmsFreshLogin`.** The consent page asked the person to re-confirm through `password.confirm`, and an app that signs in through a central auth service keeps no password: consent dead-ended there. Bind this instead and stamp the SSO callback with `SsoConfirmsFreshLogin::stamp($request)`. A sign-in older than `confirm_minutes` goes back through the app's login (`oauth.login_route`, `oauth.login_parameters`) and returns to consent. A callback that never stamps gets an error that says so, not a redirect loop.
+- **`oauth.follow_permissions`** (off by default). A sign-in's abilities were fixed at consent, so a permission granted the next day needed a disconnect and a new sign-in. With this on, the next refresh adds what consent would offer the person today, within the hour. It never adds an ability the person unticked (now kept on the grant as `declined`, a new nullable column on codes and grants) or one in `oauth.unticked`.
+- **Avatars.** `mcp-kit.avatar` (`MCP_KIT_AVATAR`) or `avatar` on a server entry is sent as `serverInfo.icons` (MCP 2025-11-25). A URL or a path under `public/`; the MIME type comes from the extension.
+- **An alias boots with its target's settings whatever the config order.** `ServerRegistry::forClass()` returned the first entry with the class, so an alias listed before its target handed its own flags to every path the class serves. It now prefers the canonical entry.
+
 ## v1.20.0 — 2026-09-30
 
 Sign in with a URL, and one server for staff and customers. **Nothing changes for an app that does not turn these on**: no routes, no pages, the same 401, the same tool list. The three new tables are migrated regardless and stay empty.

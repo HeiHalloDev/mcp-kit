@@ -157,6 +157,12 @@ The access token is an ordinary kit token minted through `TokenMinter`, named un
 
 `ui.connected_apps_page.enabled` adds `settings/connected-apps`, where anyone who signed in sees their connections and disconnects one at once. Sign-in tokens never show on the tokens page. `mcp-kit:prune` ends grants whose refresh token ran out and forgets clients nobody has used in `oauth.client_idle_days`. The tables are migrated whether or not the feature is on.
 
+**An app that signs in through a central auth service** has no password to re-confirm. Bind `oauth.confirms => SsoConfirmsFreshLogin::class` and call `SsoConfirmsFreshLogin::stamp($request)` in the SSO callback after logging the person in: consent then needs a sign-in at the auth service younger than `oauth.confirm_minutes`, and sends an older one through `oauth.login_route` (with `oauth.login_parameters`, e.g. `['prompt' => 'login']` if the app passes it on) and back. A callback that never stamps gets a plain error, not a redirect loop.
+
+**`oauth.follow_permissions`** lets a sign-in grow with the person: an ability they gain later, and that consent would offer them today, joins at the next refresh. Never one they unticked on the consent page (kept on the grant as `declined`), never one in `oauth.unticked`. Off, a sign-in stays at exactly what was consented to; lost abilities drop out either way.
+
+**Avatars.** `mcp-kit.avatar` (`MCP_KIT_AVATAR`), or `avatar` on a server entry, is sent as `serverInfo.icons` for clients that show one: a URL or a path under `public/`, square, a 512x512 PNG or an SVG. An alias shows its target's.
+
 `mode = delegated` (the group auth service as authorization server, see `docs/specs/oauth-sign-in.md`) is planned and refuses to boot in this version.
 
 ## One server for staff and customers

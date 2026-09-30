@@ -32,6 +32,8 @@ final class ServerDefinition
         public readonly ?string $aliasOf = null,
         public readonly array $openAbilities = [],
         public readonly bool $listGrantedOnly = false,
+        /** Image the client shows for this server: a URL, or a path under public/. */
+        public readonly ?string $avatar = null,
     ) {}
 
     /**
@@ -56,6 +58,7 @@ final class ServerDefinition
             aliasOf: isset($config['alias_of']) ? (string) $config['alias_of'] : null,
             openAbilities: array_values(array_map('strval', (array) ($config['open_abilities'] ?? []))),
             listGrantedOnly: (bool) ($config['list_granted_only'] ?? false),
+            avatar: isset($config['avatar']) ? (string) $config['avatar'] : (config('mcp-kit.avatar') !== null ? (string) config('mcp-kit.avatar') : null),
         );
     }
 

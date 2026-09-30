@@ -377,6 +377,13 @@ return [
     |
     */
 
+    /*
+    | The image clients show for the servers (serverInfo.icons): a URL, or a
+    | path under public/ (mcp-avatar.png). A server entry's own `avatar`
+    | wins. Square; a 512x512 PNG or an SVG. null sends none.
+    */
+    'avatar' => env('MCP_KIT_AVATAR'),
+
     'oauth' => [
         'enabled' => (bool) env('MCP_KIT_OAUTH', false),
         'mode' => env('MCP_KIT_OAUTH_MODE', 'local'),
@@ -396,7 +403,21 @@ return [
         // How recently the person must have confirmed who they are before a
         // client is let in on their behalf; null skips the check.
         'confirm_minutes' => 10,
+        // SessionConfirmsFreshLogin: the app's own password or two-factor
+        // confirm. SsoConfirmsFreshLogin: for apps that sign in through a
+        // central auth service — a recent sign-in there, recorded by the
+        // app's callback with SsoConfirmsFreshLogin::stamp(); older sends
+        // the person through login_route (with login_parameters, e.g.
+        // ['prompt' => 'login'] if the app passes it on) and back.
         'confirms' => SessionConfirmsFreshLogin::class,
+        'login_route' => 'login',
+        'login_parameters' => [],
+        'login_at_key' => 'mcp-kit.login_at',
+        // A sign-in grows with the person: an ability they gain later, and
+        // that consent would offer today, joins at the next refresh (within
+        // access_minutes). Never one they unticked, never one in unticked.
+        // Off keeps a sign-in to exactly what was consented to.
+        'follow_permissions' => false,
         // A Blade component to wrap the consent page in (it gets `title`);
         // null uses the kit's own plain page.
         'layout' => null,

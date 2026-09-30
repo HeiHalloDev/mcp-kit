@@ -10,6 +10,7 @@ use HeiHallo\McpKit\Mcp\Resources\UsagePersonResource;
 use HeiHallo\McpKit\Mcp\Resources\UsageResource;
 use HeiHallo\McpKit\Mcp\Tools\WhoAmITool;
 use HeiHallo\McpKit\Playbooks\PlaybookPrompts;
+use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\ServerContext;
@@ -43,6 +44,32 @@ abstract class StaffServer extends Server
         if ($definition?->listGrantedOnly) {
             $this->addMethod('tools/list', ListGrantedTools::class);
         }
+    }
+
+    /**
+     * The server's avatar, sent in serverInfo.icons (MCP 2025-11-25) so a
+     * client can show it next to the connection. A server class that sets
+     * its own #[Icon] keeps it; this comes after.
+     *
+     * @return list<Icon>
+     */
+    protected function icons(): array
+    {
+        $avatar = app(ServerRegistry::class)->forClass(static::class)?->avatar;
+
+        if ($avatar === null || trim($avatar) === '') {
+            return [];
+        }
+
+        $mime = match (strtolower(pathinfo((string) parse_url($avatar, PHP_URL_PATH), PATHINFO_EXTENSION))) {
+            'svg' => 'image/svg+xml',
+            'png' => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            default => null,
+        };
+
+        return [Icon::from($avatar, $mime, $mime === 'image/svg+xml' ? ['any'] : [])];
     }
 
     public function createContext(): ServerContext

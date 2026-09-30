@@ -33,6 +33,7 @@ class OAuthCode extends Model
     {
         return [
             'abilities' => 'array',
+            'declined' => 'array',
             'expires_at' => 'datetime',
             'used_at' => 'datetime',
         ];

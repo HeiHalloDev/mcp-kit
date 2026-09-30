@@ -163,10 +163,13 @@ class AuthorizationServer
 
     /**
      * The person said yes. Returns the one-time code for the redirect.
+     * $declined is what they unticked: a sign-in that follows their
+     * permissions never adds those back.
      *
      * @param  list<string>  $abilities
+     * @param  list<string>  $declined
      */
-    public function issueCode(OAuthClient $client, Authenticatable $user, array $abilities, string $redirectUri, string $challenge, ServerDefinition $server): string
+    public function issueCode(OAuthClient $client, Authenticatable $user, array $abilities, string $redirectUri, string $challenge, ServerDefinition $server, array $declined = []): string
     {
         $code = Str::random(64);
 
@@ -175,6 +178,7 @@ class AuthorizationServer
             'client_id' => $client->getKey(),
             'user_id' => (string) $user->getAuthIdentifier(),
             'abilities' => array_values($abilities),
+            'declined' => array_values($declined),
             'redirect_uri' => $redirectUri,
             'code_challenge' => $challenge,
             'resource' => $server->key,
@@ -247,6 +251,7 @@ class AuthorizationServer
             'client_id' => $client->getKey(),
             'user_id' => $row->user_id,
             'abilities' => $row->abilities,
+            'declined' => $row->declined ?? [],
             'resource' => $row->resource,
         ]);
 
@@ -431,6 +436,8 @@ class AuthorizationServer
             }
         }
 
+        $abilities = $this->widened($grant, $user, $abilities);
+
         if ($abilities === []) {
             $this->revoke($grant, 'no_abilities_left');
 
@@ -468,6 +475,41 @@ class AuthorizationServer
         ])->save();
 
         return $response;
+    }
+
+    /**
+     * With oauth.follow_permissions, a sign-in grows with the person: an
+     * ability they have gained since consent, and that consent would offer
+     * them today, joins at the next refresh — within the hour, without
+     * signing in again. Never one they unticked, and never one of
+     * oauth.unticked: the sensitive ones still need a yes on the page.
+     *
+     * @param  list<string>  $abilities  what the grant still holds
+     * @return list<string>
+     */
+    protected function widened(OAuthGrant $grant, Authenticatable $user, array $abilities): array
+    {
+        if (! config('mcp-kit.oauth.follow_permissions', false)) {
+            return $abilities;
+        }
+
+        $server = $grant->resource !== null ? $this->servers->get((string) $grant->resource) : null;
+
+        if ($server === null) {
+            return $abilities;
+        }
+
+        $held = (array) $grant->abilities;
+        $refused = [...(array) ($grant->declined ?? []), ...(array) config('mcp-kit.oauth.unticked', [])];
+        $gained = array_values(array_diff($this->offered($user, $server), $held, $refused));
+
+        if ($gained === []) {
+            return $abilities;
+        }
+
+        $grant->forceFill(['abilities' => array_values(array_unique([...$held, ...$gained]))])->save();
+
+        return array_values(array_unique([...$abilities, ...$gained]));
     }
 
     protected function accessToken(OAuthGrant $grant): ?PersonalAccessToken

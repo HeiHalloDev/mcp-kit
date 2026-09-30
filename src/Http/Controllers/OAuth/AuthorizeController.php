@@ -92,13 +92,18 @@ class AuthorizeController
         }
 
         $chosen = array_map('strval', (array) $request->input('abilities', []));
-        $abilities = array_values(array_intersect($this->server->offered($request->user(), $server), $chosen));
+        $offered = $this->server->offered($request->user(), $server);
+        $abilities = array_values(array_intersect($offered, $chosen));
 
         if ($abilities === []) {
             return $this->back($redirectUri, $request, 'access_denied', 'Nothing was allowed.');
         }
 
-        $code = $this->server->issueCode($client, $request->user(), $abilities, $redirectUri, (string) $request->input('code_challenge'), $server);
+        // What was on the page and left unticked. Kept, so a sign-in that
+        // follows the person's permissions never adds it back.
+        $declined = array_values(array_diff($offered, $abilities));
+
+        $code = $this->server->issueCode($client, $request->user(), $abilities, $redirectUri, (string) $request->input('code_challenge'), $server, $declined);
 
         return $this->redirect($redirectUri, array_filter([
             'code' => $code,

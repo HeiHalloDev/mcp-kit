@@ -44,6 +44,7 @@ class OAuthGrant extends Model
     {
         return [
             'abilities' => 'array',
+            'declined' => 'array',
             'rotated_at' => 'datetime',
             'refresh_expires_at' => 'datetime',
             'last_used_at' => 'datetime',

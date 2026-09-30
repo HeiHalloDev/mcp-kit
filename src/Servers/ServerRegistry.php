@@ -64,15 +64,27 @@ class ServerRegistry
     /**
      * @param  class-string  $class
      */
+    /**
+     * The definition a server class boots with. An alias shares its target's
+     * class, so the target wins whatever the config order — otherwise an
+     * alias listed first would hand its flags (list_granted_only, avatar)
+     * to every path the class serves.
+     */
     public function forClass(string $class): ?ServerDefinition
     {
+        $alias = null;
+
         foreach ($this->all() as $definition) {
             if ($definition->class === $class || is_subclass_of($class, $definition->class)) {
-                return $definition;
+                if ($definition->aliasOf === null) {
+                    return $definition;
+                }
+
+                $alias ??= $definition;
             }
         }
 
-        return null;
+        return $alias;
     }
 
     public function forRoute(Route|string|null $route): ?ServerDefinition

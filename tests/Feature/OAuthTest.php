@@ -2,12 +2,16 @@
 
 declare(strict_types=1);
 
+use HeiHallo\McpKit\Contracts\ConfirmsFreshLogin;
 use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Contracts\TokenPolicy;
+use HeiHallo\McpKit\Livewire\ConnectedApps;
 use HeiHallo\McpKit\Models\OAuthClient;
 use HeiHallo\McpKit\Models\OAuthGrant;
+use HeiHallo\McpKit\OAuth\SsoConfirmsFreshLogin;
 use HeiHallo\McpKit\Testing\Mcp;
 use HeiHallo\McpKit\Tests\Fixtures\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -398,7 +402,7 @@ test('Connected apps lists a person\'s own sign-ins and disconnects one at once'
 
     test()->actingAs($user);
 
-    $component = Livewire\Livewire::test(HeiHallo\McpKit\Livewire\ConnectedApps::class)
+    $component = Livewire\Livewire::test(ConnectedApps::class)
         ->assertSee('Claude')
         ->assertSee('Search and view things');
 
@@ -407,10 +411,69 @@ test('Connected apps lists a person\'s own sign-ins and disconnects one at once'
     $mine = OAuthGrant::query()->where('user_id', (string) $user->id)->sole();
     $theirs = OAuthGrant::query()->where('user_id', (string) $other->id)->sole();
 
-    expect(fn () => $component->call('disconnect', $theirs->id))->toThrow(Illuminate\Database\Eloquent\ModelNotFoundException::class);
+    expect(fn () => $component->call('disconnect', $theirs->id))->toThrow(ModelNotFoundException::class);
     $component->call('disconnect', $mine->id)->assertSee('No assistants are connected');
 
     expect($mine->fresh()->revoked_reason)->toBe('person_revoked')
         ->and($theirs->fresh()->isActive())->toBeTrue()
         ->and(PersonalAccessToken::findToken($tokens['access_token']))->toBeNull();
+});
+
+test('with follow_permissions, an ability the person gains joins at the next refresh', function () {
+    bootOAuth(['follow_permissions' => true]);
+    $user = acmeUser(['staff']);
+    ['client' => $client, 'tokens' => $tokens] = signedIn($user, ['acme:events:write']);
+
+    expect($tokens['scope'])->toBe('acme:events:write');
+
+    $user->forceFill(['permissions' => ['staff', 'things']])->save();
+
+    $next = refreshWith($client, $tokens['refresh_token'])->assertOk()->json();
+
+    expect(explode(' ', $next['scope']))->toEqualCanonicalizing(['acme:events:write', 'acme:things:read', 'acme:things:write'])
+        ->and(OAuthGrant::query()->sole()->abilities)->toEqualCanonicalizing(['acme:events:write', 'acme:things:read', 'acme:things:write']);
+});
+
+test('a sign-in that follows permissions never adds what the person unticked, nor what unticked holds back', function () {
+    bootOAuth(['follow_permissions' => true, 'unticked' => ['acme:things:write']]);
+    $user = acmeUser(['staff', 'things']);
+    ['client' => $client, 'tokens' => $tokens] = signedIn($user, ['acme:things:read']);
+
+    expect(OAuthGrant::query()->sole()->declined)->toEqualCanonicalizing(['acme:things:write', 'acme:events:write']);
+
+    expect(refreshWith($client, $tokens['refresh_token'])->assertOk()->json('scope'))->toBe('acme:things:read');
+});
+
+test('without follow_permissions a sign-in stays at what was consented to', function () {
+    bootOAuth();
+    $user = acmeUser(['staff']);
+    ['client' => $client, 'tokens' => $tokens] = signedIn($user, ['acme:events:write']);
+
+    $user->forceFill(['permissions' => ['staff', 'things']])->save();
+
+    expect(refreshWith($client, $tokens['refresh_token'])->assertOk()->json('scope'))->toBe('acme:events:write');
+});
+
+test('an SSO app sends a stale sign-in back through its login, and lets a fresh one through', function () {
+    bootOAuth(['confirms' => SsoConfirmsFreshLogin::class]);
+    app()->bind(ConfirmsFreshLogin::class, SsoConfirmsFreshLogin::class);
+    Route::get('/sso-login', fn () => 'to the auth service')->middleware('web')->name('login');
+    Route::getRoutes()->refreshNameLookups();
+    $client = registerClient();
+    [, $challenge] = pkcePair();
+    $url = '/oauth/authorize?'.http_build_query(authorizeParams($client, $challenge));
+
+    test()->actingAs(acmeUser())->get($url)->assertRedirect('/sso-login');
+
+    test()->actingAs(acmeUser())
+        ->withSession(['mcp-kit.login_at' => time()])
+        ->get($url)
+        ->assertOk();
+
+    // Back from the login with no stamp: the callback does not call stamp().
+    test()->flushSession();
+    test()->actingAs(acmeUser())
+        ->withSession([SsoConfirmsFreshLogin::SENT => time()])
+        ->get($url)
+        ->assertStatus(409);
 });
