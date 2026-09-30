@@ -53,6 +53,7 @@ class UsageResource extends Resource
 
         return Response::text(view('mcp-kit::resources.usage', [
             'days' => $days,
+            'timezone' => (string) config('app.timezone', 'UTC'),
             // An assistant tried to say what it was doing and could not
             // get in. Leads the file: it means the record is lying about
             // itself, and every number under it is short.

@@ -79,6 +79,35 @@ final class Task
         return in_array($this->effort, [self::FIDDLY, self::FOUGHT_IT], true);
     }
 
+    /**
+     * When the work happened, as one readable span: "21 Sep 10:31–10:33",
+     * or both dates when it ran past midnight. Open frames show the start
+     * only. The dates are what turn the list into a pattern — who works
+     * when, how long a piece of work takes, whether use is growing.
+     */
+    public function span(): ?string
+    {
+        if ($this->startedAt === null) {
+            return null;
+        }
+
+        $start = $this->startedAt->format('j M H:i');
+
+        if ($this->closedAt === null) {
+            return $start;
+        }
+
+        if ($this->startedAt->format('Y-m-d H:i') === $this->closedAt->format('Y-m-d H:i')) {
+            return $start;
+        }
+
+        $end = $this->startedAt->format('Y-m-d') === $this->closedAt->format('Y-m-d')
+            ? $this->closedAt->format('H:i')
+            : $this->closedAt->format('j M H:i');
+
+        return $start.'–'.$end;
+    }
+
     public function named(string $purpose): self
     {
         return new self(

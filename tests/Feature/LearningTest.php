@@ -14,6 +14,7 @@ use HeiHallo\McpKit\Models\ServiceClient;
 use HeiHallo\McpKit\Models\Task as TaskModel;
 use HeiHallo\McpKit\Testing\Mcp;
 use HeiHallo\McpKit\Tests\Fixtures\Mcp\Servers\AcmeServer;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
 use Spatie\Activitylog\Models\Activity;
 
@@ -255,6 +256,32 @@ test('the usage view leads with what fell short, then with what was won the hard
         ->toBeLessThan(strpos($body, 'A thing that fought back'))
         ->and(strpos($body, 'A thing that fought back'))
         ->toBeLessThan(strpos($body, 'A thing that worked easily'));
+});
+
+test('the usage view says when each piece of work happened', function () {
+    $this->travelTo(now()->setDate(2026, 9, 21)->setTime(10, 31));
+
+    Mcp::call(acmeToken(acmeUser(), ['acme:things:read']), '/mcp/acme', 'working_on', [
+        'purpose' => 'Matching texts to contacts', 'outcome' => 'done', 'effort' => 'smooth',
+    ]);
+
+    Mcp::readResource(acmeToken(acmeAdmin(), ['acme:things:read']), '/mcp/acme', 'acme://usage')
+        ->assertSee('Times are '.config('app.timezone'))
+        ->assertSee('21 Sep 10:31');
+});
+
+test('a span shows the start, the end on the same day, and both dates past midnight', function () {
+    $task = fn (?string $start, ?string $end) => new Task(
+        purpose: 'x', tokenId: '1', userId: 1, name: 'n',
+        startedAt: $start ? Carbon::parse($start) : null,
+        closedAt: $end ? Carbon::parse($end) : null,
+    );
+
+    expect($task(null, null)->span())->toBeNull()
+        ->and($task('2026-09-21 10:31', null)->span())->toBe('21 Sep 10:31')
+        ->and($task('2026-09-21 10:31:05', '2026-09-21 10:31:50')->span())->toBe('21 Sep 10:31')
+        ->and($task('2026-09-21 10:31', '2026-09-21 10:33')->span())->toBe('21 Sep 10:31–10:33')
+        ->and($task('2026-09-29 19:44', '2026-09-30 04:27')->span())->toBe('29 Sep 19:44–30 Sep 04:27');
 });
 
 test('me tells the person their work is being recorded, and stays quiet when it is not', function () {

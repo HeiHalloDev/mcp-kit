@@ -1,4 +1,5 @@
 # What this is used for
+Times are {{ $timezone }}.
 @if ($shortfalls === [] && $hard_won === [] && $done === [] && $unjudged === [] && $refused === [])
 
 Nothing recorded in the last {{ $days }} days. Either nobody has worked through the tools yet, or the assistant is not opening task frames — check that the ground rules reach the servers people actually use.
@@ -8,7 +9,7 @@ Nothing recorded in the last {{ $days }} days. Either nobody has worked through 
 ## An assistant could not record its work ({{ count($refused) }})
 Read this before anything else. `working_on` refused these, so the frame stayed blank — somebody tried to say what the work was and the tool would not take it. Everything below undercounts by this much.
 @foreach ($refused as $task)
-- **{{ $task->purpose ?: '(never named)' }}** — refused {{ $task->refusals }}× _({{ $task->name }}{{ $task->server ? ', '.$task->server : '' }}, {{ $task->calls }} calls)_
+- **{{ $task->purpose ?: '(never named)' }}** — refused {{ $task->refusals }}× _({{ $task->name }}{{ $task->server ? ', '.$task->server : '' }}, {{ $task->calls }} calls{{ $task->span() ? ', '.$task->span() : '' }})_
 @endforeach
 @endif
 @if ($shortfalls !== [])
@@ -16,7 +17,7 @@ Read this before anything else. `working_on` refused these, so the frame stayed 
 ## Fell short ({{ count($shortfalls) }})
 Read these first. Each one is somebody who came for something and did not get it.
 @foreach ($shortfalls as $task)
-- **{{ $task->purpose ?: '(never named)' }}** — {{ $task->outcome === 'failed' ? 'failed' : 'partly' }}{{ $task->effort ? ', '.$task->effort : '' }}: {{ $task->result ?? 'no reason given' }} _({{ $task->name }}{{ $task->server ? ', '.$task->server : '' }}, {{ $task->calls }} calls)_
+- **{{ $task->purpose ?: '(never named)' }}** — {{ $task->outcome === 'failed' ? 'failed' : 'partly' }}{{ $task->effort ? ', '.$task->effort : '' }}: {{ $task->result ?? 'no reason given' }} _({{ $task->name }}{{ $task->server ? ', '.$task->server : '' }}, {{ $task->calls }} calls{{ $task->span() ? ', '.$task->span() : '' }})_
 @endforeach
 @endif
 @if ($hard_won !== [])
@@ -24,14 +25,14 @@ Read these first. Each one is somebody who came for something and did not get it
 ## Worked, but should not have been that hard ({{ count($hard_won) }})
 The person got what they came for, so nothing else in this file flags these. Read them next.
 @foreach ($hard_won as $task)
-- **{{ $task->purpose ?: '(never named)' }}** — {{ $task->effort }}: {{ $task->result ?? 'no reason given' }} _({{ $task->name }}{{ $task->server ? ', '.$task->server : '' }}, {{ $task->calls }} calls)_
+- **{{ $task->purpose ?: '(never named)' }}** — {{ $task->effort }}: {{ $task->result ?? 'no reason given' }} _({{ $task->name }}{{ $task->server ? ', '.$task->server : '' }}, {{ $task->calls }} calls{{ $task->span() ? ', '.$task->span() : '' }})_
 @endforeach
 @endif
 @if ($done !== [])
 
 ## Worked ({{ count($done) }})
 @foreach ($done as $task)
-- {{ $task->purpose ?: '(never named)' }} _({{ $task->name }}{{ $task->server ? ', '.$task->server : '' }}, {{ $task->calls }} calls)_
+- {{ $task->purpose ?: '(never named)' }} _({{ $task->name }}{{ $task->server ? ', '.$task->server : '' }}, {{ $task->calls }} calls{{ $task->span() ? ', '.$task->span() : '' }})_
 @endforeach
 @endif
 @if ($unjudged !== [])
@@ -39,7 +40,7 @@ The person got what they came for, so nothing else in this file flags these. Rea
 ## Never closed ({{ count($unjudged) }})
 Opened and left. Nothing is claimed about how these went.
 @foreach ($unjudged as $task)
-- {{ $task->purpose }} _({{ $task->name }}, {{ $task->calls }} calls)_
+- {{ $task->purpose }} _({{ $task->name }}, {{ $task->calls }} calls{{ $task->span() ? ', '.$task->span() : '' }})_
 @endforeach
 @endif
 @endif

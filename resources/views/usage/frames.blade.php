@@ -52,8 +52,8 @@
                                 · {{ $task->server }}
                             @endif
                             · {{ __(':count calls', ['count' => $task->calls]) }}
-                            @if ($task->startedAt)
-                                · {{ $task->startedAt->format('j M H:i') }}
+                            @if ($task->span())
+                                · {{ $task->span() }}
                             @endif
                         </flux:text>
                     </div>

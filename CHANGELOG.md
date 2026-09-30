@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.18.0 — 2026-09-30
+
+- **The usage record says when.** `{scheme}://usage` listed each piece of work with its purpose, its outcome and its call count, and never a date, although every frame has carried `created_at` and `closed_at` from the start. Without them the list answers what people did and not when: who works in the morning, how long a round takes, whether somebody came back after a permission change. Every line now ends with its span — `21 Sep 10:31–10:33`, both dates when it ran past midnight, the start alone while it is open — and the file says which timezone the times are in. The usage page shows the same span where it showed the start.
+- `Task::span()` is the one formatter, so the resource and the page cannot drift apart.
+
 ## v1.17.0 — 2026-09-25
 
 - **The tokens page says which model to pick.** Staff ran on whatever their client defaulted to, and the usage record shows why that costs quota: a daily round is two calls, a follow-up list is one, and a heavy model answers those no better than a light one. Below the connect tabs there is now a short block — the rule (thinking power is for deciding what to do or what a number means, wasted when the tool does the work), a three-row table of Light / Default / Heavy with the Claude and Codex choice for each, and the reminder that a new chat per task saves more than any model switch. The same text on every app; the per-task tables live in the staff guide.
