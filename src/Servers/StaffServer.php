@@ -8,6 +8,7 @@ use HeiHallo\McpKit\Contracts\GroundRules;
 use HeiHallo\McpKit\Mcp\Methods\ListGrantedTools;
 use HeiHallo\McpKit\Mcp\Resources\UsagePersonResource;
 use HeiHallo\McpKit\Mcp\Resources\UsageResource;
+use HeiHallo\McpKit\Mcp\Tools\GetGroundRulesTool;
 use HeiHallo\McpKit\Mcp\Tools\WhoAmITool;
 use HeiHallo\McpKit\Playbooks\PlaybookPrompts;
 use Laravel\Mcp\Schema\Icon;
@@ -110,8 +111,14 @@ abstract class StaffServer extends Server
             $this->appendUnique($this->tools, $tool);
         }
 
-        if (config('mcp-kit.me.expose_as_tool', false)) {
+        // Resources as tools: some clients list tools and never resources.
+        // me.expose_as_tool is the older switch for whoami alone.
+        if (config('mcp-kit.resource_tools', true) || config('mcp-kit.me.expose_as_tool', false)) {
             $this->appendUnique($this->tools, WhoAmITool::class);
+        }
+
+        if (config('mcp-kit.resource_tools', true)) {
+            $this->appendUnique($this->tools, GetGroundRulesTool::class);
         }
 
         foreach ((array) config('mcp-kit.shared.prompts', []) as $prompt) {

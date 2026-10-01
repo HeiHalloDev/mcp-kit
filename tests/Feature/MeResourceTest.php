@@ -89,3 +89,33 @@ test('a service client gets no profile and whoami mirrors me when exposed', func
 
     AcmeServer::actingAs($user)->tool(WhoAmITool::class, [])->assertOk()->assertSee('# Kari Nordmann');
 });
+
+test('whoami and get_ground_rules are there by default, for clients that never read resources', function () {
+    $token = acmeToken(acmeAdmin(), ['acme:things:read']);
+
+    Mcp::listTools($token, '/mcp/acme')->assertSuccessful()->assertSee('whoami')->assertSee('get_ground_rules');
+
+    $rules = Mcp::readResource($token, '/mcp/acme', 'acme://ground-rules')->assertSuccessful()->json('result.contents.0.text');
+    $tool = Mcp::call($token, '/mcp/acme', 'get_ground_rules', [])->assertSuccessful()->json('result.content.0.text');
+
+    expect($tool)->toBe($rules);
+
+    $instructions = Mcp::rpc($token, '/mcp/acme', 'initialize', [
+        'protocolVersion' => '2025-06-18', 'capabilities' => (object) [], 'clientInfo' => ['name' => 'h', 'version' => '1'],
+    ])->json('result.instructions');
+
+    expect($instructions)->toContain('calling `whoami` and `get_ground_rules`');
+});
+
+test('resource_tools off leaves the resources alone and the instructions name them', function () {
+    config()->set('mcp-kit.resource_tools', false);
+    $token = acmeToken(acmeAdmin(), ['acme:things:read']);
+
+    Mcp::listTools($token, '/mcp/acme')->assertSuccessful()->assertDontSee('whoami')->assertDontSee('get_ground_rules');
+
+    $instructions = Mcp::rpc($token, '/mcp/acme', 'initialize', [
+        'protocolVersion' => '2025-06-18', 'capabilities' => (object) [], 'clientInfo' => ['name' => 'h', 'version' => '1'],
+    ])->json('result.instructions');
+
+    expect($instructions)->toContain('by reading `acme://me`');
+});

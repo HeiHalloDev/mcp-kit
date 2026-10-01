@@ -71,7 +71,7 @@
     "Forget everything the assistant remembers about you?": "Forget everything the assistant remembers about you?",
     "Given a purpose": "Given a purpose",
     "Hands off": "Hands off",
-    "Help me work in :app. The tools are in the MCP connection. Read :scheme://me and :scheme://ground-rules first, then tell me briefly what you can help with. Always preview and confirm with me before changing anything, and never delete — close, cancel or archive instead.": "Help me work in :app. The tools are in the MCP connection. Read :scheme://me and :scheme://ground-rules first, then tell me briefly what you can help with. Always preview and confirm with me before changing anything, and never delete — close, cancel or archive instead.",
+    "Help me work in :app. The tools are in the MCP connection. Call whoami and get_ground_rules first (or read :scheme://me and :scheme://ground-rules), then tell me briefly what you can help with. Always preview and confirm with me before changing anything, and never delete — close, cancel or archive instead.": "Help me work in :app. The tools are in the MCP connection. Call whoami and get_ground_rules first (or read :scheme://me and :scheme://ground-rules), then tell me briefly what you can help with. Always preview and confirm with me before changing anything, and never delete — close, cancel or archive instead.",
     "Homebrew": "Homebrew",
     "In Claude (the app or claude.ai), open Settings → Connectors.": "In Claude (the app or claude.ai), open Settings → Connectors.",
     "In the ChatGPT app, uninstall the server under Plugins → MCPs — or from a terminal:": "In the ChatGPT app, uninstall the server under Plugins → MCPs — or from a terminal:",

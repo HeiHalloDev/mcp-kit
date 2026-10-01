@@ -102,7 +102,13 @@ class SectionedGroundRules implements GroundRules
             $authored .= "\n\n".$neighbours;
         }
 
-        $footer = "\n\nStart a new session by reading `{$scheme}://me` and `{$scheme}://ground-rules`. Writes preview without `confirm=true` and execute with it.";
+        // Name the tools first: a client that drops resources (claude.ai
+        // connectors in Claude Code) can still call them.
+        $start = config('mcp-kit.resource_tools', true)
+            ? "Start a new session by calling `whoami` and `get_ground_rules` (the same text as `{$scheme}://me` and `{$scheme}://ground-rules`)."
+            : "Start a new session by reading `{$scheme}://me` and `{$scheme}://ground-rules`.";
+
+        $footer = "\n\n{$start} Writes preview without `confirm=true` and execute with it.";
 
         // The frame opens itself now, so this asks for the one thing only
         // the assistant can supply, and asks for it afterwards. Asking

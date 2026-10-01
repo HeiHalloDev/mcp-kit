@@ -36,4 +36,4 @@ If the person says "skip" or "not now" at any point, stop asking, call `remember
 @unless ($canChange)
 - This token is read-only: explain that changes need a token with write access, minted by the person.
 @endunless
-- After this, read `{{ $scheme }}://me` at the start of each session instead of asking again.
+- After this, call `whoami` (or read `{{ $scheme }}://me`) at the start of each session instead of asking again.

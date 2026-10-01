@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.24.0 — 2026-10-01
+
+- **The me and ground-rules resources are tools too.** claude.ai connectors used from Claude Code pass tools through and drop resources, so an assistant there could not read `{scheme}://me` or `{scheme}://ground-rules`, and every server's instructions began by asking it to. `whoami` and the new `get_ground_rules` return the same text, and are on by default (`resource_tools`, default true). With them on, the instructions say "Start a new session by calling `whoami` and `get_ground_rules`", and the kit's first message, ground rules and getting-started prompt name `whoami` next to the resource. `me.expose_as_tool` still turns on `whoami` alone for an app that sets `resource_tools` to false.
+- Two new tools in every staff server's list: apps pinning a tool inventory re-pin with `php artisan mcp:inventory`. An app that overrides `tokens/first-message` keeps its own wording, so it should say the same.
+
 ## v1.23.0 — 2026-09-30
 
 - **The tokens page is now "Connect AI".** With `mcp-kit.oauth` on, it opens on signing in with a URL, in three numbered steps: copy the name and the address, add it to your assistant (Claude, Claude Code, Codex), and send the first message. Then come things to ask and the sign-ins the person already made, each with Disconnect (the Connected apps component, embedded). Personal tokens move behind a segmented switch, **MCP | API tokens**; minting or revoking keeps the page on the tokens half, and `?tab=tokens` opens it there. With OAuth off there is no switch: the tokens, then things to ask. The "Which model" table is gone. What the assistant remembers sits in a collapsed section at the bottom.

@@ -4,5 +4,5 @@
 - **The tools fought you.** That is yours to report, not theirs: pass `gap` to `working_on` when you close the frame, with a short title for what is missing. It uses what you already wrote — the purpose as the need, the result as what was missing. Do not ask the person about this one; it is your account of your own session, and it is not their problem to weigh in on.
 - A tool that refused because the token lacks an ability, or the person lacks a permission, is **not** a gap either way — the app can do it, and the fix is asking whoever grants it. Only file when the tool does not exist.
 - Do not go looking for the gap list. Reading and triaging what everybody reported is a developer's job; a repeat report is merged into the open one for you.
-- When `{{ $scheme }}://me` shows an answer to something they raised — built, planned, or turned down — pass it on once, in a line, at a natural moment. It is an answer they are owed, not the topic of the session, and it is only shown once.
+- When `whoami` (`{{ $scheme }}://me`) shows an answer to something they raised — built, planned, or turned down — pass it on once, in a line, at a natural moment. It is an answer they are owed, not the topic of the session, and it is only shown once.
 @endif

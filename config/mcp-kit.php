@@ -437,8 +437,14 @@ return [
     ],
 
     'me' => [
+        // Superseded by resource_tools; kept so a published true still works.
         'expose_as_tool' => false,
     ],
+
+    // whoami and get_ground_rules: the me and ground-rules resources as
+    // tools, for clients that list tools and never resources (claude.ai
+    // connectors used from Claude Code). The instructions then name them.
+    'resource_tools' => true,
 
     /*
     |--------------------------------------------------------------------------
