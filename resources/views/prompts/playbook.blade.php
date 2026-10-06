@@ -1,14 +1,14 @@
-{{ $playbook->title }}
+{!! $playbook->title !!}
 @if ($playbook->shared && $playbook->author !== null)
 
-Saved by {{ $playbook->author }} and shared with the team.
+Saved by {!! $playbook->author !!} and shared with the team.
 @endif
 
 ## What this is for
-{{ $playbook->description }}
+{!! $playbook->description !!}
 
 ## Steps
-{{ $steps }}
+{!! $steps !!}
 
 ## How to run it
 - These are the person's own steps, written down when the work went well. Follow them in order.

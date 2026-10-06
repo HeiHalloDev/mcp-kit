@@ -7,16 +7,16 @@ Nothing reported. When somebody needs what this app cannot do, `report_gap` land
 ## Open — most wanted first
 @foreach ($open as $gap)
 
-### {{ $gap->id }}. {{ $gap->title }}{{ $gap->status === 'planned' ? ' (planned)' : '' }}
-- Needed: {{ $gap->need }}
-- Missing: {{ $gap->missing }}
-- {{ $gap->reports }} {{ $gap->reports === 1 ? 'person has' : 'people have' }} hit it{{ $gap->blocking ? ', and it stopped the work' : '' }}@if ($gap->server ?? false) — on `{{ $gap->server }}`@endif
+### {!! $gap->id !!}. {!! $gap->title !!}{!! $gap->status === 'planned' ? ' (planned)' : '' !!}
+- Needed: {!! $gap->need !!}
+- Missing: {!! $gap->missing !!}
+- {!! $gap->reports !!} {!! $gap->reports === 1 ? 'person has' : 'people have' !!} hit it{!! $gap->blocking ? ', and it stopped the work' : '' !!}@if ($gap->server ?? false) — on `{!! $gap->server !!}`@endif
 
 @if ($gap->reportedAt)
-- Reported {{ $gap->reportedAt->format('Y-m-d') }}{{ $gap->status === 'planned' && $gap->resolvedAt ? ', planned '.$gap->resolvedAt->format('Y-m-d') : '' }}
+- Reported {!! $gap->reportedAt->format('Y-m-d') !!}{!! $gap->status === 'planned' && $gap->resolvedAt ? ', planned '.$gap->resolvedAt->format('Y-m-d') : '' !!}
 @endif
 @foreach ($gap->reporters as $reporter)
-- {{ $reporter['name'] }}@if ($reporter['at'] !== ''), {{ \Illuminate\Support\Str::before($reporter['at'], 'T') }}@endif@if ($reporter['note'] !== ''): {{ $reporter['note'] }}@endif
+- {!! $reporter['name'] !!}@if ($reporter['at'] !== ''), {!! \Illuminate\Support\Str::before($reporter['at'], 'T') !!}@endif@if ($reporter['note'] !== ''): {!! $reporter['note'] !!}@endif
 
 @endforeach
 @endforeach
@@ -25,7 +25,7 @@ Nothing reported. When somebody needs what this app cannot do, `report_gap` land
 
 ## Settled recently
 @foreach ($closed as $gap)
-- **{{ $gap->id }}. {{ $gap->title }}** — {{ $gap->status === 'done' ? 'built' : 'not doing it' }}@if ($gap->resolvedAt) {{ $gap->resolvedAt->format('Y-m-d') }}@endif@if ($gap->resolvedBy) by {{ $gap->resolvedBy }}@endif: {{ $gap->resolution ?? 'no reason recorded' }}
+- **{!! $gap->id !!}. {!! $gap->title !!}** — {!! $gap->status === 'done' ? 'built' : 'not doing it' !!}@if ($gap->resolvedAt) {!! $gap->resolvedAt->format('Y-m-d') !!}@endif@if ($gap->resolvedBy) by {!! $gap->resolvedBy !!}@endif: {!! $gap->resolution ?? 'no reason recorded' !!}
 @endforeach
 @endif
 

@@ -119,3 +119,14 @@ test('resource_tools off leaves the resources alone and the instructions name th
 
     expect($instructions)->toContain('by reading `acme://me`');
 });
+
+test('names and app names reach the model as written, not as HTML entities', function () {
+    config()->set('app.name', 'Smith & Sons');
+    $user = actingWith(acmeUser(['staff', 'things'], 'staff', ['name' => "D'angelo O'Brien"]), ['acme:things:read']);
+
+    $me = AcmeServer::actingAs($user)->tool(WhoAmITool::class, [])->assertOk()->assertSee("# D'angelo O'Brien");
+    $rules = AcmeServer::actingAs($user)->tool(\HeiHallo\McpKit\Mcp\Tools\GetGroundRulesTool::class, [])->assertOk()->assertSee('Smith & Sons');
+
+    $me->assertDontSee('&#039;');
+    $rules->assertDontSee('&amp;');
+});

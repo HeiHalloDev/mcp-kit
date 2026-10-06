@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.25.0 — 2026-10-06
+
+- **What the model reads is no longer HTML-escaped.** The me, playbooks, gaps and usage resources, the ground rules, the prompts, the first message and the Codex instructions are markdown read by a model. They were rendered with Blade's `{{ }}`, so a name like D'angelo reached the assistant as `D&#039;angelo`, and the same happened to any saved memory, playbook or app name with `'`, `&`, `<` or `"`. They now echo raw. The usage page, the tokens page and the OAuth pages are HTML, and they stay escaped.
+- The guard for the me resource reads the decoded text and looks for the person's first name as written. It escaped the name itself, then had `assertSee` escape it again, so a Faker name with an apostrophe failed the guard at random.
+- An app that overrides one of these views with `{{ }}` should switch to `{!! !!}`. None of the apps on the roster do.
+
 ## v1.24.0 — 2026-10-01
 
 - **The me and ground-rules resources are tools too.** claude.ai connectors used from Claude Code pass tools through and drop resources, so an assistant there could not read `{scheme}://me` or `{scheme}://ground-rules`, and every server's instructions began by asking it to. `whoami` and the new `get_ground_rules` return the same text, and are on by default (`resource_tools`, default true). With them on, the instructions say "Start a new session by calling `whoami` and `get_ground_rules`", and the kit's first message, ground rules and getting-started prompt name `whoami` next to the resource. `me.expose_as_tool` still turns on `whoami` alone for an app that sets `resource_tools` to false.

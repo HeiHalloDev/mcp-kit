@@ -797,7 +797,10 @@ final class Guards
                 }
 
                 expect(Mcp::rpc($token, $definition->path, 'resources/list')->assertSuccessful()->json('result.resources.*.uri'))->toContain("{$scheme}://me");
-                Mcp::readResource($token, $definition->path, "{$scheme}://me")->assertSuccessful()->assertSee(e(explode(' ', (string) $user->name)[0]));
+                // The text the model reads, decoded from the JSON: a name like
+                // D'angelo must arrive as written, not as an HTML entity.
+                $text = (string) Mcp::readResource($token, $definition->path, "{$scheme}://me")->assertSuccessful()->json('result.contents.0.text');
+                expect($text)->toContain(explode(' ', (string) $user->name)[0]);
             }
         });
     }

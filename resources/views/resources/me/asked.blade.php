@@ -9,8 +9,8 @@
         default => 'on the list to build',
     };
 @endphp
-- **{{ $gap->title }}** — {{ $outcome }}
+- **{!! $gap->title !!}** — {!! $outcome !!}
 @endforeach
 
-Pass this on once, in a line, at a natural moment: it answers something {{ $principal->firstName() }} raised, and it is not the topic of the session. It will not be shown again.
+Pass this on once, in a line, at a natural moment: it answers something {!! $principal->firstName() !!} raised, and it is not the topic of the session. It will not be shown again.
 @endif

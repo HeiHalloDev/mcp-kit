@@ -2,6 +2,6 @@
 
 ## Preferences
 @foreach ($memory->preferences as $key => $value)
-- {{ $key }}: {{ is_bool($value) ? ($value ? 'yes' : 'no') : $value }}
+- {!! $key !!}: {!! is_bool($value) ? ($value ? 'yes' : 'no') : $value !!}
 @endforeach
 @endif
