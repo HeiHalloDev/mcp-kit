@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace HeiHallo\McpKit\Mcp\Resources;
 
 use HeiHallo\McpKit\Activity\RecentActivity;
+use HeiHallo\McpKit\Audit\McpCallContext;
 use HeiHallo\McpKit\Contracts\AbilityCatalogue;
 use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Contracts\MemoryStore;
 use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Contracts\UserDescriber;
+use HeiHallo\McpKit\Docs\ToolReference;
 use HeiHallo\McpKit\Events\OnboardingOffered;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Memory\AssistantMemory;
 use HeiHallo\McpKit\Principal;
+use HeiHallo\McpKit\Tools\ToolAppearances;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Resource;
@@ -92,6 +95,8 @@ class MeResource extends Resource
             'invite' => $invite,
             'memoryUrl' => config('mcp-kit.ui.memory_url'),
             'expiresAt' => $principal->tokenExpiresAt(),
+            'newTools' => static::newTools($principal, $granted),
+            'connectedAt' => $principal->connectedAt(),
         ])->render();
     }
 
@@ -102,6 +107,40 @@ class MeResource extends Resource
      *
      * @return list<Gap>
      */
+    /**
+     * Tools this person may use that arrived on this server after they
+     * connected. claude.ai keeps the list it saw at connecting, so these are
+     * the ones their assistant may not have until they reconnect.
+     *
+     * @param  list<string>  $granted
+     * @return list<array{tool: string, since: string}>
+     */
+    protected static function newTools(Principal $principal, array $granted): array
+    {
+        $server = app(McpCallContext::class)->server();
+        $connected = $principal->connectedAt();
+
+        if ($server === null || $connected === null) {
+            return [];
+        }
+
+        $reference = app(ToolReference::class);
+        $rows = [];
+
+        foreach (app(ToolAppearances::class)->since($server, $connected) as $row) {
+            $needs = array_values(array_filter(
+                class_exists($row['class']) ? $reference->abilitiesFor($row['class']) : [],
+                fn (string $ability): bool => ! str_contains($ability, '*'),
+            ));
+
+            if ($needs === [] || array_intersect($needs, $granted) !== []) {
+                $rows[] = ['tool' => $row['tool'], 'since' => substr($row['first_seen_at'], 0, 10)];
+            }
+        }
+
+        return $rows;
+    }
+
     protected static function settledGaps(Principal $principal): array
     {
         if (! config('mcp-kit.gaps.enabled', true)) {

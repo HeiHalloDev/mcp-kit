@@ -102,6 +102,34 @@ final class Principal
         return $this->frameKey = (string) $tokenId;
     }
 
+    /**
+     * When this connection was made: the sign-in for a token a grant
+     * issued (it turns over hourly, the grant does not), else the token.
+     * A client like claude.ai keeps the tool list it saw then.
+     */
+    public function connectedAt(): ?\DateTimeInterface
+    {
+        $tokenId = $this->tokenId();
+
+        if ($tokenId === null) {
+            return null;
+        }
+
+        $prefix = (string) config('mcp-kit.oauth.token_prefix', 'oauth: ');
+
+        if (config('mcp-kit.oauth.enabled') && $prefix !== '' && str_starts_with((string) $this->tokenName(), $prefix)) {
+            $grant = OAuthGrant::query()->where('access_token_id', $tokenId)->first();
+
+            if ($grant !== null) {
+                return $grant->created_at;
+            }
+        }
+
+        $created = $this->token?->created_at;
+
+        return $created instanceof \DateTimeInterface ? $created : null;
+    }
+
     public function tokenExpiresAt(): ?\DateTimeInterface
     {
         $expires = $this->token?->expires_at;

@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.27.0 — 2026-10-09
+
+- **"New since you connected."** claude.ai and the desktop app keep the tool list a connector had when it connected, so tools added by a later release stay out of reach until the person reconnects, and nobody tells them. The kit now records when each tool first appears on each server (a new table, `mcp_tool_appearances`; the tools a server has on its first record carry no date, so nothing old is announced). `whoami` and the me resource list the tools that arrived after the person connected and that they may use, with the date, and ask the assistant to say once that disconnecting and connecting again brings them. "Connected" is the sign-in for a token a grant issued, the token itself otherwise. Recording costs a cache read per request and writes only when the set of tools changes.
+- The Connect AI page says the same under the Claude steps: tools added since you connected come in when you disconnect and connect again.
+
 ## v1.26.1 — 2026-10-09
 
 - A test of v1.26.0 searched the tool list as text, and `save_playbook`'s new description names `run_playbook`, so it failed. It compares tool names now. No change to the package code.

@@ -50,6 +50,7 @@
                     <li>{{ __('Click Add, then Connect. Sign in when the browser asks, and approve on the page that follows.') }}</li>
                 </ol>
                 <flux:text size="sm" class="opacity-70">{{ __('A connector added on claude.ai is there in the desktop and mobile apps too.') }}</flux:text>
+                <flux:text size="sm" class="opacity-70">{{ __('Connected before? Tools added since then come in when you disconnect and connect again under Settings → Connectors, then start a new chat.') }}</flux:text>
             </flux:tab.panel>
 
             <flux:tab.panel name="sign-in-claude-code" class="space-y-3">

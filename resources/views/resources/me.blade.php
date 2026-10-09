@@ -7,6 +7,7 @@ This token belongs to the service client **{!! $principal->name !!}**. There is 
 @include('mcp-kit::resources.me.you')
 @include('mcp-kit::resources.me.where')
 @include('mcp-kit::resources.me.can')
+@include('mcp-kit::resources.me.new-tools')
 @include('mcp-kit::resources.me.usually')
 @include('mcp-kit::resources.me.preferences')
 @include('mcp-kit::resources.me.notes')

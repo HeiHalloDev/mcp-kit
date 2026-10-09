@@ -19,6 +19,7 @@ use HeiHallo\McpKit\Mcp\Tools\ListPlaybooksTool;
 use HeiHallo\McpKit\Mcp\Tools\RunPlaybookTool;
 use HeiHallo\McpKit\Mcp\Tools\WhoAmITool;
 use HeiHallo\McpKit\Playbooks\PlaybookPrompts;
+use HeiHallo\McpKit\Tools\ToolAppearances;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
@@ -44,6 +45,15 @@ abstract class StaffServer extends Server
         if ($definition?->shared ?? true) {
             $this->appendShared();
             $this->appendPlaybooks($definition?->key);
+        }
+
+        // Before read-only mode hides anything, so switching it off and on
+        // never makes old tools look new.
+        if ($definition !== null) {
+            app(ToolAppearances::class)->record($definition->key, array_map(
+                fn (mixed $tool): string => is_object($tool) ? $tool::class : (string) $tool,
+                $this->tools,
+            ));
         }
 
         if (config('mcp-kit.read_only', false)) {
