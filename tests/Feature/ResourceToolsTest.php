@@ -67,6 +67,7 @@ test('resource_tools off leaves only the resources and prompts', function () {
     config()->set('mcp-kit.resource_tools', false);
     config()->set('mcp-kit.learning.enabled', true);
 
-    Mcp::listTools(acmeToken(acmeAdmin(), ['acme:things:read']), '/mcp/acme')
-        ->assertDontSee('list_gaps')->assertDontSee('list_playbooks')->assertDontSee('run_playbook')->assertDontSee('"getting_started"', false);
+    $names = Mcp::listTools(acmeToken(acmeAdmin(), ['acme:things:read']), '/mcp/acme')->json('result.tools.*.name');
+
+    expect($names)->not->toContain('list_gaps', 'get_usage', 'list_playbooks', 'run_playbook', 'getting_started', 'whoami', 'get_ground_rules');
 });
