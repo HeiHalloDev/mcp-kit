@@ -126,9 +126,11 @@ class AuthorizationServer
 
     /**
      * What the consent screen offers this person for this server: the
-     * configured preset, narrowed to the server, never a wildcard and never
-     * an explicit-only ability — refunds, role changes and the like are not
-     * handed to a client through a browser checkbox.
+     * configured preset, narrowed to the server, never a wildcard. With
+     * oauth.offer_explicit (default on), explicit-only abilities the person
+     * could hold anyway are offered too: privileged staff with the
+     * permission, nobody else. The page shows them unticked, and a sign-in
+     * that follows permissions never adds one by itself.
      *
      * @return list<string>
      */
@@ -142,10 +144,16 @@ class AuthorizationServer
 
         $offered = [];
 
-        foreach ($this->presets->abilitiesFor($user, (string) config('mcp-kit.oauth.preset', 'work')) as $ability) {
+        $candidates = $this->presets->abilitiesFor($user, (string) config('mcp-kit.oauth.preset', 'work'));
+
+        if (config('mcp-kit.oauth.offer_explicit', true)) {
+            $candidates = [...$candidates, ...array_keys($this->catalogue->explicitOnly())];
+        }
+
+        foreach ($candidates as $ability) {
             if (! $this->catalogue->exists($ability)
                 || $this->catalogue->isWildcard($ability)
-                || $this->catalogue->isExplicitOnly($ability)
+                || ($this->catalogue->isExplicitOnly($ability) && ! config('mcp-kit.oauth.offer_explicit', true))
                 || $this->catalogue->serverFor($ability) !== $server->key) {
                 continue;
             }
@@ -500,7 +508,7 @@ class AuthorizationServer
         }
 
         $held = (array) $grant->abilities;
-        $refused = [...(array) ($grant->declined ?? []), ...(array) config('mcp-kit.oauth.unticked', [])];
+        $refused = [...(array) ($grant->declined ?? []), ...(array) config('mcp-kit.oauth.unticked', []), ...array_keys($this->catalogue->explicitOnly())];
         $gained = array_values(array_diff($this->offered($user, $server), $held, $refused));
 
         if ($gained === []) {

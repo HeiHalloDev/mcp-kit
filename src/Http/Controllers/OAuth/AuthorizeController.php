@@ -62,7 +62,10 @@ class AuthorizeController
                 'name' => $ability,
                 'description' => $this->catalogue->description($ability) ?? $ability,
                 'writes' => $this->catalogue->isWrite($ability),
-                'checked' => ! in_array($ability, $unticked, true),
+                // High-risk powers (refunds, roles and the like) start
+                // unticked: offered to whoever may hold them, never assumed.
+                'explicit' => $this->catalogue->isExplicitOnly($ability),
+                'checked' => ! in_array($ability, $unticked, true) && ! $this->catalogue->isExplicitOnly($ability),
             ], $offered),
             'params' => $this->params($request),
             'user' => $request->user(),

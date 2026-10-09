@@ -425,6 +425,11 @@ return [
         // access_minutes). Never one they unticked, never one in unticked.
         // Off keeps a sign-in to exactly what was consented to.
         'follow_permissions' => false,
+        // Explicit-only abilities (refunds, roles, payouts) on the consent
+        // page, unticked, for whoever may hold them: privileged staff with
+        // the permission. Never added later by follow_permissions. Off keeps
+        // them for pasted tokens only.
+        'offer_explicit' => true,
         // A Blade component to wrap the consent page in (it gets `title`);
         // null uses the kit's own plain page.
         'layout' => null,

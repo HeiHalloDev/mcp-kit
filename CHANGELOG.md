@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.26.0 — 2026-10-09
+
+- **Signing in reaches the high-risk abilities too, unticked.** Explicit-only abilities (refunds, role changes, merges, payouts and the like) were never offered at sign-in, so someone who connected through a connector could never use those tools, even with the permission. They are now on the consent page for whoever may hold them, which means privileged staff with the permission and nobody else. They start unticked and are marked "high risk, off unless you tick it". A sign-in that follows permissions never adds one by itself. `oauth.offer_explicit` (default true) set to false keeps them for pasted tokens only.
+- **Every shared resource and prompt has a tool.** Following v1.24's `whoami` and `get_ground_rules`: `list_gaps` and `get_usage` (privileged callers only, and only listed for them), `list_playbooks`, `run_playbook` (a saved playbook's steps with its arguments filled in, the same as choosing the prompt) and `getting_started`. Each answers with the text of its resource or prompt, and is registered where the app serves that resource or prompt. Off with `resource_tools`.
+- The ground rules and `save_playbook` name the tools beside the resource and the prompt.
+
 ## v1.25.0 — 2026-10-06
 
 - **What the model reads is no longer HTML-escaped.** The me, playbooks, gaps and usage resources, the ground rules, the prompts, the first message and the Codex instructions are markdown read by a model. They were rendered with Blade's `{{ }}`, so a name like D'angelo reached the assistant as `D&#039;angelo`, and the same happened to any saved memory, playbook or app name with `'`, `&`, `<` or `"`. They now echo raw. The usage page, the tokens page and the OAuth pages are HTML, and they stay escaped.

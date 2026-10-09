@@ -174,19 +174,62 @@ test('registration takes known https hosts and loopback, nothing else', function
         ->assertStatus(400)->assertJsonPath('error', 'invalid_client_metadata');
 });
 
-test('the consent page offers what the person may hold on that server, never an explicit-only ability', function () {
+test('the consent page offers what the person may hold on that server, high-risk ones unticked', function () {
     bootOAuth();
+    $client = registerClient();
+    [, $challenge] = pkcePair();
+
+    $html = test()->actingAs(acmeAdmin())
+        ->get('/oauth/authorize?'.http_build_query(authorizeParams($client, $challenge)))
+        ->assertOk()
+        ->assertSee('Claude wants to use Acme as you')
+        ->assertSee('acme:things:read')
+        ->assertSee('acme:things:write')
+        ->assertSee('high risk, off unless you tick it')
+        ->assertDontSee('reports:read')
+        ->getContent();
+
+    // Offered, because an Admin may hold it, but never ticked for them.
+    expect($html)->toMatch('/<input type="checkbox" name="abilities\[\]" value="acme:admin"\s*>/')
+        ->and($html)->toMatch('/value="acme:things:read"\s+checked/');
+});
+
+test('an explicit-only ability is offered only to someone who may hold it', function () {
+    bootOAuth();
+    $client = registerClient();
+    [, $challenge] = pkcePair();
+
+    // The permission alone is not enough: explicit-only needs a privileged role too.
+    test()->actingAs(acmeUser(['staff', 'things', 'admin']))
+        ->get('/oauth/authorize?'.http_build_query(authorizeParams($client, $challenge)))
+        ->assertOk()
+        ->assertSee('acme:things:read')
+        ->assertDontSee('acme:admin')
+        ->assertDontSee('high risk');
+});
+
+test('offer_explicit off keeps explicit-only abilities for pasted tokens', function () {
+    bootOAuth(['offer_explicit' => false]);
     $client = registerClient();
     [, $challenge] = pkcePair();
 
     test()->actingAs(acmeAdmin())
         ->get('/oauth/authorize?'.http_build_query(authorizeParams($client, $challenge)))
         ->assertOk()
-        ->assertSee('Claude wants to use Acme as you')
         ->assertSee('acme:things:read')
-        ->assertSee('acme:things:write')
-        ->assertDontSee('acme:admin')
-        ->assertDontSee('reports:read');
+        ->assertDontSee('acme:admin');
+});
+
+test('a ticked explicit-only ability works, and following permissions never adds one by itself', function () {
+    bootOAuth(['follow_permissions' => true]);
+    ['client' => $client, 'tokens' => $tokens] = signedIn(acmeAdmin(), ['acme:things:read']);
+
+    expect(refreshWith($client, $tokens['refresh_token'])->assertOk()->json('scope'))->not->toContain('acme:admin');
+
+    OAuthGrant::query()->delete();
+    ['tokens' => $ticked] = signedIn(acmeAdmin(['email' => 'second@example.test']), ['acme:things:read', 'acme:admin']);
+
+    expect(explode(' ', $ticked['scope']))->toContain('acme:admin');
 });
 
 test('an unknown client or a foreign redirect is shown on the page, never sent to the redirect', function () {

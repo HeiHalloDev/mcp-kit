@@ -22,6 +22,7 @@
                             <span>
                                 {{ $ability['description'] }}
                                 @if ($ability['writes'])<span class="tag">{{ __('can change') }}</span>@endif
+                                @if ($ability['explicit'] ?? false)<span class="tag">{{ __('high risk, off unless you tick it') }}</span>@endif
                             </span>
                         </label>
                     </li>

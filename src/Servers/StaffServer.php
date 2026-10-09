@@ -6,9 +6,17 @@ namespace HeiHallo\McpKit\Servers;
 
 use HeiHallo\McpKit\Contracts\GroundRules;
 use HeiHallo\McpKit\Mcp\Methods\ListGrantedTools;
+use HeiHallo\McpKit\Mcp\Prompts\GettingStartedPrompt;
+use HeiHallo\McpKit\Mcp\Resources\GapsResource;
+use HeiHallo\McpKit\Mcp\Resources\PlaybooksResource;
 use HeiHallo\McpKit\Mcp\Resources\UsagePersonResource;
 use HeiHallo\McpKit\Mcp\Resources\UsageResource;
 use HeiHallo\McpKit\Mcp\Tools\GetGroundRulesTool;
+use HeiHallo\McpKit\Mcp\Tools\GettingStartedTool;
+use HeiHallo\McpKit\Mcp\Tools\GetUsageTool;
+use HeiHallo\McpKit\Mcp\Tools\ListGapsTool;
+use HeiHallo\McpKit\Mcp\Tools\ListPlaybooksTool;
+use HeiHallo\McpKit\Mcp\Tools\RunPlaybookTool;
 use HeiHallo\McpKit\Mcp\Tools\WhoAmITool;
 use HeiHallo\McpKit\Playbooks\PlaybookPrompts;
 use Laravel\Mcp\Schema\Icon;
@@ -119,6 +127,24 @@ abstract class StaffServer extends Server
 
         if (config('mcp-kit.resource_tools', true)) {
             $this->appendUnique($this->tools, GetGroundRulesTool::class);
+
+            // The rest of the shared resources and prompts, each as a tool,
+            // where the app serves the resource or prompt in the first place.
+            $resources = (array) config('mcp-kit.shared.resources', []);
+            $prompts = (array) config('mcp-kit.shared.prompts', []);
+            $mirrors = [
+                ListGapsTool::class => in_array(GapsResource::class, $resources, true),
+                GetUsageTool::class => in_array(UsageResource::class, $resources, true),
+                ListPlaybooksTool::class => in_array(PlaybooksResource::class, $resources, true),
+                RunPlaybookTool::class => in_array(PlaybooksResource::class, $resources, true),
+                GettingStartedTool::class => in_array(GettingStartedPrompt::class, $prompts, true),
+            ];
+
+            foreach ($mirrors as $tool => $served) {
+                if ($served) {
+                    $this->appendUnique($this->tools, $tool);
+                }
+            }
         }
 
         foreach ((array) config('mcp-kit.shared.prompts', []) as $prompt) {

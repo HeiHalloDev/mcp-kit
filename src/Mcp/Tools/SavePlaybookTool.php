@@ -26,7 +26,7 @@ class SavePlaybookTool extends StaffTool
 {
     protected string $name = 'save_playbook';
 
-    protected string $description = 'Save a way of working the person wants back next time: the steps, in the order they are done. It becomes a prompt their client can run by name. Previews without confirm=true. Pass delete=true to remove one. Only save what the person asked you to save.';
+    protected string $description = 'Save a way of working the person wants back next time: the steps, in the order they are done. It becomes a prompt their client can run by name, and run_playbook runs it in clients without prompts. Previews without confirm=true. Pass delete=true to remove one. Only save what the person asked you to save.';
 
     /**
      * @var array<string, mixed>
