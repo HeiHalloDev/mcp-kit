@@ -454,7 +454,15 @@ test('Connected apps lists a person\'s own sign-ins and disconnects one at once'
     $mine = OAuthGrant::query()->where('user_id', (string) $user->id)->sole();
     $theirs = OAuthGrant::query()->where('user_id', (string) $other->id)->sole();
 
-    expect(fn () => $component->call('disconnect', $theirs->id))->toThrow(ModelNotFoundException::class);
+    // Livewire up to 4.4.1 rethrows the not-found; later versions answer it
+    // as a 404 instead. Either way someone else's sign-in stays connected.
+    try {
+        Livewire\Livewire::test(ConnectedApps::class)->call('disconnect', $theirs->id)->assertNotFound();
+    } catch (ModelNotFoundException) {
+    }
+
+    expect($theirs->fresh()->isActive())->toBeTrue();
+
     $component->call('disconnect', $mine->id)->assertSee('No assistants are connected');
 
     expect($mine->fresh()->revoked_reason)->toBe('person_revoked')
