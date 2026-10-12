@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.29.0 — 2026-10-12
+
+- **Runs on laravel/mcp 1.0.** The constraint is now `^0.9|^1.0`, so apps can move to laravel/ai 1.x, which requires laravel/mcp 1.0. The kit used none of what 1.0 removed (session ids, `SessionInitialized`, `CAPABILITY_UI`), and the whole suite passes on 1.0.1 unchanged. Clients that still open with `initialize`, which includes claude.ai connectors today, keep working: laravel/mcp answers them on the protocol version they ask for.
+
 ## v1.28.0 — 2026-10-12
 
 - **Going over the rate limit no longer reads as an outage.** A request over `routes.throttle` got a bare HTTP 429, and Codex took that as the server being down: one burst of about a hundred parallel calls ended a whole evening's work. Now each JSON-RPC request in the body gets an answer. A `tools/call` comes back as a tool error, and any other request as JSON-RPC error `-32000` with `data.retry_after`. Both say the call did not run, how many seconds to wait, and to make calls one after another. The response is HTTP 200 with the usual `Retry-After` and `X-RateLimit-*` headers, and a batch gets one answer per request. A body of notifications alone has nothing to answer and keeps the 429. The counting is unchanged: per token, `routes.throttle` a minute.
