@@ -5,6 +5,7 @@ declare(strict_types=1);
 use HeiHallo\McpKit\Contracts\MemoryStore;
 use HeiHallo\McpKit\Events\OnboardingOffered;
 use HeiHallo\McpKit\Mcp\Resources\MeResource;
+use HeiHallo\McpKit\Mcp\Tools\GetGroundRulesTool;
 use HeiHallo\McpKit\Mcp\Tools\RememberAboutMeTool;
 use HeiHallo\McpKit\Mcp\Tools\WhoAmITool;
 use HeiHallo\McpKit\Models\ServiceClient;
@@ -125,7 +126,7 @@ test('names and app names reach the model as written, not as HTML entities', fun
     $user = actingWith(acmeUser(['staff', 'things'], 'staff', ['name' => "D'angelo O'Brien"]), ['acme:things:read']);
 
     $me = AcmeServer::actingAs($user)->tool(WhoAmITool::class, [])->assertOk()->assertSee("# D'angelo O'Brien");
-    $rules = AcmeServer::actingAs($user)->tool(\HeiHallo\McpKit\Mcp\Tools\GetGroundRulesTool::class, [])->assertOk()->assertSee('Smith & Sons');
+    $rules = AcmeServer::actingAs($user)->tool(GetGroundRulesTool::class, [])->assertOk()->assertSee('Smith & Sons');
 
     $me->assertDontSee('&#039;');
     $rules->assertDontSee('&amp;');

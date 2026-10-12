@@ -73,6 +73,10 @@
     "scripts": {
         "test": "vendor/bin/pest",
         "lint": "vendor/bin/pint --test",
-        "fix": "vendor/bin/pint"
+        "fix": "vendor/bin/pint",
+        "check": [
+            "@lint",
+            "@test"
+        ]
     }
 }

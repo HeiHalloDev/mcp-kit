@@ -262,6 +262,8 @@ vendor/bin/pest
 
 The suite wipes its database on every run and refuses to start against one not named `mcp_kit_testbench*`.
 
+Before tagging, run `composer check`: Pint, then the suite. CI runs Pint first, so one style issue fails every job before a single test runs.
+
 ## License
 
 MIT.
