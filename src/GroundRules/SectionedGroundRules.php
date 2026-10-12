@@ -110,6 +110,14 @@ class SectionedGroundRules implements GroundRules
 
         $footer = "\n\n{$start} Writes preview without `confirm=true` and execute with it.";
 
+        // Codex fired a hundred calls in three seconds, hit the limit and
+        // gave up on the whole job. Said up front, it paces itself.
+        $throttle = config('mcp-kit.routes.throttle');
+
+        if ($throttle !== null) {
+            $footer .= ' This server takes '.(int) $throttle.' calls a minute per connection: make calls one after another, not in parallel, and prefer a tool that takes a list.';
+        }
+
         // The frame opens itself now, so this asks for the one thing only
         // the assistant can supply, and asks for it afterwards. Asking
         // beforehand never landed: it required predicting that the work

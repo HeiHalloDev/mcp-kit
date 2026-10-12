@@ -32,6 +32,7 @@ use HeiHallo\McpKit\Contracts\UserDescriber;
 use HeiHallo\McpKit\Exceptions\UiDependenciesMissing;
 use HeiHallo\McpKit\Exceptions\UnguardedMcpServer;
 use HeiHallo\McpKit\Http\Middleware\EnsureMcpAccess;
+use HeiHallo\McpKit\Http\ThrottledCall;
 use HeiHallo\McpKit\Learning\CurrentTask;
 use HeiHallo\McpKit\Neighbours\Hints;
 use HeiHallo\McpKit\Neighbours\Neighbours;
@@ -39,6 +40,8 @@ use HeiHallo\McpKit\Playbooks\PlaybookLimits;
 use HeiHallo\McpKit\Playbooks\PlaybookPrompts;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Session\Middleware\StartSession;
@@ -161,6 +164,7 @@ class McpKitServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
         $this->registerRateLimiter();
+        $this->registerThrottledCalls();
         $this->registerServers();
         $this->registerActivityModel();
         $this->registerStamper();
@@ -206,6 +210,19 @@ class McpKitServiceProvider extends ServiceProvider
 
             return Limit::perMinute(max(1, $perMinute))->by('mcp-kit:'.$key);
         });
+    }
+
+    /**
+     * Over the limit, a JSON-RPC request is answered in words the model reads
+     * rather than with a bare 429 (see ThrottledCall).
+     */
+    protected function registerThrottledCalls(): void
+    {
+        $handler = $this->app->make(ExceptionHandler::class);
+
+        if (method_exists($handler, 'renderable')) {
+            $handler->renderable(fn (ThrottleRequestsException $e, Request $request) => ThrottledCall::render($e, $request));
+        }
     }
 
     protected function registerServers(): void

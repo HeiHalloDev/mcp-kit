@@ -251,7 +251,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Extra middleware appended to every server route. throttle: requests per
-    | minute per token (null disables). enforce: refuse to boot when an
+    | minute per token (null disables); over it, each JSON-RPC request is
+    | answered with how long to wait instead of a bare 429. enforce: refuse to boot when an
     | Mcp::web route lacks the kit's guards; allow_unguarded lists route URIs
     | that may stay unguarded (public demo servers).
     |

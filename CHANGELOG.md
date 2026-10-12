@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.28.0 — 2026-10-12
+
+- **Going over the rate limit no longer reads as an outage.** A request over `routes.throttle` got a bare HTTP 429, and Codex took that as the server being down: one burst of about a hundred parallel calls ended a whole evening's work. Now each JSON-RPC request in the body gets an answer. A `tools/call` comes back as a tool error, and any other request as JSON-RPC error `-32000` with `data.retry_after`. Both say the call did not run, how many seconds to wait, and to make calls one after another. The response is HTTP 200 with the usual `Retry-After` and `X-RateLimit-*` headers, and a batch gets one answer per request. A body of notifications alone has nothing to answer and keeps the 429. The counting is unchanged: per token, `routes.throttle` a minute.
+- The instructions footer gives the limit up front: "This server takes 120 calls a minute per connection: make calls one after another, not in parallel, and prefer a tool that takes a list." It is left out when the throttle is off.
+
 ## v1.27.0 — 2026-10-09
 
 - **"New since you connected."** claude.ai and the desktop app keep the tool list a connector had when it connected, so tools added by a later release stay out of reach until the person reconnects, and nobody tells them. The kit now records when each tool first appears on each server (a new table, `mcp_tool_appearances`; the tools a server has on its first record carry no date, so nothing old is announced). `whoami` and the me resource list the tools that arrived after the person connected and that they may use, with the date, and ask the assistant to say once that disconnecting and connecting again brings them. "Connected" is the sign-in for a token a grant issued, the token itself otherwise. Recording costs a cache read per request and writes only when the set of tools changes.
