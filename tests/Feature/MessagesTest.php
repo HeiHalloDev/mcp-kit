@@ -126,8 +126,30 @@ it('tells a sign-in connection about tools that arrived after it connected, neve
 
     $this->travel(2)->minutes();
 
-    expect(firstBlock($signedIn))->toContain('MESSAGE FOR')->toContain('`list_things`')->toContain('connect it again')
+    $block = firstBlock($signedIn);
+    expect($block)->toContain('MESSAGE FOR')->toContain('`list_things`')->toContain('connect it again')
         ->and(firstBlock($pasted))->not->toContain('MESSAGE FOR');
+
+    // The reminder belongs to this connection's server, and confirming it works.
+    preg_match('/\[(reconnect:[^\]]+)\]/', $block, $m);
+    expect(Mcp::call($signedIn, '/mcp/acme', 'message_delivered', ['ids' => [$m[1]]])->json('result.content.0.text'))->toContain('"delivered":["'.$m[1].'"]')
+        ->and(firstBlock($signedIn))->not->toContain('MESSAGE FOR');
+});
+
+it('tells a pasted token about new tools it was made too early to reach, and not the tokens that reach them', function () {
+    $kari = acmeUser(attributes: ['name' => 'Kari Kollega']);
+    $old = acmeToken($kari, ['acme:things:write'], 'old laptop');
+    $full = acmeToken($kari, ['acme:things:read', 'acme:things:write'], 'new laptop');
+    $narrow = acmeToken(acmeUser(['staff'], attributes: ['name' => 'Nils Nobody']), ['acme:things:write']);
+
+    Mcp::listTools($full, '/mcp/acme')->assertSuccessful();
+    DB::table(ToolAppearances::TABLE)->where('class', ListThingsTool::class)->update(['first_seen_at' => now()->addMinute()]);
+
+    $this->travel(2)->minutes();
+
+    expect(firstBlock($old, 'whoami', []))->toContain('MESSAGE FOR')->toContain('`list_things`')->toContain('make a new token')
+        ->and(firstBlock($full))->not->toContain('MESSAGE FOR')
+        ->and(firstBlock($narrow, 'whoami', []))->not->toContain('make a new token');
 });
 
 it('leaves whoami and tool calls working in an app that has not migrated the message tables', function () {

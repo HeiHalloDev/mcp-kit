@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.30.3 — 2026-10-14
+
+- **A reconnect reminder can be confirmed.** `message_delivered` looked for waiting messages without the server the call came in on, and a reconnect reminder belongs to one server, so confirming one answered "not waiting" and the reminder came back on every tool result until it had been shown five times.
+- **A pasted token hears about tools it was made too early to reach.** A token keeps the abilities it was minted with. When a tool arrives behind an ability the token lacks but its person may hold, the instructions describe the tool and the token cannot see it: a staff member reported the grading tools as missing for exactly that reason. Now a message names the tools and says to make a new token (at `ui.memory_url`, or the kit's tokens page), replace the old one and start a new session. A token that lacks an ability because its person may not hold it is not told.
+
 ## v1.30.2 — 2026-10-14
 
 - **A message to named people waits until it reaches them.** It expired after 14 days like a broadcast, so a colleague's note to someone who stayed away from the tools for a while was lost unseen. Now only a message to everyone, or to an ability, expires (`messages.expires_days`, 14). `send_message` still takes `expires_days` for a personal message that should go stale.

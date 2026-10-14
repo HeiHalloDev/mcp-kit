@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HeiHallo\McpKit\Mcp\Tools;
 
+use HeiHallo\McpKit\Audit\McpCallContext;
 use HeiHallo\McpKit\Messages\Messages;
 use HeiHallo\McpKit\Tools\StaffTool;
 use Laravel\Mcp\Request;
@@ -37,8 +38,9 @@ class MessageDeliveredTool extends StaffTool
         }
 
         $ids = array_values(array_filter(array_map(fn ($v) => trim((string) $v, " []\t"), (array) $request->get('ids', []))));
-        $done = $messages->deliver($principal, $ids);
-        $left = count($messages->pendingFor($principal, null));
+        $server = app(McpCallContext::class)->server();
+        $done = $messages->deliver($principal, $ids, $server);
+        $left = count($messages->pendingFor($principal, $server));
 
         return Response::json(array_filter([
             'delivered' => $done,

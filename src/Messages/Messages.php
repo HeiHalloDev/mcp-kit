@@ -6,14 +6,18 @@ namespace HeiHallo\McpKit\Messages;
 
 use HeiHallo\McpKit\Contracts\AbilityCatalogue;
 use HeiHallo\McpKit\Contracts\GapStore;
+use HeiHallo\McpKit\Contracts\PresetResolver;
+use HeiHallo\McpKit\Docs\ToolReference;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Mcp\Resources\MeResource;
 use HeiHallo\McpKit\Models\Message;
 use HeiHallo\McpKit\Models\MessageReceipt;
 use HeiHallo\McpKit\Principal;
 use HeiHallo\McpKit\Tools\AbilityProbe;
+use HeiHallo\McpKit\Tools\ToolAppearances;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Route;
 use Throwable;
 
 /**
@@ -182,9 +186,11 @@ class Messages
      * @param  list<string>  $keys
      * @return list<string> the keys that were waiting for this person
      */
-    public function deliver(Principal $principal, array $keys): array
+    public function deliver(Principal $principal, array $keys, ?string $server = null): array
     {
-        $waiting = array_column($this->pendingFor($principal, null), null, 'key');
+        // The server matters: a reconnect reminder belongs to one connection,
+        // and without it the reminder could never be confirmed.
+        $waiting = array_column($this->pendingFor($principal, $server), null, 'key');
         $done = [];
 
         foreach ($keys as $key) {
@@ -278,35 +284,118 @@ class Messages
      * client still shows the list it saw then. Gone as soon as they
      * reconnect, because the connection is newer than the tools.
      *
+     * A pasted token is the other case. Its client fetches the tools again
+     * every session, but the token keeps the abilities it was minted with,
+     * so a tool behind an ability that did not exist yet never reaches it,
+     * while the instructions describe it.
+     *
      * @return array<string, mixed>|null
      */
     protected function reconnectFor(Principal $principal, string $server): ?array
     {
-        // Only sign-in connections keep an old tool list. A pasted token in
-        // Claude Code or Codex fetches the tools again every session.
-        if (! config('mcp-kit.messages.reconnect', true) || ! $principal->viaSignIn()) {
+        if (! config('mcp-kit.messages.reconnect', true)) {
             return null;
         }
 
-        $rows = MeResource::newTools($principal, app(AbilityCatalogue::class)->expand($principal->abilities()), $server);
+        if ($principal->viaSignIn()) {
+            $rows = MeResource::newTools($principal, app(AbilityCatalogue::class)->expand($principal->abilities()), $server);
 
-        if ($rows === []) {
-            return null;
-        }
+            if ($rows === []) {
+                return null;
+            }
 
-        $tools = array_column($rows, 'tool');
-        sort($tools);
+            $tools = $this->toolNames($rows);
 
-        return [
-            'key' => 'reconnect:'.$server.':'.substr(md5(implode(',', $tools)), 0, 10),
-            'kind' => 'reconnect',
-            'from' => 'this app',
-            'body' => sprintf(
+            return $this->reminder('reconnect', $server, $tools, sprintf(
                 'New tools have come to this connection since %s connected on %s: %s. Their assistant does not have them yet. To get them: in Claude or ChatGPT, open Settings, then Connectors (in ChatGPT: Apps), disconnect this connection and connect it again, then start a new chat.',
                 $principal->firstName(),
                 $principal->connectedAt()?->format('j M Y') ?? 'an earlier day',
-                implode(', ', array_map(fn (string $tool): string => '`'.$tool.'`', $tools)),
-            ),
+                $this->toolList($tools),
+            ));
+        }
+
+        $tools = $this->beyondToken($principal, $server);
+
+        if ($tools === []) {
+            return null;
+        }
+
+        $page = config('mcp-kit.ui.memory_url') ?: (Route::has('mcp-kit.tokens') ? route('mcp-kit.tokens') : null);
+
+        return $this->reminder('token', $server, $tools, sprintf(
+            'New tools have come that %s may use, but the token this connection uses (made %s) cannot reach them: %s. It keeps the permissions it was made with. To get them: make a new token%s, put it in place of the old one in Claude Code or Codex, delete the old one, and start a new session.',
+            $principal->firstName(),
+            $principal->connectedAt()?->format('j M Y') ?? 'earlier',
+            $this->toolList($tools),
+            $page ? ' at '.$page : ' where the old one was made',
+        ));
+    }
+
+    /**
+     * Tools that arrived after the token was made, that its person may use,
+     * and that the token cannot.
+     *
+     * @return list<string>
+     */
+    protected function beyondToken(Principal $principal, string $server): array
+    {
+        $since = $principal->connectedAt();
+
+        if ($since === null) {
+            return [];
+        }
+
+        $catalogue = app(AbilityCatalogue::class);
+        $held = $catalogue->expand($principal->abilities());
+        $grantable = app(PresetResolver::class)->grantableFor($principal->tokenable);
+        $reference = app(ToolReference::class);
+        $tools = [];
+
+        foreach (app(ToolAppearances::class)->since($server, $since) as $row) {
+            $needs = array_values(array_filter(
+                class_exists($row['class']) ? $reference->abilitiesFor($row['class']) : [],
+                fn (string $ability): bool => ! str_contains($ability, '*'),
+            ));
+
+            if ($needs !== [] && array_intersect($needs, $held) === [] && array_intersect($needs, $grantable) !== []) {
+                $tools[] = $row['tool'];
+            }
+        }
+
+        return $this->toolNames(array_map(fn (string $tool): array => ['tool' => $tool], $tools));
+    }
+
+    /**
+     * @param  list<array{tool: string}>  $rows
+     * @return list<string>
+     */
+    protected function toolNames(array $rows): array
+    {
+        $tools = array_values(array_unique(array_column($rows, 'tool')));
+        sort($tools);
+
+        return $tools;
+    }
+
+    /**
+     * @param  list<string>  $tools
+     */
+    protected function toolList(array $tools): string
+    {
+        return implode(', ', array_map(fn (string $tool): string => '`'.$tool.'`', $tools));
+    }
+
+    /**
+     * @param  list<string>  $tools
+     * @return array<string, mixed>
+     */
+    protected function reminder(string $kind, string $server, array $tools, string $body): array
+    {
+        return [
+            'key' => $kind.':'.$server.':'.substr(md5(implode(',', $tools)), 0, 10),
+            'kind' => 'reconnect',
+            'from' => 'this app',
+            'body' => $body,
             'title' => null,
             'sent_at' => null,
         ];
