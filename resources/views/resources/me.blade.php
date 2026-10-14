@@ -4,6 +4,7 @@
 This token belongs to the service client **{!! $principal->name !!}**. There is no person behind it, so there is nothing to remember and nothing to ask. Service clients may read, and write only what the catalogue allows.
 @else
 # {!! $principal->name !!}
+@include('mcp-kit::resources.me.messages')
 @include('mcp-kit::resources.me.you')
 @include('mcp-kit::resources.me.where')
 @include('mcp-kit::resources.me.can')

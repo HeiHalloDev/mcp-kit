@@ -28,6 +28,7 @@ class SectionedGroundRules implements GroundRules
         'replies' => 'Replies',
         'memory' => 'The person you are helping',
         'playbooks' => 'Playbooks',
+        'messages' => 'Messages',
         'gaps' => 'What this app cannot do',
         'learning' => 'Recording what the work was for',
     ];

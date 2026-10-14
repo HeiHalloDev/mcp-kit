@@ -24,6 +24,7 @@
         </flux:select>
     </div>
 
+    @include('mcp-kit::usage.messages')
     @include('mcp-kit::usage.tally')
     @include('mcp-kit::usage.gaps')
     @include('mcp-kit::usage.frames')

@@ -11,6 +11,9 @@ use HeiHallo\McpKit\Contracts\TaskStore;
 use HeiHallo\McpKit\Events\GapStatusChanged;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Learning\Task;
+use HeiHallo\McpKit\Messages\Messages;
+use HeiHallo\McpKit\Models\Message as MessageModel;
+use HeiHallo\McpKit\Models\MessageReceipt;
 use HeiHallo\McpKit\Models\Task as TaskModel;
 use HeiHallo\McpKit\Principal;
 use HeiHallo\McpKit\Servers\ServerRegistry;
@@ -49,6 +52,13 @@ class UsagePage extends Component
     public ?string $settling = null;
 
     public string $resolution = '';
+
+    /** The message form: names or e-mails, comma-separated, or everyone. */
+    public string $messageTo = '';
+
+    public bool $messageEveryone = false;
+
+    public string $messageBody = '';
 
     /**
      * How many frames the page will read. Well above what these apps
@@ -246,7 +256,72 @@ class UsagePage extends Component
 
         unset($this->gaps);
 
-        $this->toast(__('Noted. Everybody who reported it will hear the next time they ask.'));
+        $this->toast(__('Noted. Everybody who reported it hears on their next tool call.'));
+    }
+
+    /**
+     * Send a message, to named people or to everyone using the tools here.
+     * It reaches them on their next tool results, through their assistant.
+     */
+    public function sendMessage(): void
+    {
+        $principal = $this->principal();
+
+        abort_unless((bool) $principal?->privileged, 403);
+
+        $this->resetErrorBag();
+        $messages = app(Messages::class);
+        $body = trim($this->messageBody);
+        $to = array_values(array_filter(array_map('trim', explode(',', $this->messageTo))));
+
+        if ($body === '') {
+            $this->addError('messageBody', __('Write the message.'));
+
+            return;
+        }
+
+        if (! $this->messageEveryone && $to === []) {
+            $this->addError('messageTo', __('Name the people, or send it to everyone.'));
+
+            return;
+        }
+
+        $people = $this->messageEveryone ? [] : $messages->resolvePeople(auth()->user(), $to);
+
+        if (is_string($people)) {
+            $this->addError('messageTo', $people);
+
+            return;
+        }
+
+        $messages->send($body, array_column($people, 'name'), null, $this->messageEveryone, $this->server ?: null, $principal->name);
+
+        $this->reset('messageTo', 'messageEveryone', 'messageBody');
+        unset($this->sentMessages);
+
+        $this->toast(__('Sent. It reaches them on their next tool calls.'));
+    }
+
+    /**
+     * The latest messages and how far each got.
+     *
+     * @return list<array<string, mixed>>
+     */
+    #[Computed]
+    public function sentMessages(): array
+    {
+        if (! app(Messages::class)->enabled()) {
+            return [];
+        }
+
+        $rows = MessageModel::query()->latest('id')->limit(15)->get();
+        $receipts = MessageReceipt::query()->whereIn('message_key', $rows->map->key()->all())->get()->groupBy('message_key');
+
+        return $rows->map(fn (MessageModel $message): array => [
+            'message' => $message,
+            'delivered' => $receipts->get($message->key(), collect())->whereNotNull('delivered_at')->pluck('recipient')->all(),
+            'shown' => $receipts->get($message->key(), collect())->whereNull('delivered_at')->pluck('recipient')->all(),
+        ])->all();
     }
 
     public function statusColor(string $status): string

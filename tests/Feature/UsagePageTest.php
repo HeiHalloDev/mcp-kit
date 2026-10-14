@@ -9,6 +9,7 @@ use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Learning\Task;
 use HeiHallo\McpKit\Livewire\UsagePage;
 use HeiHallo\McpKit\McpKitServiceProvider;
+use HeiHallo\McpKit\Models\Message;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
@@ -204,4 +205,28 @@ test('the person filter narrows the work to one person', function () {
         ->set('person', '41')
         ->assertSee('Kine following up texts')
         ->assertDontSee('Espen reading the numbers');
+});
+
+test('sends a message from the page to named people or everyone, and shows how far it got', function () {
+    acmeUser(attributes: ['name' => 'Kari Kollega', 'email' => 'kari@example.com']);
+    $this->actingAs(acmeAdmin());
+
+    Livewire::test(UsagePage::class)
+        ->set('messageBody', 'Nye verktøy: koble til på nytt.')
+        ->call('sendMessage')
+        ->assertHasErrors('messageTo')
+        ->set('messageTo', 'Ingen Slik')
+        ->call('sendMessage')
+        ->assertHasErrors('messageTo')
+        ->set('messageTo', 'kari@example.com')
+        ->call('sendMessage')
+        ->assertHasNoErrors()
+        ->set('messageEveryone', true)
+        ->set('messageBody', 'Til alle.')
+        ->call('sendMessage')
+        ->assertSee('Til alle.')
+        ->assertSee('Nye verktøy: koble til på nytt.');
+
+    expect(Message::query()->pluck('to_people')->filter()->first())->toBe(['Kari Kollega'])
+        ->and(Message::query()->where('to_everyone', true)->count())->toBe(1);
 });

@@ -130,6 +130,18 @@ final class Principal
         return $created instanceof \DateTimeInterface ? $created : null;
     }
 
+    /**
+     * Whether this connection was made by signing in (OAuth), as claude.ai
+     * and ChatGPT connectors do, rather than with a pasted token. Those
+     * clients keep the tool list they saw when connecting.
+     */
+    public function viaSignIn(): bool
+    {
+        $prefix = (string) config('mcp-kit.oauth.token_prefix', 'oauth: ');
+
+        return (bool) config('mcp-kit.oauth.enabled') && $prefix !== '' && str_starts_with((string) $this->tokenName(), $prefix);
+    }
+
     public function tokenExpiresAt(): ?\DateTimeInterface
     {
         $expires = $this->token?->expires_at;

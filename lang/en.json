@@ -185,5 +185,18 @@
     "npm": "npm",
     "working_on refused these, so the frame stayed blank. Somebody tried to say what the work was and the tool would not take it — the numbers above undercount by this much.": "working_on refused these, so the frame stayed blank. Somebody tried to say what the work was and the tool would not take it — the numbers above undercount by this much.",
     "high risk, off unless you tick it": "high risk, off unless you tick it",
-    "Connected before? Tools added since then come in when you disconnect and connect again under Settings → Connectors, then start a new chat.": "Connected before? Tools added since then come in when you disconnect and connect again under Settings → Connectors, then start a new chat."
+    "Connected before? Tools added since then come in when you disconnect and connect again under Settings → Connectors, then start a new chat.": "Connected before? Tools added since then come in when you disconnect and connect again under Settings → Connectors, then start a new chat.",
+    "Messages": "Messages",
+    "Reaches people through their own assistant, on top of their next tool results, until it confirms it told them. Colleagues can message each other the same way with send_message.": "Reaches people through their own assistant, on top of their next tool results, until it confirms it told them. Colleagues can message each other the same way with send_message.",
+    "Message": "Message",
+    "To": "To",
+    "Names or e-mails, comma-separated": "Names or e-mails, comma-separated",
+    "Everyone using the tools": "Everyone using the tools",
+    "Send": "Send",
+    "Everyone": "Everyone",
+    "not confirmed": "not confirmed",
+    "Noted. Everybody who reported it hears on their next tool call.": "Noted. Everybody who reported it hears on their next tool call.",
+    "Write the message.": "Write the message.",
+    "Name the people, or send it to everyone.": "Name the people, or send it to everyone.",
+    "Sent. It reaches them on their next tool calls.": "Sent. It reaches them on their next tool calls."
 }

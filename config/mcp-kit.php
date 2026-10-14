@@ -522,6 +522,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Messages
+    |--------------------------------------------------------------------------
+    |
+    | Messages to the people using the tools, from colleagues (send_message)
+    | and from the people running the app, and the answers to the gaps they
+    | reported. Each rides on top of the person's next tool results until
+    | their assistant confirms with message_delivered that it told them:
+    | at most max_shows times, at most per_call at once.
+    |
+    */
+
+    'messages' => [
+        'enabled' => true,
+        'max_shows' => 5,
+        'per_call' => 3,
+        'expires_days' => 14,
+        // Tell a person, the same way, when tools they may use arrived
+        // after they connected and their client still shows the old list.
+        'reconnect' => true,
+        // Answers to reported gaps settled longer ago than this are not sent.
+        'gap_answers_days' => 30,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Learning: what the tools are used for
     |--------------------------------------------------------------------------
     |

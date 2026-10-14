@@ -206,6 +206,10 @@ Matching is whole words at both ends, and nothing is stemmed. A word ending in `
 
 Past `after` calls to that tool in one stretch of work (default `hints.after`, repeated every `hints.repeat_every`), the kit appends a sentence to the tool's own reply. The call is answered as normal — a nudge, never a refusal. Counted per stretch of work when `learning` is on and per token otherwise, never across people, and turned off wholesale with `hints.enabled`.
 
+## Messages
+
+`send_message` reaches colleagues through their own assistant: the message rides first in the result of their next tool call in the app until their assistant confirms with `message_delivered`. Anyone may message people by name or e-mail; everyone, or everyone holding an ability, is for Owner and Dev. `list_messages` and the usage page show whether it arrived. Answers to reported gaps, and a note to reconnect when a sign-in connection is missing newer tools, use the same road. Settings under `messages` in the config.
+
 ## Strict parameters
 
 An argument a tool does not declare is refused, naming the closest real parameter, rather than silently dropped — a dropped argument makes the tool answer a different question and sound sure about it. People only; service clients are exempt because their calls are code you change deliberately. Turn it off with `MCP_STRICT_PARAMETERS=false`, and list anything that should never count as unknown in `always_allowed_parameters` (default `confirm`). A tool that turns a field away on purpose — it belongs to another service, or has a tool of its own — declares `protected array $refusedParameters = ['name' => 'name is owned by auth.afpt and cannot be changed here']`, and that reason is what the caller reads.

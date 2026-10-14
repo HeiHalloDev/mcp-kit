@@ -12,8 +12,10 @@ use HeiHallo\McpKit\Contracts\AuditWriter;
 use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Events\ToolCallRecorded;
 use HeiHallo\McpKit\Learning\CurrentTask;
+use HeiHallo\McpKit\Messages\Messages;
 use HeiHallo\McpKit\Neighbours\Hints;
 use HeiHallo\McpKit\Neighbours\Neighbours;
+use HeiHallo\McpKit\Principal;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -37,6 +39,7 @@ class AuditMcpCall
         protected CurrentTask $tasks,
         protected Hints $hints,
         protected Neighbours $neighbours,
+        protected Messages $messages,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -78,10 +81,56 @@ class AuditMcpCall
             $this->context->failed($this->errorMessageFrom($response));
         }
 
+        $server = $this->context->server();
+
         $this->record($request, $response->getStatusCode());
         $this->context->end();
 
+        $response = $this->deliverMessages($response, $principal, $server, $parsed['tool']);
+
         return $this->nudge($response, $position, $parsed['tool'], $parsed['arguments']);
+    }
+
+    /**
+     * Messages for this person, on top of the result of the call they just
+     * made: the one place an assistant reads every time. They come back on
+     * each call until the assistant confirms with message_delivered, up to
+     * mcp-kit.messages.max_shows, so one skipped mention is not the end of
+     * it and a long session is not taken over either.
+     */
+    protected function deliverMessages(Response $response, ?Principal $principal, ?string $server, ?string $tool): Response
+    {
+        if ($principal === null || $response instanceof StreamedResponse || $tool === 'message_delivered' || ! $this->messages->enabled()) {
+            return $response;
+        }
+
+        $items = array_slice(
+            $this->messages->pendingFor($principal, $server, (int) config('mcp-kit.messages.max_shows', 5)),
+            0,
+            (int) config('mcp-kit.messages.per_call', 3),
+        );
+
+        if ($items === []) {
+            return $response;
+        }
+
+        try {
+            $payload = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return $response;
+        }
+
+        if (! is_array($payload) || ! isset($payload['result']['content']) || ! is_array($payload['result']['content'])) {
+            return $response;
+        }
+
+        // First, in a block of its own: the tool's answer stays as it was.
+        array_unshift($payload['result']['content'], ['type' => 'text', 'text' => $this->messages->block($principal, $items)]);
+
+        $response->setContent(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $this->messages->markShown($principal, array_column($items, 'key'));
+
+        return $response;
     }
 
     /**

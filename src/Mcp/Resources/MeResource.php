@@ -15,6 +15,7 @@ use HeiHallo\McpKit\Docs\ToolReference;
 use HeiHallo\McpKit\Events\OnboardingOffered;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Memory\AssistantMemory;
+use HeiHallo\McpKit\Messages\Messages;
 use HeiHallo\McpKit\Principal;
 use HeiHallo\McpKit\Tools\ToolAppearances;
 use Laravel\Mcp\Request;
@@ -81,7 +82,8 @@ class MeResource extends Resource
         return view('mcp-kit::resources.me', [
             'principal' => $principal,
             'service' => false,
-            'settled' => static::settledGaps($principal),
+            'settled' => app(Messages::class)->enabled() ? [] : static::settledGaps($principal),
+            'messages' => app(Messages::class)->pendingFor($principal, null),
             'recording' => (bool) config('mcp-kit.learning.enabled', false),
             'recordingDays' => (int) (config('mcp-kit.learning.retain_days') ?? config('mcp-kit.activity.retain_days', 90)),
             'scheme' => config('mcp-kit.scheme', 'app'),
@@ -115,9 +117,9 @@ class MeResource extends Resource
      * @param  list<string>  $granted
      * @return list<array{tool: string, since: string}>
      */
-    protected static function newTools(Principal $principal, array $granted): array
+    public static function newTools(Principal $principal, array $granted, ?string $server = null): array
     {
-        $server = app(McpCallContext::class)->server();
+        $server ??= app(McpCallContext::class)->server();
         $connected = $principal->connectedAt();
 
         if ($server === null || $connected === null) {

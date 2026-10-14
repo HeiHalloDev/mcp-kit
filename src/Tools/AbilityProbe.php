@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace HeiHallo\McpKit\Tools;
 
+use HeiHallo\McpKit\Contracts\AbilityCatalogue;
+use HeiHallo\McpKit\Principal;
 use HeiHallo\McpKit\Tools\Concerns\ChecksAbilities;
 use Laravel\Mcp\Request;
 
@@ -19,5 +21,14 @@ final class AbilityProbe
     public function allows(Request $request, string $ability): bool
     {
         return $this->computeAbilityDenial($request, $ability) === null;
+    }
+
+    /**
+     * Whether the principal's token carries the ability, by a wildcard too,
+     * as the tools themselves decide it.
+     */
+    public function grants(Principal $principal, string $ability): bool
+    {
+        return $this->tokenGrants($principal, app(AbilityCatalogue::class)->canonical($ability));
     }
 }

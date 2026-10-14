@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.30.0 — 2026-10-14
+
+- **Messages to the people using the tools, delivered by their own assistant.** A message rides first in the result of the person's next tool call in the app, whatever the tool, until their assistant confirms with `message_delivered` that it told them. It comes back at most `messages.max_shows` times (5), at most `messages.per_call` at once (3), and stops at its expiry (14 days by default). It needs nothing from the client, so it reaches Claude and ChatGPT, sign-in and pasted tokens alike. New tables `mcp_messages` and `mcp_message_receipts`.
+- `send_message`: anyone using the tools can message colleagues by name or e-mail ("the course is ready for you to review"). Messaging everyone, or everyone holding an ability, is for Owner and Dev. `list_messages` shows per person whether a message was delivered, shown but not confirmed, or not seen yet. The usage page has the same form and record.
+- **Gap answers arrive the same way.** The answer to a gap someone reported used to sit in `whoami` and count as heard the moment `whoami` was read, whether or not the assistant passed it on, and a staff member learned in a meeting about tools built for him weeks before. Now it is a message, and it counts as heard only when an assistant confirms. Answers settled more than `messages.gap_answers_days` (30) ago are not sent, so the first release does not deliver every old answer at once. `whoami` lists every message still waiting and marks nothing.
+- **Reconnect, by itself.** A connection made by signing in (claude.ai, ChatGPT) keeps the tool list it saw when connecting. When tools the person may use have arrived since, a message tells them which, and to disconnect and connect again. A pasted token in Claude Code or Codex fetches the tools every session and is not told. `messages.reconnect` turns it off.
+- The ground rules gain a Messages section: what a MESSAGE FOR block is, to tell the person in the next reply, and to confirm with `message_delivered`. `messages.enabled` turns the whole thing off and brings back the old `whoami` answers.
+
 ## v1.29.0 — 2026-10-12
 
 - **Runs on laravel/mcp 1.0.** The constraint is now `^0.9|^1.0`, so apps can move to laravel/ai 1.x, which requires laravel/mcp 1.0. The kit used none of what 1.0 removed (session ids, `SessionInitialized`, `CAPABILITY_UI`), and the whole suite passes on 1.0.1 unchanged. Clients that still open with `initialize`, which includes claude.ai connectors today, keep working: laravel/mcp answers them on the protocol version they ask for.

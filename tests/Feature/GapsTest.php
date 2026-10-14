@@ -294,7 +294,7 @@ test('the person who reported a gap hears what came of it, once', function () {
     // Nothing has happened to it yet, so there is nothing to pass on.
     AcmeServer::actingAs($staff)
         ->resource(MeResource::class)
-        ->assertDontSee('What came of what you asked for');
+        ->assertDontSee('Messages for');
 
     $admin = actingWith(acmeAdmin(), ['acme:things:read']);
     $id = app(GapStore::class)->list()[0]->id;
@@ -309,17 +309,18 @@ test('the person who reported a gap hears what came of it, once', function () {
     // The admin never reported it, so it is not their answer to hear.
     AcmeServer::actingAs($admin)
         ->resource(MeResource::class)
-        ->assertDontSee('What came of what you asked for');
+        ->assertDontSee('Messages for');
 
     AcmeServer::actingAs($staff)
         ->resource(MeResource::class)
-        ->assertSee('What came of what you asked for')
+        ->assertSee('Messages for')
         ->assertSee('move_signup now takes a target study.');
 
-    // Said once. A profile that repeats an answer every session is a nag.
+    // Reading the profile is not telling them: the answer stays until an
+    // assistant confirms with message_delivered that it passed it on.
     AcmeServer::actingAs($staff)
         ->resource(MeResource::class)
-        ->assertDontSee('What came of what you asked for');
+        ->assertSee('move_signup now takes a target study.');
 });
 
 test('a runaway title is cut to fit, never crashed on', function () {

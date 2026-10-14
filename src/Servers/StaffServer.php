@@ -15,8 +15,11 @@ use HeiHallo\McpKit\Mcp\Tools\GetGroundRulesTool;
 use HeiHallo\McpKit\Mcp\Tools\GettingStartedTool;
 use HeiHallo\McpKit\Mcp\Tools\GetUsageTool;
 use HeiHallo\McpKit\Mcp\Tools\ListGapsTool;
+use HeiHallo\McpKit\Mcp\Tools\ListMessagesTool;
 use HeiHallo\McpKit\Mcp\Tools\ListPlaybooksTool;
+use HeiHallo\McpKit\Mcp\Tools\MessageDeliveredTool;
 use HeiHallo\McpKit\Mcp\Tools\RunPlaybookTool;
+use HeiHallo\McpKit\Mcp\Tools\SendMessageTool;
 use HeiHallo\McpKit\Mcp\Tools\WhoAmITool;
 use HeiHallo\McpKit\Playbooks\PlaybookPrompts;
 use HeiHallo\McpKit\Tools\ToolAppearances;
@@ -159,6 +162,15 @@ abstract class StaffServer extends Server
 
         foreach ((array) config('mcp-kit.shared.prompts', []) as $prompt) {
             $this->appendUnique($this->prompts, $prompt);
+        }
+
+        // Messages between the people using the tools, and from the people
+        // running the app: delivered on tool results, confirmed by the
+        // assistant that passed them on.
+        if (config('mcp-kit.messages.enabled', true)) {
+            $this->appendUnique($this->tools, SendMessageTool::class);
+            $this->appendUnique($this->tools, MessageDeliveredTool::class);
+            $this->appendUnique($this->tools, ListMessagesTool::class);
         }
     }
 
