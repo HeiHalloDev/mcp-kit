@@ -537,6 +537,8 @@ return [
         'enabled' => true,
         'max_shows' => 5,
         'per_call' => 3,
+        // How long a message to everyone, or to an ability, keeps being
+        // delivered. A message to named people waits until it reaches them.
         'expires_days' => 14,
         // Tell a person, the same way, when tools they may use arrived
         // after they connected and their client still shows the old list.

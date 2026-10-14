@@ -35,7 +35,7 @@ class SendMessageTool extends StaffTool
             'ability' => ['type' => 'string', 'description' => 'Owner and Dev: everyone whose connection holds this ability, e.g. a new tool\'s ability.'],
             'everyone' => ['type' => 'boolean', 'description' => 'Owner and Dev: everyone who uses the tools here.'],
             'server' => ['type' => 'string', 'description' => 'Only on this server of the app. Leave out for all of them.'],
-            'expires_days' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 90, 'description' => 'Stop delivering after this many days. Defaults to 14.'],
+            'expires_days' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 90, 'description' => 'Stop delivering after this many days. A message to named people waits until it reaches them unless you set this; one to everyone or an ability stops after 14 days.'],
             'confirm' => ['type' => 'boolean', 'description' => 'Preview without it; send with true.'],
         ],
         'required' => ['body'],
@@ -89,7 +89,11 @@ class SendMessageTool extends StaffTool
             return Response::error($people);
         }
 
-        $days = min(max($request->integer('expires_days', (int) config('mcp-kit.messages.expires_days', 14)), 1), 90);
+        $broadcast = $everyone || $ability !== null;
+        $days = $request->get('expires_days') !== null
+            ? min(max($request->integer('expires_days'), 1), 90)
+            : ($broadcast ? (int) config('mcp-kit.messages.expires_days', 14) : null);
+        $expiresAt = $days === null ? null : now()->addDays($days);
 
         return $this->previewOrExecute($request, array_filter([
             'to' => array_column($people, 'name') ?: null,
@@ -99,9 +103,9 @@ class SendMessageTool extends StaffTool
             'from' => $principal->name,
             'message' => $body,
             'delivered' => 'by their own assistant, on their next tool calls in this app, until it confirms it told them',
-            'expires' => now()->addDays($days)->toDateString(),
-        ], fn ($value) => $value !== null), function () use ($messages, $body, $people, $ability, $everyone, $server, $principal, $days): array {
-            $message = $messages->send($body, array_column($people, 'name'), $ability, $everyone, $server, $principal->name, now()->addDays($days));
+            'expires' => $expiresAt?->toDateString() ?? 'never: it waits until it reaches them',
+        ], fn ($value) => $value !== null), function () use ($messages, $body, $people, $ability, $everyone, $server, $principal, $expiresAt): array {
+            $message = $messages->send($body, array_column($people, 'name'), $ability, $everyone, $server, $principal->name, $expiresAt);
 
             return ['sent' => $message->key(), 'to' => array_column($people, 'name'), 'check' => 'list_messages shows when it reaches them.'];
         }, 'send a message');

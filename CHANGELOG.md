@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.30.2 — 2026-10-14
+
+- **A message to named people waits until it reaches them.** It expired after 14 days like a broadcast, so a colleague's note to someone who stayed away from the tools for a while was lost unseen. Now only a message to everyone, or to an ability, expires (`messages.expires_days`, 14). `send_message` still takes `expires_days` for a personal message that should go stale.
+
 ## v1.30.1 — 2026-10-14
 
 - An app that has not migrated the message tables yet keeps a working `whoami`. One query sat outside the guard, so a missing table emptied the whole profile instead of leaving the messages out. Found by an app's own guard test during the v1.30.0 rollout.

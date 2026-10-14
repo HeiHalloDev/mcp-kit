@@ -8,6 +8,7 @@ use HeiHallo\McpKit\Messages\Messages;
 use HeiHallo\McpKit\Models\Message;
 use HeiHallo\McpKit\Testing\Mcp;
 use HeiHallo\McpKit\Tests\Fixtures\Mcp\Tools\ListThingsTool;
+use HeiHallo\McpKit\Tests\Fixtures\Models\User;
 use HeiHallo\McpKit\Tools\ToolAppearances;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -136,4 +137,19 @@ it('leaves whoami and tool calls working in an app that has not migrated the mes
 
     expect((string) Mcp::call($token, '/mcp/acme', 'whoami', [])->json('result.content.0.text'))->toContain('Kari Kollega')
         ->and(firstBlock($token))->not->toContain('MESSAGE FOR');
+});
+
+it('keeps a message to a named person until it reaches them, while a broadcast goes stale', function () {
+    $sender = acmeToken(acmeAdmin(), ['acme:*']);
+    acmeUser(attributes: ['name' => 'Kari Kollega']);
+
+    confirmSend($sender, ['to' => ['Kari Kollega'], 'body' => 'Når du er tilbake: kurset er klart.']);
+    confirmSend($sender, ['everyone' => true, 'body' => 'Koble til på nytt denne uken.']);
+
+    expect(Message::query()->where('to_everyone', false)->value('expires_at'))->toBeNull();
+
+    $this->travel(40)->days();
+    $kari = acmeToken(User::query()->where('name', 'Kari Kollega')->sole(), ['acme:things:read']);
+
+    expect(firstBlock($kari))->toContain('kurset er klart')->not->toContain('Koble til på nytt');
 });

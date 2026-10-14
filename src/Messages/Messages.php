@@ -48,7 +48,9 @@ class Messages
             'to_everyone' => $everyone,
             'server' => $server ?: null,
             'sent_by' => $from,
-            'expires_at' => $expiresAt ?? now()->addDays((int) config('mcp-kit.messages.expires_days', 14)),
+            // A message to named people waits until it reaches them, however
+            // long they stay away. A broadcast ("reconnect") goes stale.
+            'expires_at' => $expiresAt ?? ($everyone || $ability ? now()->addDays((int) config('mcp-kit.messages.expires_days', 14)) : null),
         ]);
     }
 
