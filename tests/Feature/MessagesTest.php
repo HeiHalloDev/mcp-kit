@@ -10,6 +10,7 @@ use HeiHallo\McpKit\Testing\Mcp;
 use HeiHallo\McpKit\Tests\Fixtures\Mcp\Tools\ListThingsTool;
 use HeiHallo\McpKit\Tools\ToolAppearances;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /*
  * Messages reach a person through their own assistant: on top of the
@@ -126,4 +127,13 @@ it('tells a sign-in connection about tools that arrived after it connected, neve
 
     expect(firstBlock($signedIn))->toContain('MESSAGE FOR')->toContain('`list_things`')->toContain('connect it again')
         ->and(firstBlock($pasted))->not->toContain('MESSAGE FOR');
+});
+
+it('leaves whoami and tool calls working in an app that has not migrated the message tables', function () {
+    Schema::drop('mcp_message_receipts');
+    Schema::drop('mcp_messages');
+    $token = acmeToken(acmeUser(attributes: ['name' => 'Kari Kollega']), ['acme:things:read']);
+
+    expect((string) Mcp::call($token, '/mcp/acme', 'whoami', [])->json('result.content.0.text'))->toContain('Kari Kollega')
+        ->and(firstBlock($token))->not->toContain('MESSAGE FOR');
 });

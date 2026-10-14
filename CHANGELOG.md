@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.30.1 — 2026-10-14
+
+- An app that has not migrated the message tables yet keeps a working `whoami`. One query sat outside the guard, so a missing table emptied the whole profile instead of leaving the messages out. Found by an app's own guard test during the v1.30.0 rollout.
+
 ## v1.30.0 — 2026-10-14
 
 - **Messages to the people using the tools, delivered by their own assistant.** A message rides first in the result of the person's next tool call in the app, whatever the tool, until their assistant confirms with `message_delivered` that it told them. It comes back at most `messages.max_shows` times (5), at most `messages.per_call` at once (3), and stops at its expiry (14 days by default). It needs nothing from the client, so it reaches Claude and ChatGPT, sign-in and pasted tokens alike. New tables `mcp_messages` and `mcp_message_receipts`.

@@ -94,18 +94,19 @@ class Messages
                     'sent_at' => $gap->resolvedAt?->format(DATE_ATOM),
                 ];
             }
+
+            $receipts = MessageReceipt::query()
+                ->where('recipient', $principal->name)
+                ->whereIn('message_key', array_column($pending, 'key'))
+                ->get()
+                ->keyBy('message_key');
         } catch (Throwable $e) {
-            // An app that has not migrated yet still answers its tool calls.
+            // An app that has not migrated yet still answers its tool calls
+            // and its whoami.
             report($e);
 
             return [];
         }
-
-        $receipts = MessageReceipt::query()
-            ->where('recipient', $principal->name)
-            ->whereIn('message_key', array_column($pending, 'key'))
-            ->get()
-            ->keyBy('message_key');
 
         return array_values(array_filter($pending, function (array $item) use ($receipts, $shownCap): bool {
             $receipt = $receipts->get($item['key']);
