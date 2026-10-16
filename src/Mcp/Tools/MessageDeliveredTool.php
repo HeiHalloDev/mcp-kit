@@ -9,16 +9,18 @@ use HeiHallo\McpKit\Messages\Messages;
 use HeiHallo\McpKit\Tools\StaffTool;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 
 /**
  * The assistant's word that it told the person. Until then a message keeps
  * coming back on their tool results.
  */
+#[IsIdempotent]
 class MessageDeliveredTool extends StaffTool
 {
     protected string $name = 'message_delivered';
 
-    protected string $description = 'Confirm you passed on a MESSAGE FOR the person you are helping. Call it right after telling them, with the ids shown in square brackets, e.g. ["message:12", "gap:7:1760000000"]. Until you do, the message comes back on their tool results. Only for messages you actually passed on.';
+    protected string $description = 'Confirm you passed on a MESSAGE FOR the person you are helping: bookkeeping only, it changes nothing in the app except that the message stops repeating. Call it right after the reply in which you told them, with the ids shown in square brackets, e.g. ["message:12", "gap:7:1760000000"]. Until you do, the message comes back on their tool results. Only for messages you actually passed on.';
 
     /** @var array<string, mixed> */
     protected array $inputSchema = [

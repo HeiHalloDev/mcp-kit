@@ -458,3 +458,19 @@ test('two rows describing one thing are merged, reporters and all', function () 
         ->and($closed->status)->toBe(Gap::DECLINED)
         ->and($closed->resolution)->toContain('#'.$survivor->id);
 });
+
+it('lets privileged staff file a gap as someone else\'s report, so the answer goes to them', function () {
+    $admin = acmeToken(acmeAdmin(), ['acme:*']);
+    $staff = acmeToken(acmeUser(attributes: ['name' => 'Siri Sender']), ['acme:things:read']);
+    acmeUser(attributes: ['name' => 'Benjamin Christensen', 'email' => 'benjamin@example.com']);
+
+    $args = ['title' => 'cannot correct Norwegian movement texts', 'need' => 'Correct them', 'missing' => 'An edit tool', 'for' => 'Benjamin', 'confirm' => true];
+
+    expect(Mcp::call($staff, '/mcp/acme', 'report_gap', $args)->json('result.isError'))->toBeTrue();
+
+    Mcp::call($admin, '/mcp/acme', 'report_gap', $args)->assertSuccessful();
+
+    $gap = app(GapStore::class)->openMatching(Gap::key('cannot correct Norwegian movement texts'));
+
+    expect(array_column($gap->reporters, 'name'))->toBe(['Benjamin Christensen']);
+});

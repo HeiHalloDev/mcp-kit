@@ -402,6 +402,11 @@ return [
         'access_minutes' => 60,
         'refresh_days' => 30,
         'refresh_grace_seconds' => 60,
+        // A client that comes back with the refresh token it already swapped
+        // gets the current pair within this many minutes (ChatGPT and Codex
+        // do this for minutes on end). Later is treated as a stolen token:
+        // the sign-in is revoked and its owner is told.
+        'refresh_reuse_minutes' => 1440,
         'code_seconds' => 60,
         'client_idle_days' => 90,
         'register_per_minute' => 10,

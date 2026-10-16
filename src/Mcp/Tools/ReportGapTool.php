@@ -5,15 +5,19 @@ declare(strict_types=1);
 namespace HeiHallo\McpKit\Mcp\Tools;
 
 use HeiHallo\McpKit\Contracts\GapStore;
+use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Events\GapReported;
 use HeiHallo\McpKit\Events\GapStatusChanged;
 use HeiHallo\McpKit\Gaps\ComposesGaps;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Memory\SecretDetector;
+use HeiHallo\McpKit\Messages\Recipients;
 use HeiHallo\McpKit\Neighbours\Neighbours;
 use HeiHallo\McpKit\Principal;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use HeiHallo\McpKit\Tools\StaffTool;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -39,6 +43,7 @@ class ReportGapTool extends StaffTool
             'tool' => ['type' => 'string', 'description' => 'The tool they reached for, if there was one.'],
             'blocking' => ['type' => 'boolean', 'description' => 'True when it stopped the work, false when they found a way round.'],
             'note' => ['type' => 'string', 'description' => 'What this person said about it, kept alongside their name.'],
+            'for' => ['type' => 'string', 'description' => 'Privileged only: file it as this person\'s report (name, first name or e-mail of someone with an account here), when they asked for it some other way, by e-mail or in a meeting. The answer then goes to them, not to you.'],
             'status' => ['type' => 'string', 'enum' => ['open', 'planned', 'done', 'declined'], 'description' => 'Privileged only: move an existing gap.'],
             'resolution' => ['type' => 'string', 'description' => 'Privileged only: what was decided or built, when setting status.'],
             'gap' => ['type' => 'string', 'description' => 'Privileged only: the id of the gap to move. Leave it out to file a new one — pass status and resolution with it to file and settle in one call.'],
@@ -91,14 +96,20 @@ class ReportGapTool extends StaffTool
             return Response::error($e->getMessage());
         }
 
+        $reporter = $this->reporterFor($request, $principal);
+
+        if ($reporter instanceof Response) {
+            return $reporter;
+        }
+
         $store = app(GapStore::class);
         $existing = $store->openMatching($key);
         $note = trim((string) $request->get('note', ''));
         $blocking = filter_var($request->get('blocking', false), FILTER_VALIDATE_BOOL);
 
-        if ($existing !== null && $existing->reportedBy($principal->name)) {
+        if ($existing !== null && $existing->reportedBy($reporter->name)) {
             return Response::error(sprintf(
-                "You already reported '%s' — it is open with %d %s behind it. Nothing more to add unless something changed.",
+                ($reporter === $principal ? 'You' : $reporter->name)." already reported '%s' — it is open with %d %s behind it. Nothing more to add unless something changed.",
                 $existing->title,
                 $existing->reports,
                 $existing->reports === 1 ? 'report' : 'reports',
@@ -106,7 +117,7 @@ class ReportGapTool extends StaffTool
         }
 
         $gap = $this->composeGap(
-            $principal,
+            $reporter,
             title: $title,
             need: $need,
             missing: $missing,
@@ -142,6 +153,7 @@ class ReportGapTool extends StaffTool
                 'blocking' => $gap->blocking ? 'yes — it stopped the work' : 'no — there was a way round',
                 'may_live_in' => $elsewhere === null ? null : app(Neighbours::class)->hint($elsewhere),
                 'files_as' => $settle === null ? null : $settle['status'].': '.$settle['resolution'],
+                'reported_by' => $reporter === $principal ? null : $reporter->name.' (the answer goes to them)',
                 'goes_to' => 'the people who build this app',
             ], static fn (mixed $value): bool => $value !== null),
             function () use ($store, $gap, $principal, $existing, $settle): array {
@@ -191,6 +203,38 @@ class ReportGapTool extends StaffTool
         }
 
         return ['status' => $status, 'resolution' => $resolution];
+    }
+
+    /**
+     * Whose report this is: the caller's, or with `for` (privileged), the
+     * named person's. A staff member's assistant e-mailed its findings when
+     * it could not reach the developer; filed by the developer, the gaps
+     * counted as his and the answers came back to him instead.
+     */
+    protected function reporterFor(Request $request, Principal $principal): Principal|Response
+    {
+        $for = trim((string) $request->get('for', ''));
+
+        if ($for === '') {
+            return $principal;
+        }
+
+        if (! $principal->privileged) {
+            return Response::error('Filing a gap for someone else is for privileged staff. File it as your own, or ask them to file it.');
+        }
+
+        $matches = app(Recipients::class)->matchAnyone($principal->tokenable instanceof Model ? $principal->tokenable : throw new \LogicException('No user model.'), $for);
+
+        if ($matches->count() !== 1) {
+            return Response::error($matches->isEmpty()
+                ? "Nobody here is called or has the address \"{$for}\"."
+                : "\"{$for}\" matches ".$matches->count().' people ('.$matches->map(fn (Model $person): string => (string) $person->getAttribute('name'))->implode(', ').'); use their full name or e-mail.');
+        }
+
+        $person = $matches->first();
+        $resolved = $person instanceof Authenticatable ? app(PrincipalResolver::class)->resolve($person) : null;
+
+        return $resolved ?? Response::error("\"{$for}\" cannot report gaps here.");
     }
 
     /**

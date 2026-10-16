@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.31.1 — 2026-10-16
+
+- **A sign-in survives a client that sends its old refresh token again.** ChatGPT and Codex kept presenting the refresh token they had just swapped, 79 seconds to half an hour later. With a 60-second grace window the kit took that for a stolen token and revoked the sign-in: one staff member lost theirs five times in four days, another a day after connecting, and nobody was told. Now the swapped token gets the current pair back for `oauth.refresh_reuse_minutes` (1440), with a fresh access token when the first has expired, so both copies of the client agree again. Later than that is still treated as theft and revokes the grant.
+- **A revoked sign-in tells its owner.** A message waits for them, saying why and to connect again, and reaches them on their next connection.
+- **`report_gap` with `for`** (Owner and Dev): file a gap as someone else's report when they asked by e-mail or in a meeting, so the answer goes to them. Anyone with an account here can be named; they need no connection.
+- `message_delivered` says it is bookkeeping only and is marked idempotent, so a client's own approval check is less likely to stop it.
+
 ## v1.31.0 — 2026-10-16
 
 - **A message reaches the people who use the tools, and only them.** `send_message` searched the whole users table, so it found customers and students who would never see a message, and refused a first name: a staff member's assistant wrote to "Anders", found nobody, and his whole review of the content stayed on his own machine. Now a recipient must hold a token or a sign-in here, and a full name, first name, part of a name or e-mail is enough when it fits one person. Several matches are named back so the assistant can ask which. Nobody found lists some people who can be reached.

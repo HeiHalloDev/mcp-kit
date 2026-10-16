@@ -9,6 +9,7 @@ use HeiHallo\McpKit\Contracts\AuditWriter;
 use HeiHallo\McpKit\Contracts\PresetResolver;
 use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Exceptions\TokenRefused;
+use HeiHallo\McpKit\Messages\Messages;
 use HeiHallo\McpKit\Models\OAuthClient;
 use HeiHallo\McpKit\Models\OAuthCode;
 use HeiHallo\McpKit\Models\OAuthGrant;
@@ -20,6 +21,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -279,8 +281,13 @@ class AuthorizationServer
     /**
      * grant_type=refresh_token. The presented token is swapped for a new
      * pair. Presented again within the grace window (a retry, or two
-     * requests racing), it gets the same new pair back; later than that it
-     * is a stolen token being replayed, and the whole grant is revoked.
+     * requests racing), it gets the same new pair back. Within the reuse
+     * window it still does, with a fresh access token when the first has
+     * expired: ChatGPT and Codex kept sending the token they had just
+     * swapped for minutes afterwards, and a 60-second window revoked one
+     * staff member's sign-in five times in four days, silently. Later than
+     * that it is a stolen token being replayed, and the whole grant is
+     * revoked, and its owner is told.
      *
      * @return array<string, mixed>
      *
@@ -323,11 +330,97 @@ class AuthorizationServer
                     return json_decode(Crypt::decryptString($grant->grace_payload), true);
                 }
 
+                $window = (int) config('mcp-kit.oauth.refresh_reuse_minutes', 1440) * 60;
+
+                if ($grant->rotated_at !== null && $grant->rotated_at->diffInSeconds(Carbon::now()) <= $window && $grant->grace_payload !== null) {
+                    return $this->current($grant, $client);
+                }
+
                 $this->revoke($grant, 'refresh_reuse');
+                $this->tellRevoked($grant, $client);
             }
 
             throw new OAuthException('invalid_grant', 'The refresh token is not valid.');
         });
+    }
+
+    /**
+     * The pair the grant holds now, for a client that came back with the
+     * token it had already swapped. Same refresh token, so both copies of
+     * the client agree again; a new access token when the old one is gone.
+     *
+     * @return array<string, mixed>
+     */
+    protected function current(OAuthGrant $grant, OAuthClient $client): array
+    {
+        $payload = (array) json_decode(Crypt::decryptString((string) $grant->grace_payload), true);
+        $token = $this->accessToken($grant);
+
+        if ($token !== null && ($token->expires_at === null || $token->expires_at->isFuture())) {
+            $payload['expires_in'] = $token->expires_at !== null ? max(0, (int) Carbon::now()->diffInSeconds($token->expires_at)) : $payload['expires_in'] ?? null;
+
+            return $payload;
+        }
+
+        $user = $this->user($grant->user_id);
+        $minutes = max(5, (int) config('mcp-kit.oauth.access_minutes', 60));
+        $abilities = array_values(array_filter(explode(' ', (string) ($payload['scope'] ?? ''))));
+
+        try {
+            $fresh = $this->minter->mintForGrant($user, $client->name, $abilities, Carbon::now()->addMinutes($minutes));
+        } catch (TokenRefused $e) {
+            $this->revoke($grant, 'refused');
+
+            throw new OAuthException('invalid_grant', $e->getMessage());
+        }
+
+        $token?->delete();
+
+        $payload['access_token'] = $fresh->plainTextToken;
+        $payload['expires_in'] = $minutes * 60;
+
+        $grant->forceFill([
+            'access_token_id' => $fresh->accessToken->getKey(),
+            'grace_payload' => Crypt::encryptString((string) json_encode($payload)),
+            'last_used_at' => Carbon::now(),
+        ])->save();
+
+        return $payload;
+    }
+
+    /**
+     * A revoked sign-in used to vanish without a word: the person found out
+     * when a colleague could not reach them. Now they hear why, through
+     * their own assistant, the next time they connect.
+     */
+    protected function tellRevoked(OAuthGrant $grant, OAuthClient $client): void
+    {
+        try {
+            $user = $this->user($grant->user_id);
+            $name = (string) ($user->getAttribute('name') ?? '');
+
+            if ($name === '') {
+                return;
+            }
+
+            $page = config('mcp-kit.ui.memory_url') ?: (Route::has('mcp-kit.tokens') ? route('mcp-kit.tokens') : null);
+
+            app(Messages::class)->send(
+                sprintf(
+                    'The %s sign-in to this app was closed on %s, because a sign-in key that had already been replaced was used again much later, which is what a stolen key looks like. If it was you, nothing is wrong: connect again%s, and tell the people who run the app if it keeps happening.',
+                    $client->name,
+                    Carbon::now()->format('j M Y H:i'),
+                    $page ? ' from '.$page : '',
+                ),
+                [$name],
+                null,
+                false,
+                $grant->resource ?: null,
+                (string) config('app.name', 'this app'),
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /**

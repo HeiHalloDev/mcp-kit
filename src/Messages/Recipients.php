@@ -146,6 +146,35 @@ class Recipients
     }
 
     /**
+     * Anyone with an account here, for filing a gap on someone's behalf:
+     * they need not hold a connection, since the answer waits for them.
+     *
+     * @return Collection<int, Model>
+     */
+    public function matchAnyone(Model $model, string $who): Collection
+    {
+        $who = trim($who);
+        $lower = mb_strtolower($who);
+
+        if ($who === '') {
+            return new Collection;
+        }
+
+        $exact = $model->newQuery()
+            ->where(fn (Builder $query) => $query->whereRaw('lower(email) = ?', [$lower])->orWhereRaw('lower(name) = ?', [$lower]))
+            ->limit(5)
+            ->get();
+
+        if ($exact->isNotEmpty() || str_contains($who, '@')) {
+            return $exact;
+        }
+
+        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $lower).'%';
+
+        return $model->newQuery()->whereRaw('lower(name) like ?', [$like])->limit(5)->get();
+    }
+
+    /**
      * Some names of people who can be reached, for a reply that found nobody.
      *
      * @return list<string>

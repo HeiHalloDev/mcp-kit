@@ -6,6 +6,7 @@ use HeiHallo\McpKit\Contracts\ConfirmsFreshLogin;
 use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Contracts\TokenPolicy;
 use HeiHallo\McpKit\Livewire\ConnectedApps;
+use HeiHallo\McpKit\Models\Message;
 use HeiHallo\McpKit\Models\OAuthClient;
 use HeiHallo\McpKit\Models\OAuthGrant;
 use HeiHallo\McpKit\OAuth\SsoConfirmsFreshLogin;
@@ -342,7 +343,7 @@ test('the old refresh token answers with the same new pair inside the grace wind
 
     expect(refreshWith($client, $first['refresh_token'])->assertOk()->json('access_token'))->toBe($second['access_token']);
 
-    $this->travel(2)->minutes();
+    $this->travel(25)->hours();
 
     refreshWith($client, $first['refresh_token'])->assertStatus(400)->assertJsonPath('error', 'invalid_grant');
 
@@ -350,6 +351,50 @@ test('the old refresh token answers with the same new pair inside the grace wind
         ->and(PersonalAccessToken::findToken($second['access_token']))->toBeNull();
 
     refreshWith($client, $second['refresh_token'])->assertStatus(400);
+});
+
+test('a client that sends the token it already swapped, minutes or an hour later, stays signed in and agrees with its other copy', function () {
+    bootOAuth();
+    ['client' => $client, 'tokens' => $first] = signedIn(acmeUser());
+
+    $second = refreshWith($client, $first['refresh_token'])->assertOk()->json();
+
+    // ChatGPT came back with the swapped token 79 seconds later; Codex
+    // after half an hour. Both used to revoke the sign-in.
+    $this->travel(30)->minutes();
+    $late = refreshWith($client, $first['refresh_token'])->assertOk()->json();
+
+    expect($late['refresh_token'])->toBe($second['refresh_token'])
+        ->and($late['access_token'])->toBe($second['access_token'])
+        ->and(OAuthGrant::query()->sole()->revoked_at)->toBeNull();
+
+    // After the access token has expired the same pair comes back with a fresh one.
+    $this->travel(2)->hours();
+    $later = refreshWith($client, $first['refresh_token'])->assertOk()->json();
+
+    expect($later['refresh_token'])->toBe($second['refresh_token'])
+        ->and($later['access_token'])->not->toBe($second['access_token']);
+
+    Mcp::listTools($later['access_token'], '/mcp/acme')->assertOk();
+
+    // The copy holding the current token carries on as normal.
+    refreshWith($client, $second['refresh_token'])->assertOk();
+});
+
+test('a revoked sign-in tells its owner why, the next time they connect', function () {
+    bootOAuth();
+    $user = acmeUser(attributes: ['name' => 'Kari Kollega']);
+    ['client' => $client, 'tokens' => $first] = signedIn($user);
+
+    refreshWith($client, $first['refresh_token'])->assertOk();
+    $this->travel(25)->hours();
+    refreshWith($client, $first['refresh_token'])->assertStatus(400);
+
+    $message = Message::query()->sole();
+
+    expect($message->to_people)->toBe(['Kari Kollega'])
+        ->and($message->body)->toContain('connect again')
+        ->and($message->expires_at)->toBeNull();
 });
 
 test('an ability the person lost drops out at the next refresh, and losing all of them ends the grant', function () {
