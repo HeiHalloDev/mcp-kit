@@ -6,6 +6,7 @@ namespace HeiHallo\McpKit\GroundRules;
 
 use HeiHallo\McpKit\Contracts\GroundRules;
 use HeiHallo\McpKit\Contracts\Section;
+use HeiHallo\McpKit\Messages\Recipients;
 use HeiHallo\McpKit\Neighbours\Neighbours;
 use HeiHallo\McpKit\Principal;
 use HeiHallo\McpKit\Servers\ServerRegistry;
@@ -150,6 +151,7 @@ class SectionedGroundRules implements GroundRules
             'intro' => config('mcp-kit.ground_rules.intro'),
             'explicitOnly' => array_map('strval', (array) config('mcp-kit.catalogue.explicit_only', [])),
             'memoryUrl' => config('mcp-kit.ui.memory_url'),
+            'builder' => app(Recipients::class)->builderNameOrNull($principal?->tokenable),
         ];
     }
 

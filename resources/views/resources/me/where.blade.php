@@ -10,3 +10,8 @@
 - Inboxes: {!! implode(', ', $description->inboxes) !!}
 @endif
 @endif
+@if (($builder ?? null) !== null)
+
+## Who runs this app
+- {!! $builder !!}. To tell them something: `send_message` to "dev". To ask for a tool, a fix or access: `report_gap`.
+@endif

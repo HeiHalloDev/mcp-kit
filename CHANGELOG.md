@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.31.0 — 2026-10-16
+
+- **A message reaches the people who use the tools, and only them.** `send_message` searched the whole users table, so it found customers and students who would never see a message, and refused a first name: a staff member's assistant wrote to "Anders", found nobody, and his whole review of the content stayed on his own machine. Now a recipient must hold a token or a sign-in here, and a full name, first name, part of a name or e-mail is enough when it fits one person. Several matches are named back so the assistant can ask which. Nobody found lists some people who can be reached.
+- **"dev" reaches the developer.** The developer is whoever holds a role in `people.builder_roles` (Dev by default) and uses the tools; an app without roles falls back to its privileged people. New `people.builder` (name, aliases, e-mails) is what people call them, whatever the account is called, so "Anders", "HeiHallo" or either address reach the same account. `whoami` and the ground rules say who builds and runs the app and that "dev" reaches them.
+- A request for a tool, a fix or access is pointed to `report_gap`, in the ground rules and in the reply when a recipient is not found.
+
 ## v1.30.3 — 2026-10-14
 
 - **A reconnect reminder can be confirmed.** `message_delivered` looked for waiting messages without the server the call came in on, and a reconnect reminder belongs to one server, so confirming one answered "not waiting" and the reminder came back on every tool result until it had been shown five times.

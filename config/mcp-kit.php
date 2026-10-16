@@ -533,6 +533,22 @@ return [
     |
     */
 
+    /*
+    | Who builds and runs this app. `send_message` to "dev" (or the name, an
+    | alias or an address below) reaches them, and whoami and the ground
+    | rules name them, so an assistant always knows who to write to. The
+    | developer is whoever holds a builder role and uses the tools; the name
+    | is what people call them, whatever the account is called.
+    */
+    'people' => [
+        'builder' => [
+            'name' => null,
+            'aliases' => [],
+            'emails' => [],
+        ],
+        'builder_roles' => ['Dev'],
+    ],
+
     'messages' => [
         'enabled' => true,
         'max_shows' => 5,

@@ -208,7 +208,7 @@ test('the person filter narrows the work to one person', function () {
 });
 
 test('sends a message from the page to named people or everyone, and shows how far it got', function () {
-    acmeUser(attributes: ['name' => 'Kari Kollega', 'email' => 'kari@example.com']);
+    acmeToken(acmeUser(attributes: ['name' => 'Kari Kollega', 'email' => 'kari@example.com']), ['acme:things:read']);
     $this->actingAs(acmeAdmin());
 
     Livewire::test(UsagePage::class)

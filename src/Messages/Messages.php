@@ -123,45 +123,54 @@ class Messages
     }
 
     /**
-     * The people behind the names and addresses given, or why not.
+     * The people behind the names and addresses given, or why not. Only
+     * people who use the tools here can be reached; "dev" and the
+     * configured builder's name reach the developer.
      *
      * @param  list<string>  $to
      * @return list<array{name: string, address: string}>|string
      */
     public function resolvePeople(mixed $model, array $to): array|string
     {
-
         if (! $model instanceof Model) {
             return 'People cannot be looked up in this app.';
         }
 
+        $recipients = app(Recipients::class);
         $found = [];
         $problems = [];
 
         foreach ($to as $who) {
-            $matches = $model->newQuery()
-                ->whereRaw('lower(email) = ?', [mb_strtolower($who)])
-                ->orWhereRaw('lower(name) = ?', [mb_strtolower($who)])
-                ->limit(3)
-                ->get();
+            $matches = $recipients->match($model, (string) $who);
+            $builder = $recipients->isBuilderWord((string) $who);
 
             if ($matches->isEmpty()) {
-                $problems[] = "nobody here is called or has the address \"{$who}\"";
+                $problems[] = "nobody who uses the tools here is called or has the address \"{$who}\"";
 
                 continue;
             }
 
-            if ($matches->count() > 1) {
-                $problems[] = "\"{$who}\" matches more than one person; use their e-mail";
+            // The developer may be more than one account; a name is not.
+            if ($matches->count() > 1 && ! $builder) {
+                $problems[] = "\"{$who}\" matches ".$matches->count().' people ('.$matches->map(fn (Model $person): string => (string) $person->getAttribute('name'))->implode(', ').'); say which';
 
                 continue;
             }
 
-            $person = $matches->first();
-            $found[] = ['name' => (string) $person->getAttribute('name'), 'address' => (string) ($person->getAttribute('email') ?: $person->getAttribute('name'))];
+            foreach ($matches as $person) {
+                $found[(string) $person->getKey()] = ['name' => (string) $person->getAttribute('name'), 'address' => (string) ($person->getAttribute('email') ?: $person->getAttribute('name'))];
+            }
         }
 
-        return $problems === [] ? $found : 'Nothing was sent: '.implode('; ', $problems).'.';
+        if ($problems === []) {
+            return array_values($found);
+        }
+
+        $names = $recipients->someNames($model);
+
+        return 'Nothing was sent: '.implode('; ', $problems).'.'
+            .($names !== [] ? ' People who can be reached here include: '.implode(', ', $names).'.' : '')
+            .' "dev" reaches the people who build this app. To ask them for a tool, a fix or access, file it with report_gap instead: it is tracked, and the answer comes back to this person.';
     }
 
     /**

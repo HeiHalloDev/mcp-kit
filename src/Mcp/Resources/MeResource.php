@@ -16,6 +16,7 @@ use HeiHallo\McpKit\Events\OnboardingOffered;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Memory\AssistantMemory;
 use HeiHallo\McpKit\Messages\Messages;
+use HeiHallo\McpKit\Messages\Recipients;
 use HeiHallo\McpKit\Principal;
 use HeiHallo\McpKit\Tools\ToolAppearances;
 use Laravel\Mcp\Request;
@@ -84,6 +85,7 @@ class MeResource extends Resource
             'service' => false,
             'settled' => app(Messages::class)->enabled() ? [] : static::settledGaps($principal),
             'messages' => app(Messages::class)->pendingFor($principal, null),
+            'builder' => app(Recipients::class)->builderNameOrNull($principal->tokenable),
             'recording' => (bool) config('mcp-kit.learning.enabled', false),
             'recordingDays' => (int) (config('mcp-kit.learning.retain_days') ?? config('mcp-kit.activity.retain_days', 90)),
             'scheme' => config('mcp-kit.scheme', 'app'),

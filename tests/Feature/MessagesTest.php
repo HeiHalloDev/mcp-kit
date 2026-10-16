@@ -8,7 +8,6 @@ use HeiHallo\McpKit\Messages\Messages;
 use HeiHallo\McpKit\Models\Message;
 use HeiHallo\McpKit\Testing\Mcp;
 use HeiHallo\McpKit\Tests\Fixtures\Mcp\Tools\ListThingsTool;
-use HeiHallo\McpKit\Tests\Fixtures\Models\User;
 use HeiHallo\McpKit\Tools\ToolAppearances;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -163,7 +162,7 @@ it('leaves whoami and tool calls working in an app that has not migrated the mes
 
 it('keeps a message to a named person until it reaches them, while a broadcast goes stale', function () {
     $sender = acmeToken(acmeAdmin(), ['acme:*']);
-    acmeUser(attributes: ['name' => 'Kari Kollega']);
+    $kari = acmeToken(acmeUser(attributes: ['name' => 'Kari Kollega']), ['acme:things:read']);
 
     confirmSend($sender, ['to' => ['Kari Kollega'], 'body' => 'Når du er tilbake: kurset er klart.']);
     confirmSend($sender, ['everyone' => true, 'body' => 'Koble til på nytt denne uken.']);
@@ -171,7 +170,45 @@ it('keeps a message to a named person until it reaches them, while a broadcast g
     expect(Message::query()->where('to_everyone', false)->value('expires_at'))->toBeNull();
 
     $this->travel(40)->days();
-    $kari = acmeToken(User::query()->where('name', 'Kari Kollega')->sole(), ['acme:things:read']);
 
     expect(firstBlock($kari))->toContain('kurset er klart')->not->toContain('Koble til på nytt');
+});
+
+it('reaches only people who use the tools, by first name or part of a name, and refuses an ambiguous one', function () {
+    $sender = acmeToken(acmeUser(attributes: ['name' => 'Siri Sender']), ['acme:things:read']);
+    acmeToken(acmeUser(attributes: ['name' => 'Benjamin Christensen']), ['acme:things:read']);
+    acmeToken(acmeUser(attributes: ['name' => 'Kari Nordmann']), ['acme:things:read']);
+    acmeToken(acmeUser(attributes: ['name' => 'Kari Kollega']), ['acme:things:read']);
+    acmeUser(attributes: ['name' => 'Kunde Uten Verktøy', 'email' => 'kunde@example.com']);
+
+    confirmSend($sender, ['to' => ['benjamin'], 'body' => 'Ferdig med importen.']);
+
+    expect(Message::query()->sole()->to_people)->toBe(['Benjamin Christensen']);
+
+    $ambiguous = confirmSend($sender, ['to' => ['Kari'], 'body' => 'Hei']);
+    $customer = confirmSend($sender, ['to' => ['kunde@example.com'], 'body' => 'Hei']);
+
+    expect($ambiguous['isError'] ?? false)->toBeTrue()
+        ->and($ambiguous['content'][0]['text'])->toContain('Kari Nordmann')->toContain('Kari Kollega')
+        ->and($customer['isError'] ?? false)->toBeTrue()
+        ->and($customer['content'][0]['text'])->toContain('report_gap')
+        ->and(Message::query()->count())->toBe(1);
+});
+
+it('reaches the developer as "dev" or by the configured name, whatever the account is called, and names them', function () {
+    config()->set('mcp-kit.people.builder', ['name' => 'Anders Heim', 'aliases' => ['Anders', 'HeiHallo'], 'emails' => ['hello@heihallo.com', 'dev@heihallo.com']]);
+    $dev = acmeUser(['staff', 'things', 'admin'], 'admin', ['name' => 'HeiHallo', 'email' => 'dev@heihallo.com']);
+    $devToken = acmeToken($dev, ['acme:things:read']);
+    $sender = acmeToken(acmeUser(attributes: ['name' => 'Siri Sender']), ['acme:things:read']);
+
+    foreach (['dev', 'Anders', 'hello@heihallo.com'] as $who) {
+        expect(confirmSend($sender, ['to' => [$who], 'body' => "Til {$who}"])['isError'] ?? false)->toBeFalse();
+    }
+
+    expect(Message::query()->pluck('to_people')->flatten()->unique()->values()->all())->toBe(['HeiHallo'])
+        ->and(firstBlock($devToken))->toContain('Til dev');
+
+    $whoami = collect(Mcp::call($sender, '/mcp/acme', 'whoami', [])->json('result.content'))->pluck('text')->implode("\n");
+
+    expect($whoami)->toContain('Anders Heim')->toContain('"dev"');
 });
