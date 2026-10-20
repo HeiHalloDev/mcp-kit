@@ -24,7 +24,7 @@ test('me describes the person, the team, the token and invites the intro exactly
     $first->assertSee('# Kari Nordmann')
         ->assertSee('Role: staff')
         ->assertSee('Team: Support')
-        ->assertSee('Permissions: staff, things')
+        ->assertSee('staff, things')
         ->assertSee('This token can read:')
         ->assertSee('Search and view things (`acme:things:read`)')
         ->assertSee('This token can change:')

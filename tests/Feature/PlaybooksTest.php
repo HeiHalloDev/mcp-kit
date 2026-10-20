@@ -311,3 +311,22 @@ test('a playbook may not take a built-in prompt name', function () {
         ->assertHasErrors()
         ->assertSee('built-in prompt');
 });
+
+test('a permission name passed as an ability points to the ability behind it', function () {
+    $user = actingWith(acmeUser(), ['acme:things:read']);
+    [$arguments] = savePlaybook($user, ['abilities' => ['things']]);
+
+    $response = AcmeServer::actingAs($user)->tool(SavePlaybookTool::class, $arguments);
+
+    $response->assertHasErrors()->assertSee('acme:things:read')->assertSee('acme:things:write');
+    expect(app(PlaybookStore::class)->ownedBy($user))->toBe([]);
+});
+
+test('an unknown ability lists the ones the person holds', function () {
+    $user = actingWith(acmeUser(), ['acme:things:read']);
+    [$arguments] = savePlaybook($user, ['abilities' => ['acme:nothing:read']]);
+
+    $response = AcmeServer::actingAs($user)->tool(SavePlaybookTool::class, $arguments);
+
+    $response->assertHasErrors()->assertSee('acme:things:read')->assertDontSee('acme:things:write');
+});

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace HeiHallo\McpKit\Mcp\Tools;
 
+use HeiHallo\McpKit\Contracts\AbilityCatalogue;
 use HeiHallo\McpKit\Contracts\PlaybookPolicy;
 use HeiHallo\McpKit\Contracts\PlaybookStore;
 use HeiHallo\McpKit\Events\PlaybookForgotten;
 use HeiHallo\McpKit\Events\PlaybookSaved;
+use HeiHallo\McpKit\Exceptions\UnknownAbility;
 use HeiHallo\McpKit\Memory\SecretDetector;
 use HeiHallo\McpKit\Playbooks\DatabasePlaybookStore;
 use HeiHallo\McpKit\Playbooks\Playbook;
@@ -52,7 +54,7 @@ class SavePlaybookTool extends StaffTool
                 ],
             ],
             'servers' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Server keys this belongs to. Leave out to offer it everywhere.'],
-            'abilities' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Abilities it needs; it stays hidden from tokens that lack them.'],
+            'abilities' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Token abilities it needs, as the me resource lists them in backticks (app:area:action, e.g. crm:contacts:read), never permission names like users.manage. It stays hidden from tokens that lack them. Leave out when it needs nothing in particular.'],
             'shared' => ['type' => 'boolean', 'description' => 'Offer it to every colleague, not just this person. Privileged only.'],
             'delete' => ['type' => 'boolean', 'description' => 'Remove the named playbook instead of saving it.'],
             'confirm' => ['type' => 'boolean', 'description' => 'Preview without it; save with true.'],
@@ -115,6 +117,8 @@ class SavePlaybookTool extends StaffTool
 
         try {
             $playbook = app(PlaybookFactory::class)->make($input, $existing);
+        } catch (UnknownAbility $e) {
+            return Response::error($this->unknownAbility($e, $principal));
         } catch (InvalidArgumentException $e) {
             return Response::error($e->getMessage());
         }
@@ -211,6 +215,33 @@ class SavePlaybookTool extends StaffTool
             'You already have %d playbooks, which is the limit. Delete one first: save_playbook with delete=true.',
             $limits->perPerson,
         ));
+    }
+
+    /**
+     * Name the right ability: the one behind a permission name when that
+     * is what was passed, and otherwise the ones this person holds.
+     */
+    protected function unknownAbility(UnknownAbility $e, Principal $principal): string
+    {
+        $catalogue = app(AbilityCatalogue::class);
+
+        if ($e->forPermission !== []) {
+            return sprintf(
+                "'%s' is a permission, not an ability. Playbooks name the token ability instead: %s. Nothing was saved.",
+                $e->ability,
+                implode(', ', $e->forPermission),
+            );
+        }
+
+        $held = $catalogue->expand($principal->abilities());
+        $shown = array_slice($held, 0, 40);
+
+        return sprintf(
+            '%s Abilities look like app:area:action. The ones you hold: %s%s. Nothing was saved.',
+            $e->getMessage(),
+            $shown === [] ? 'none' : implode(', ', $shown),
+            count($held) > count($shown) ? sprintf(' and %d more (the me resource lists them all)', count($held) - count($shown)) : '',
+        );
     }
 
     protected function promptName(Playbook $playbook): string

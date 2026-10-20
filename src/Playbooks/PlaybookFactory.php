@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace HeiHallo\McpKit\Playbooks;
 
 use HeiHallo\McpKit\Contracts\AbilityCatalogue;
+use HeiHallo\McpKit\Exceptions\UnknownAbility;
 use HeiHallo\McpKit\Servers\ServerRegistry;
 use InvalidArgumentException;
 
@@ -152,13 +153,27 @@ class PlaybookFactory
             $ability = $this->catalogue->canonical((string) $ability);
 
             if (! $this->catalogue->exists($ability)) {
-                throw new InvalidArgumentException("There is no ability called '{$ability}'.");
+                throw new UnknownAbility($ability, $this->abilitiesForPermission($ability));
             }
 
             $abilities[] = $ability;
         }
 
         return array_values(array_unique($abilities));
+    }
+
+    /**
+     * The abilities that need this permission: what the assistant meant
+     * when it passed a permission name (support.manage) as an ability.
+     *
+     * @return list<string>
+     */
+    protected function abilitiesForPermission(string $permission): array
+    {
+        return array_values(array_filter(
+            $this->catalogue->names(),
+            fn (string $ability): bool => in_array($permission, $this->catalogue->requiredPermissions($ability), true),
+        ));
     }
 
     /**

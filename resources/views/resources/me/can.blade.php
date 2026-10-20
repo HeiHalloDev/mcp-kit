@@ -1,7 +1,7 @@
 
 ## What you may do here
 @if ($description->permissions !== [])
-Permissions: {!! implode(', ', $description->permissions) !!}.
+Permissions (what the person may do in the app): {!! implode(', ', $description->permissions) !!}.
 @endif
 @if ($servers !== [])
 Servers this token reaches: {!! implode(', ', $servers) !!}.
@@ -19,6 +19,9 @@ This token can change:
 @endforeach
 @else
 This token cannot change anything. Ask the person to mint a token with write access if they need to.
+@endif
+@if ($can !== [] || $canChange !== [])
+The names in backticks are token abilities: those, not the permissions, are what save_playbook takes.
 @endif
 @if ($expiresAt)
 Token expires {!! $expiresAt->toDateString() !!}.

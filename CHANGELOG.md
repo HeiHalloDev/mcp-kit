@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.31.2 — unreleased
+
+- **`save_playbook` says which ability names it takes.** An assistant passed `support.manage`, the permission name `whoami` shows, got "There is no ability called 'support.manage'" and saved the playbook with no abilities at all. Now a permission name is answered with the abilities that need it, any other unknown name with the abilities the person holds, and the field's description gives the `app:area:action` shape. The `me` resource says the names in backticks are the abilities and the permissions are what the person may do in the app.
+
 ## v1.31.1 — 2026-10-16
 
 - **A sign-in survives a client that sends its old refresh token again.** ChatGPT and Codex kept presenting the refresh token they had just swapped, 79 seconds to half an hour later. With a 60-second grace window the kit took that for a stolen token and revoked the sign-in: one staff member lost theirs five times in four days, another a day after connecting, and nobody was told. Now the swapped token gets the current pair back for `oauth.refresh_reuse_minutes` (1440), with a fresh access token when the first has expired, so both copies of the client agree again. Later than that is still treated as theft and revokes the grant.
