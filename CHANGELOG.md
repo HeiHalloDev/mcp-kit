@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.31.2 — unreleased
+## v1.31.2 — 2026-10-20
 
 - **`save_playbook` says which ability names it takes.** An assistant passed `support.manage`, the permission name `whoami` shows, got "There is no ability called 'support.manage'" and saved the playbook with no abilities at all. Now a permission name is answered with the abilities that need it, any other unknown name with the abilities the person holds, and the field's description gives the `app:area:action` shape. The `me` resource says the names in backticks are the abilities and the permissions are what the person may do in the app.
 
