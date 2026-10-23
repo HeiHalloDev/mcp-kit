@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.31.3 — unreleased
+## v1.31.3 — 2026-10-23
 
 - **A sign-in no longer hears that its token expires tomorrow.** The `me` resource ended with "Token expires {date}", and for a sign-in that date belongs to the access token the kit swaps every hour, so it was always today or tomorrow. Assistants put it in their first summary as a warning, though the connection renews itself. Now a sign-in gets no expiry line at all, and a pasted token, which does stop, is mentioned only once it is two weeks away, with a word to make a new one before then.
 
