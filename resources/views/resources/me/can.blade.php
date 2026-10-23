@@ -24,5 +24,5 @@ This token cannot change anything. Ask the person to mint a token with write acc
 The names in backticks are token abilities: those, not the permissions, are what save_playbook takes.
 @endif
 @if ($expiresAt)
-Token expires {!! $expiresAt->toDateString() !!}.
+This pasted token stops working on {!! $expiresAt->toDateString() !!}. Tell the person once, so they can make a new one and replace it before then.
 @endif

@@ -98,10 +98,29 @@ class MeResource extends Resource
             'recent' => app(RecentActivity::class)->for($principal->tokenable),
             'invite' => $invite,
             'memoryUrl' => config('mcp-kit.ui.memory_url'),
-            'expiresAt' => $principal->tokenExpiresAt(),
+            'expiresAt' => static::expiryWorthMentioning($principal),
             'newTools' => static::newTools($principal, $granted),
             'connectedAt' => $principal->connectedAt(),
         ])->render();
+    }
+
+    /**
+     * When a pasted token stops working, if that is close enough to matter.
+     *
+     * A sign-in's access token turns over every hour and renews itself, so
+     * its date is always today or tomorrow and means nothing; assistants
+     * repeated it as "your token expires in a day". A pasted token does
+     * stop, so it is mentioned once it is two weeks away.
+     */
+    protected static function expiryWorthMentioning(Principal $principal): ?\DateTimeInterface
+    {
+        $expires = $principal->tokenExpiresAt();
+
+        if ($expires === null || $principal->viaSignIn()) {
+            return null;
+        }
+
+        return $expires <= now()->addDays(14) ? $expires : null;
     }
 
     /**

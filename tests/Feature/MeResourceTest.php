@@ -131,3 +131,21 @@ test('names and app names reach the model as written, not as HTML entities', fun
     $me->assertDontSee('&#039;');
     $rules->assertDontSee('&amp;');
 });
+
+test('a sign-in never hears about its hourly access token expiring; a pasted token hears once it is close', function () {
+    config()->set('mcp-kit.oauth.enabled', true);
+    $user = actingWith(acmeUser(['staff', 'things'], 'staff'), ['acme:things:read'], 'laptop');
+    $token = $user->tokens()->latest('id')->first();
+
+    // A sign-in's access token: renews itself, so tomorrow means nothing.
+    $token->forceFill(['name' => 'oauth: Claude', 'expires_at' => now()->addHour()])->save();
+    AcmeServer::actingAs($user->withAccessToken($token->fresh()))->resource(MeResource::class)->assertDontSee('stops working');
+
+    // A pasted token a month out: not worth a word yet.
+    $token->forceFill(['name' => 'laptop', 'expires_at' => now()->addDays(30)])->save();
+    AcmeServer::actingAs($user->withAccessToken($token->fresh()))->resource(MeResource::class)->assertDontSee('stops working');
+
+    // A pasted token five days out: say it.
+    $token->forceFill(['expires_at' => now()->addDays(5)])->save();
+    AcmeServer::actingAs($user->withAccessToken($token->fresh()))->resource(MeResource::class)->assertSee('This pasted token stops working on '.now()->addDays(5)->toDateString());
+});

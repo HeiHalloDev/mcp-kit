@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.31.3 — unreleased
+
+- **A sign-in no longer hears that its token expires tomorrow.** The `me` resource ended with "Token expires {date}", and for a sign-in that date belongs to the access token the kit swaps every hour, so it was always today or tomorrow. Assistants put it in their first summary as a warning, though the connection renews itself. Now a sign-in gets no expiry line at all, and a pasted token, which does stop, is mentioned only once it is two weeks away, with a word to make a new one before then.
+
 ## v1.31.2 — 2026-10-20
 
 - **`save_playbook` says which ability names it takes.** An assistant passed `support.manage`, the permission name `whoami` shows, got "There is no ability called 'support.manage'" and saved the playbook with no abilities at all. Now a permission name is answered with the abilities that need it, any other unknown name with the abilities the person holds, and the field's description gives the `app:area:action` shape. The `me` resource says the names in backticks are the abilities and the permissions are what the person may do in the app.
