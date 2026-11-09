@@ -297,3 +297,14 @@ test('request_upload is off with uploads, and the footer names it when on', func
     expect(collect(Mcp::listTools($token, '/mcp/acme')->json('result.tools'))->pluck('name'))->toContain('request_upload')
         ->and(app(GroundRules::class)->instructions('acme', 'Staff tools.'))->toContain('request_upload');
 });
+
+test('request_upload tells an assistant writing its own client to send a User-Agent', function () {
+    bootUploads();
+    $token = acmeToken(acmeUser(), ['acme:things:read', 'acme:things:write']);
+
+    $reply = json_decode((string) Mcp::call($token, '/mcp/acme', 'request_upload')->json('result.content.0.text'), true);
+    $tool = collect(Mcp::listTools($token, '/mcp/acme')->json('result.tools'))->firstWhere('name', 'request_upload');
+
+    expect($reply['own_client'])->toContain('User-Agent')->toContain('1010')
+        ->and($tool['description'])->toContain('User-Agent');
+});

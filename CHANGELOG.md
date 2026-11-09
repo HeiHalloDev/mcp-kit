@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.31.4 — 2026-11-09
+
+- **`request_upload` says to send a User-Agent.** An assistant wrote its own multipart POST with Python's urllib, and Cloudflare answered HTTP 403 "error code: 1010" before the request reached the app: urllib's default User-Agent is banned on every zone we run, and a WAF skip rule did not lift it. The description and the reply now say to use the curl line as given, or send a browser-like User-Agent from a client of your own, and the reply's `own_client` says that a 403 with 1010 means the client signature, not a bad link.
+
 ## v1.31.3 — 2026-10-23
 
 - **A sign-in no longer hears that its token expires tomorrow.** The `me` resource ended with "Token expires {date}", and for a sign-in that date belongs to the access token the kit swaps every hour, so it was always today or tomorrow. Assistants put it in their first summary as a warning, though the connection renews itself. Now a sign-in gets no expiry line at all, and a pasted token, which does stop, is mentioned only once it is two weeks away, with a word to make a new one before then.
