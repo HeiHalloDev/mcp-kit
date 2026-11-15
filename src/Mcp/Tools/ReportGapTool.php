@@ -9,6 +9,7 @@ use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Events\GapReported;
 use HeiHallo\McpKit\Events\GapStatusChanged;
 use HeiHallo\McpKit\Gaps\ComposesGaps;
+use HeiHallo\McpKit\Gaps\FollowUps;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Memory\SecretDetector;
 use HeiHallo\McpKit\Messages\Recipients;
@@ -28,7 +29,7 @@ class ReportGapTool extends StaffTool
 
     protected string $name = 'report_gap';
 
-    protected string $description = 'File something the person needed that this app cannot do. Not for refusals: if a tool said an ability or permission was missing, that is a permissions question with a named fix, not a gap — and if it belongs to a sister connection, the preview says so before anything is filed. A repeat of something already reported joins it instead of duplicating, so just file it. Previews without confirm=true. Privileged staff may also settle one in the same call (status + resolution), correct a resolution, and merge a duplicate into the gap it repeats (merge_into).';
+    protected string $description = 'File something the person needed that this app cannot do. Not for refusals: if a tool said an ability or permission was missing, that is a permissions question with a named fix, not a gap — and if it belongs to a sister connection, the preview says so before anything is filed. A repeat of something already reported joins it instead of duplicating, so just file it. To add to one already filed (a retest, a new example, an answer to a question) pass `gap` with its id and `note`: it is kept as a dated follow-up beside the report and reaches the other side. `gap` alone shows that gap with its follow-ups. Previews without confirm=true. Privileged staff may also settle one in the same call (status + resolution), correct a resolution, and merge a duplicate into the gap it repeats (merge_into).';
 
     /**
      * @var array<string, mixed>
@@ -42,11 +43,11 @@ class ReportGapTool extends StaffTool
             'server' => ['type' => 'string', 'description' => 'The server key it belongs to, when it is clearly one of them.'],
             'tool' => ['type' => 'string', 'description' => 'The tool they reached for, if there was one.'],
             'blocking' => ['type' => 'boolean', 'description' => 'True when it stopped the work, false when they found a way round.'],
-            'note' => ['type' => 'string', 'description' => 'What this person said about it, kept alongside their name.'],
+            'note' => ['type' => 'string', 'description' => 'What this person said about it, kept alongside their name. With `gap`: the follow-up to add to that gap.'],
             'for' => ['type' => 'string', 'description' => 'Privileged only: file it as this person\'s report (name, first name or e-mail of someone with an account here), when they asked for it some other way, by e-mail or in a meeting. The answer then goes to them, not to you.'],
-            'status' => ['type' => 'string', 'enum' => ['open', 'planned', 'done', 'declined'], 'description' => 'Privileged only: move an existing gap.'],
+            'status' => ['type' => 'string', 'enum' => ['open', 'planned', 'done', 'declined'], 'description' => 'Privileged only: move an existing gap. Not for a note on one: that is `gap` with `note`.'],
             'resolution' => ['type' => 'string', 'description' => 'Privileged only: what was decided or built, when setting status.'],
-            'gap' => ['type' => 'string', 'description' => 'Privileged only: the id of the gap to move. Leave it out to file a new one — pass status and resolution with it to file and settle in one call.'],
+            'gap' => ['type' => 'string', 'description' => 'The id of a gap already filed, from the reply when it was filed. With `note` it adds a follow-up; alone it shows the gap and its follow-ups. For the people who reported it and privileged staff. Privileged only: with `status` it moves the gap. Leave it out to file a new one.'],
             'merge_into' => ['type' => 'string', 'description' => 'Privileged only: the id of the gap this one repeats. Its reporters move across and this one closes pointing at it.'],
             'confirm' => ['type' => 'boolean', 'description' => 'Preview without it; file with true.'],
         ],
@@ -72,7 +73,11 @@ class ReportGapTool extends StaffTool
         // the gap this call is filing, which is how something already
         // answered elsewhere gets filed and closed in one go.
         if ($request->get('gap') !== null) {
-            return $this->move($request, $principal);
+            // An id without a status is not a move: it is somebody adding
+            // to what was filed, or wanting to read it.
+            return trim((string) $request->get('status', '')) === ''
+                ? $this->followUp($request, $principal)
+                : $this->move($request, $principal);
         }
 
         return $this->report($request, $principal);
@@ -108,11 +113,20 @@ class ReportGapTool extends StaffTool
         $blocking = filter_var($request->get('blocking', false), FILTER_VALIDATE_BOOL);
 
         if ($existing !== null && $existing->reportedBy($reporter->name)) {
+            // Reporting it again with something to say is a follow-up: the
+            // person has news about their own gap, and refusing it sent
+            // that news into the resolution field or nowhere.
+            if ($note !== '') {
+                return $this->addFollowUp($request, $reporter, $existing, $note);
+            }
+
             return Response::error(sprintf(
-                ($reporter === $principal ? 'You' : $reporter->name)." already reported '%s' — it is open with %d %s behind it. Nothing more to add unless something changed.",
+                ($reporter === $principal ? 'You' : $reporter->name)." already reported '%s' — it is open as #%s with %d %s behind it. If something changed, pass `note` with what changed (or `gap` %s and `note`) and it is added as a follow-up.",
                 $existing->title,
+                $existing->id,
                 $existing->reports,
                 $existing->reports === 1 ? 'report' : 'reports',
+                $existing->id,
             ));
         }
 
@@ -277,6 +291,9 @@ class ReportGapTool extends StaffTool
             }
         }
 
+        $followUps = [...$survivor->followUps, ...$duplicate->followUps];
+        usort($followUps, static fn (array $a, array $b): int => strcmp($a['at'], $b['at']));
+
         $merged = new Gap(
             key: $survivor->key,
             title: $survivor->title,
@@ -293,6 +310,7 @@ class ReportGapTool extends StaffTool
             resolvedAt: $survivor->resolvedAt,
             reportedAt: $survivor->reportedAt,
             id: $survivor->id,
+            followUps: $followUps,
         );
 
         $closed = $duplicate->settled(
@@ -348,6 +366,13 @@ class ReportGapTool extends StaffTool
 
         $resolution = trim((string) $request->get('resolution', ''));
 
+        // An open gap has no decision to reword. Words written on it this
+        // way are a follow-up, and are kept as one: each used to replace
+        // the last, in a field the list does not show for an open gap.
+        if ($status === Gap::OPEN && $gap->status === Gap::OPEN && $resolution !== '') {
+            return $this->addFollowUp($request, $principal, $gap, $resolution);
+        }
+
         // Re-stating a status is how a resolution gets corrected: the words
         // are what the reporter reads, and the first draft is not always
         // the one you want them to read.
@@ -377,6 +402,7 @@ class ReportGapTool extends StaffTool
             resolvedAt: $closing ? now() : $gap->resolvedAt,
             reportedAt: $gap->reportedAt,
             id: $gap->id,
+            followUps: $gap->followUps,
         );
 
         return $this->previewOrExecute(
@@ -400,8 +426,67 @@ class ReportGapTool extends StaffTool
     }
 
     /**
-     * @return array{name: string, at: string, note: string}
+     * `gap` without a status: with a note it adds a follow-up, alone it
+     * shows the gap as it stands, to the people who reported it and to
+     * privileged staff.
      */
+    protected function followUp(Request $request, Principal $principal): Response
+    {
+        $id = (string) $request->get('gap');
+        $gap = app(GapStore::class)->find($id);
+
+        if ($gap === null) {
+            return Response::error("No gap with id {$id}.");
+        }
+
+        $note = trim((string) $request->get('note', ''));
+
+        if ($note !== '') {
+            return $this->addFollowUp($request, $principal, $gap, $note);
+        }
+
+        if (! app(FollowUps::class)->mayFollowUp($gap, $principal)) {
+            return Response::error(sprintf("'%s' is for the people who reported it and the people who build this app to read. If you hit it too, report it with the same title and you join it.", $gap->title));
+        }
+
+        return Response::json([
+            'gap' => array_filter([
+                ...$gap->toArray(),
+                'settled_by' => $gap->resolvedBy,
+                // Colleagues do not read each other's notes; the builders do.
+                'reported_by' => $principal->privileged ? $gap->reporters : null,
+            ], static fn (mixed $value): bool => $value !== null),
+            'to_add_to_it' => 'Call again with `gap` and `note`. Nothing has changed.',
+        ]);
+    }
+
+    /**
+     * One more note on a gap, in order beside the others.
+     */
+    protected function addFollowUp(Request $request, Principal $author, Gap $gap, string $text): Response
+    {
+        $followUps = app(FollowUps::class);
+        $problem = $followUps->problem($gap, $author, $text);
+
+        if ($problem !== null) {
+            return Response::error($problem);
+        }
+
+        return $this->previewOrExecute(
+            $request,
+            [
+                'gap' => '#'.$gap->id.' '.$gap->title,
+                'status' => $gap->status.' (unchanged)',
+                'follow_up' => trim($text),
+                'written_by' => $author->name,
+                'follow_ups_after' => count($gap->followUps) + 1,
+                'goes_to' => $followUps->reaches($gap, $author),
+            ],
+            fn (): array => ['gap' => $followUps->add($gap, $author, $text)->toArray()],
+            'Follow up on a gap',
+        );
+    }
+
     protected function required(Request $request, string $key): string
     {
         $value = trim((string) $request->get($key, ''));

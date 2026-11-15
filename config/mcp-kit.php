@@ -566,6 +566,12 @@ return [
         'reconnect' => true,
         // Answers to reported gaps settled longer ago than this are not sent.
         'gap_answers_days' => 30,
+        // What is written on a gap after it was filed reaches the other
+        // side the same way: a reporter's note goes to the people who build
+        // the app, anybody else's to the people who reported it. The same
+        // days apply. Longer notes arrive as their first characters.
+        'gap_follow_ups' => true,
+        'follow_up_excerpt' => 600,
     ],
 
     /*

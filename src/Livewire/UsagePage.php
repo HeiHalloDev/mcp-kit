@@ -9,6 +9,7 @@ use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Contracts\PrincipalResolver;
 use HeiHallo\McpKit\Contracts\TaskStore;
 use HeiHallo\McpKit\Events\GapStatusChanged;
+use HeiHallo\McpKit\Gaps\FollowUps;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Learning\Task;
 use HeiHallo\McpKit\Messages\Messages;
@@ -52,6 +53,11 @@ class UsagePage extends Component
     public ?string $settling = null;
 
     public string $resolution = '';
+
+    /** The gap being written on without deciding it, if that form is open. */
+    public ?string $followingUp = null;
+
+    public string $followUp = '';
 
     /** The message form: names or e-mails, comma-separated, or everyone. */
     public string $messageTo = '';
@@ -211,9 +217,60 @@ class UsagePage extends Component
 
     public function startSettling(string $id): void
     {
+        $this->cancelFollowingUp();
         $this->settling = $id;
         $this->resolution = '';
         $this->resetErrorBag();
+    }
+
+    public function startFollowingUp(string $id): void
+    {
+        $this->cancelSettling();
+        $this->followingUp = $id;
+        $this->followUp = '';
+    }
+
+    public function cancelFollowingUp(): void
+    {
+        $this->reset('followingUp', 'followUp');
+        $this->resetErrorBag();
+    }
+
+    /**
+     * Write on a gap without deciding it: a question to the people who
+     * reported it, or what was found so far. It reaches them the way an
+     * answer does, and the status stays where it is.
+     */
+    public function writeFollowUp(): void
+    {
+        $principal = $this->principal();
+
+        abort_unless((bool) $principal?->privileged, 403);
+
+        $gap = $this->followingUp === null ? null : app(GapStore::class)->find($this->followingUp);
+
+        if ($gap === null) {
+            $this->cancelFollowingUp();
+
+            return;
+        }
+
+        $followUps = app(FollowUps::class);
+        $problem = $followUps->problem($gap, $principal, $this->followUp);
+
+        if ($problem !== null) {
+            $this->addError('followUp', $problem);
+
+            return;
+        }
+
+        $followUps->add($gap, $principal, $this->followUp);
+
+        $this->cancelFollowingUp();
+
+        unset($this->gaps);
+
+        $this->toast(__('Added. It reaches the other side on their next tool call.'));
     }
 
     public function cancelSettling(): void

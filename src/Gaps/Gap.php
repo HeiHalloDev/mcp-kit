@@ -25,8 +25,12 @@ final class Gap
 
     public const STATUSES = [self::OPEN, self::PLANNED, self::DONE, self::DECLINED];
 
+    /** A follow-up is a note, not a document: the list it lands in is read whole. */
+    public const FOLLOW_UP_MAX = 4000;
+
     /**
      * @param  list<array{name: string, at: string, note: string}>  $reporters
+     * @param  list<array{name: string, at: string, text: string, builder?: bool}>  $followUps  what was added after it was filed, oldest first; `builder` marks one written by the people who build the app
      */
     public function __construct(
         public readonly string $key,
@@ -44,6 +48,7 @@ final class Gap
         public readonly ?DateTimeInterface $resolvedAt = null,
         public readonly ?DateTimeInterface $reportedAt = null,
         public readonly int|string|null $id = null,
+        public readonly array $followUps = [],
     ) {}
 
     /**
@@ -127,7 +132,60 @@ final class Gap
             resolvedAt: now(),
             reportedAt: $this->reportedAt,
             id: $this->id,
+            followUps: $this->followUps,
         );
+    }
+
+    /**
+     * Something said about it after it was filed: a retest, a new example,
+     * a question back, an answer. Kept in order beside the report, so the
+     * next one never replaces the last and a decision stays a decision.
+     */
+    public function followedUp(string $name, string $text, bool $fromBuilder = false): self
+    {
+        $text = trim($text);
+
+        if ($text === '') {
+            throw new InvalidArgumentException('A follow-up needs something in it.');
+        }
+
+        return new self(
+            key: $this->key,
+            title: $this->title,
+            need: $this->need,
+            missing: $this->missing,
+            server: $this->server,
+            tool: $this->tool,
+            blocking: $this->blocking,
+            status: $this->status,
+            reporters: $this->reporters,
+            reports: $this->reports,
+            resolution: $this->resolution,
+            resolvedBy: $this->resolvedBy,
+            resolvedAt: $this->resolvedAt,
+            reportedAt: $this->reportedAt,
+            id: $this->id,
+            followUps: [...$this->followUps, array_filter(['name' => $name, 'at' => now()->toIso8601String(), 'text' => $text, 'builder' => $fromBuilder], static fn (mixed $value): bool => $value !== false)],
+        );
+    }
+
+    /**
+     * When the newest follow-up was written, as "2026-11-15 17:44".
+     */
+    public function lastFollowUpAt(): ?string
+    {
+        $last = $this->followUps === [] ? null : $this->followUps[array_key_last($this->followUps)];
+
+        return $last === null ? null : self::stamp($last['at']);
+    }
+
+    /**
+     * An ISO date as a list line reads it: the day, and the minute when
+     * there is one.
+     */
+    public static function stamp(string $at): string
+    {
+        return trim(substr($at, 0, 10).' '.substr($at, 11, 5));
     }
 
     /**
@@ -151,6 +209,7 @@ final class Gap
             'resolution' => $this->resolution,
             'reported_at' => $this->reportedAt?->format(DATE_ATOM),
             'settled_at' => $this->resolvedAt?->format(DATE_ATOM),
+            'follow_ups' => $this->followUps === [] ? null : $this->followUps,
         ], static fn (mixed $value): bool => $value !== null && $value !== false);
     }
 }

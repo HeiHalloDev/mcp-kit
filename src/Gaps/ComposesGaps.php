@@ -76,6 +76,7 @@ trait ComposesGaps
             resolvedAt: $existing->resolvedAt,
             reportedAt: $existing->reportedAt,
             id: $existing->id,
+            followUps: $existing->followUps,
         );
     }
 }

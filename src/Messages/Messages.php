@@ -8,6 +8,7 @@ use HeiHallo\McpKit\Contracts\AbilityCatalogue;
 use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Contracts\PresetResolver;
 use HeiHallo\McpKit\Docs\ToolReference;
+use HeiHallo\McpKit\Gaps\FollowUps;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Mcp\Resources\MeResource;
 use HeiHallo\McpKit\Models\Message;
@@ -26,11 +27,11 @@ use Throwable;
  * reads: on top of the result of their next tool call, until the assistant
  * confirms with message_delivered that it passed the message on.
  *
- * Two kinds ride the same road. A message somebody sent (send_message, or
- * the usage page), and the answer to a gap the person reported. The second
- * used to sit in whoami and count as heard the moment it was read, which is
- * how a staff member learned in a meeting about tools built for him weeks
- * before.
+ * Three kinds ride the same road. A message somebody sent (send_message, or
+ * the usage page), the answer to a gap the person reported, and what was
+ * written on a gap afterwards (see FollowUps). The second used to sit in
+ * whoami and count as heard the moment it was read, which is how a staff
+ * member learned in a meeting about tools built for him weeks before.
  *
  * Recipients are matched by name or e-mail, the way gaps record reporters.
  */
@@ -100,6 +101,20 @@ class Messages
                     'status' => $gap->status,
                     'sent_at' => $gap->resolvedAt?->format(DATE_ATOM),
                 ];
+            }
+
+            if (config('mcp-kit.gaps.enabled', true)) {
+                foreach (app(FollowUps::class)->waitingFor($principal) as $followUp) {
+                    $pending[] = [
+                        'key' => $followUp['key'],
+                        'kind' => 'follow_up',
+                        'from' => $followUp['from'],
+                        'body' => $this->excerpt($followUp['body'], $followUp['gap']),
+                        'title' => $followUp['gap']->title,
+                        'gap' => (string) $followUp['gap']->id,
+                        'sent_at' => $followUp['sent_at'],
+                    ];
+                }
             }
 
             $receipts = MessageReceipt::query()
@@ -248,6 +263,7 @@ class Messages
         foreach ($items as $item) {
             $lines[] = match ($item['kind']) {
                 'gap' => sprintf('[%s] The answer to something %s reported, "%s" (%s by %s): %s', $item['key'], $first, $item['title'], $item['status'] ?? 'settled', $item['from'], $item['body']),
+                'follow_up' => sprintf('[%s] %s wrote on the reported gap #%s, "%s": %s To answer, call `report_gap` with `gap` %s and `note`.', $item['key'], $item['from'], $item['gap'] ?? '', $item['title'], $item['body'], $item['gap'] ?? ''),
                 'reconnect' => sprintf('[%s] %s', $item['key'], $item['body']),
                 default => sprintf('[%s] From %s: %s', $item['key'], $item['from'], $item['body']),
             };
@@ -418,6 +434,19 @@ class Messages
             'title' => null,
             'sent_at' => null,
         ];
+    }
+
+    /**
+     * A follow-up rides on tool results, so a long one arrives as its
+     * opening and where the rest is.
+     */
+    protected function excerpt(string $text, Gap $gap): string
+    {
+        $limit = (int) config('mcp-kit.messages.follow_up_excerpt', 600);
+
+        return mb_strlen($text) <= $limit
+            ? $text
+            : rtrim(mb_substr($text, 0, $limit)).sprintf('… (cut here; `report_gap` with `gap` %s shows all of it.)', $gap->id);
     }
 
     protected function gapKey(Gap $gap): string

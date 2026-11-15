@@ -25,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property ?string $resolution
  * @property ?string $resolved_by
  * @property ?Carbon $resolved_at
+ * @property ?array<int, array<string, string>> $follow_ups
  */
 class GapReport extends Model
 {
@@ -45,6 +46,7 @@ class GapReport extends Model
     {
         return [
             'reporters' => 'array',
+            'follow_ups' => 'array',
             'blocking' => 'boolean',
             'reports' => 'integer',
             'resolved_at' => 'datetime',

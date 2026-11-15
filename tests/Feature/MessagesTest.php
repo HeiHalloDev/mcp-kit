@@ -253,3 +253,86 @@ it('counts a showing on a receipt that is already there, and confirms delivery o
         ->and($receipt->last_shown_at)->not->toBeNull()
         ->and($receipt->delivered_at)->not->toBeNull();
 });
+
+it('brings a follow-up on a gap to the other side: the reporter\'s to the builder, the builder\'s to the reporter', function () {
+    $kari = acmeUser(attributes: ['name' => 'Kari Kollega']);
+    $karis = acmeToken($kari, ['acme:things:read']);
+    $ada = acmeAdmin();
+    $adas = acmeToken($ada, ['acme:things:read']);
+    $olas = acmeToken(acmeUser(attributes: ['name' => 'Ola Other']), ['acme:things:read']);
+    $store = app(GapStore::class);
+    $gap = $store->put(new Gap(key: 'export', title: 'cannot export things', need: 'Export', missing: 'An export', reporters: [['name' => 'Kari Kollega', 'at' => now()->toIso8601String(), 'note' => '']]));
+
+    Mcp::call($karis, '/mcp/acme', 'report_gap', ['gap' => (string) $gap->id, 'note' => 'Retested: the export still stops at 100 rows.', 'confirm' => true])->assertSuccessful();
+
+    // Her own note is not news to her, and a colleague who neither reported
+    // it nor builds the app does not read it.
+    expect(firstBlock($karis))->not->toContain('MESSAGE FOR')
+        ->and(firstBlock($olas))->not->toContain('MESSAGE FOR');
+
+    $block = firstBlock($adas);
+    expect($block)->toContain('MESSAGE FOR')->toContain('Retested: the export still stops at 100 rows.')->toContain('cannot export things');
+
+    preg_match('/\[(followup:[^\]]+)\]/', $block, $m);
+    Mcp::call($adas, '/mcp/acme', 'message_delivered', ['ids' => [$m[1]]])->assertSuccessful();
+
+    expect(firstBlock($adas))->not->toContain('MESSAGE FOR');
+
+    Mcp::call($adas, '/mcp/acme', 'report_gap', ['gap' => (string) $gap->id, 'note' => 'Which export, things or orders?', 'confirm' => true])->assertSuccessful();
+
+    expect(firstBlock($adas))->not->toContain('MESSAGE FOR')
+        ->and(firstBlock($olas))->not->toContain('MESSAGE FOR')
+        ->and(firstBlock($karis))->toContain('Which export, things or orders?');
+
+    // The first note stays delivered; only the new one was waiting.
+    expect($store->find($gap->id)->followUps)->toHaveCount(2);
+});
+
+it('brings a builder\'s note to the reporters even when the builder reported the gap too', function () {
+    $karis = acmeToken(acmeUser(attributes: ['name' => 'Kari Kollega']), ['acme:things:read']);
+    $ada = acmeAdmin();
+    $adas = acmeToken($ada, ['acme:things:read']);
+    $gap = app(GapStore::class)->put(new Gap(key: 'export', title: 'cannot export things', need: 'Export', missing: 'An export', reports: 2, reporters: [
+        ['name' => 'Kari Kollega', 'at' => now()->toIso8601String(), 'note' => ''],
+        ['name' => $ada->name, 'at' => now()->toIso8601String(), 'note' => ''],
+    ]));
+
+    Mcp::call($adas, '/mcp/acme', 'report_gap', ['gap' => (string) $gap->id, 'note' => 'Kari, which export did you mean?', 'confirm' => true])->assertSuccessful();
+
+    expect(firstBlock($karis))->toContain('Kari, which export did you mean?')
+        ->and(firstBlock($adas))->not->toContain('MESSAGE FOR');
+});
+
+it('brings a long follow-up as its opening, and says where the rest is', function () {
+    config()->set('mcp-kit.messages.follow_up_excerpt', 40);
+    $adas = acmeToken(acmeAdmin(), ['acme:things:read']);
+    $store = app(GapStore::class);
+    $gap = $store->put((new Gap(key: 'export', title: 'cannot export things', need: 'Export', missing: 'An export', reporters: [['name' => 'Kari Kollega', 'at' => now()->toIso8601String(), 'note' => '']]))
+        ->followedUp('Kari Kollega', 'The opening of a long note. '.str_repeat('More detail. ', 20).'THE VERY END'));
+
+    expect(firstBlock($adas))->toContain('The opening of a long note.')->not->toContain('THE VERY END');
+
+    $read = collect(Mcp::call($adas, '/mcp/acme', 'report_gap', ['gap' => (string) $gap->id])->json('result.content'))->pluck('text')->implode("\n");
+
+    expect($read)->toContain('THE VERY END');
+});
+
+it('leaves follow-ups out when they are switched off, and old ones are history', function () {
+    $adas = acmeToken(acmeAdmin(), ['acme:things:read']);
+    $store = app(GapStore::class);
+    $gap = new Gap(key: 'export', title: 'cannot export things', need: 'Export', missing: 'An export', reporters: [['name' => 'Kari Kollega', 'at' => now()->toIso8601String(), 'note' => '']]);
+
+    $this->travelTo(now()->subDays(40));
+    $store->put($gap->followedUp('Kari Kollega', 'Written long ago.'));
+    $this->travelBack();
+
+    expect(firstBlock($adas))->not->toContain('MESSAGE FOR');
+
+    $store->put((new Gap(key: 'import', title: 'cannot import things', need: 'Import', missing: 'An import', reporters: [['name' => 'Kari Kollega', 'at' => now()->toIso8601String(), 'note' => '']]))->followedUp('Kari Kollega', 'Written today.'));
+
+    config()->set('mcp-kit.messages.gap_follow_ups', false);
+    expect(firstBlock($adas))->not->toContain('MESSAGE FOR');
+
+    config()->set('mcp-kit.messages.gap_follow_ups', true);
+    expect(firstBlock($adas))->toContain('Written today.')->not->toContain('Written long ago.');
+});

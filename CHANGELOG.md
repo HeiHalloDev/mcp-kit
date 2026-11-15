@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.32.0 — 2026-11-16
+
+- **A gap takes follow-ups.** A retest, a new example or a question back had nowhere to go. A reporter who filed the same thing again was told it was already theirs, and a privileged one wrote it into the resolution of the open gap, where each note replaced the last and `list_gaps` never showed it: three follow-ups on a search gap sat unread for two days (seen in production on 2026-11-15). Now `report_gap` with `gap` (the id) and `note` adds a dated follow-up beside the report, for the people who reported the gap and for privileged staff. The status and the resolution stay as they are. Reporting your own open gap again with a `note` does the same, and so does `status` "open" with a `resolution` on a gap that is already open, since that is the call assistants had learned.
+- **`report_gap` with `gap` alone shows that gap**: status, decision and every follow-up, to the people who reported it and to privileged staff. Nothing changes.
+- **Follow-ups reach the other side.** What a reporter writes waits for the people who build the app (`people.builder_roles`, the ones "dev" reaches), and what anybody else writes waits for the reporters. It rides on their next tool results until `message_delivered` confirms it, like a gap answer. A long one arrives as its first `messages.follow_up_excerpt` characters (600) with a pointer to the rest. `messages.gap_follow_ups` turns the delivery off; follow-ups older than `messages.gap_answers_days` are not sent.
+- **The gap list shows them.** Under each gap: its follow-ups with name, date and time, and "last follow-up" on the date line. A planned gap now shows what was planned, and a note that was written into the resolution of an open gap before this release shows as "Written on it while open", so nothing already stored stays hidden. The usage page shows the thread and has a Follow up button beside Decide.
+- New event `GapFollowedUp` (gap, by, text). New column `follow_ups` on the gap table, added by a package migration. A follow-up is at most 4,000 characters, and the same note sent twice is added once.
+- A custom `GapStore` keeps working unchanged, but stores follow-ups only if its `put()` and `find()` carry `Gap::$followUps`.
+
 ## v1.31.5 — 2026-11-15
 
 - **Two tool calls at once no longer fail on a waiting message.** When a message was waiting and an assistant called two tools in parallel, both went to record that the message rode along, both found no receipt and both inserted one; the second hit the unique index and that tool call failed (seen in production on 2026-11-15). `markShown()` is now one upsert keyed on the message and the person, which makes the receipt or counts it up and yields to no other conflict. `message_delivered` had the same shape and gets the same fix.

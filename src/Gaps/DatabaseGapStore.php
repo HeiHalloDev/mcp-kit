@@ -64,6 +64,13 @@ class DatabaseGapStore implements GapStore
             'resolved_at' => $gap->resolvedAt,
         ];
 
+        // Follow-ups are only ever added to, so an empty list has nothing to
+        // write, and a gap without any still files in an app whose table
+        // does not have the column yet.
+        if ($gap->followUps !== []) {
+            $attributes['follow_ups'] = $gap->followUps;
+        }
+
         $row = $gap->id === null
             ? $this->model()->newQuery()->create($attributes)
             : tap($this->model()->newQuery()->findOrFail($gap->id))->update($attributes);
@@ -130,7 +137,31 @@ class DatabaseGapStore implements GapStore
             resolvedAt: $row->resolved_at,
             reportedAt: $row->created_at,
             id: $row->id,
+            followUps: $this->followUps($row),
         );
+    }
+
+    /**
+     * @return list<array{name: string, at: string, text: string, builder?: bool}>
+     */
+    protected function followUps(GapReport $row): array
+    {
+        $followUps = [];
+
+        foreach ((array) ($row->follow_ups ?? []) as $followUp) {
+            if (! is_array($followUp) || trim((string) ($followUp['text'] ?? '')) === '') {
+                continue;
+            }
+
+            $followUps[] = array_filter([
+                'name' => (string) ($followUp['name'] ?? ''),
+                'at' => (string) ($followUp['at'] ?? ''),
+                'text' => (string) $followUp['text'],
+                'builder' => (bool) ($followUp['builder'] ?? false),
+            ], static fn (mixed $value): bool => $value !== false);
+        }
+
+        return $followUps;
     }
 
     /**

@@ -6,6 +6,8 @@ These come from the people who run this app. Tell {!! $principal->firstName() !!
 @foreach ($messages as $item)
 @if ($item['kind'] === 'gap')
 - [{!! $item['key'] !!}] The answer to something {!! $principal->firstName() !!} reported, "{!! $item['title'] !!}" ({!! $item['status'] ?? 'settled' !!} by {!! $item['from'] !!}): {!! $item['body'] !!}
+@elseif ($item['kind'] === 'follow_up')
+- [{!! $item['key'] !!}] {!! $item['from'] !!} wrote on the reported gap #{!! $item['gap'] ?? '' !!}, "{!! $item['title'] !!}": {!! $item['body'] !!} To answer, call `report_gap` with `gap` {!! $item['gap'] ?? '' !!} and `note`.
 @else
 - [{!! $item['key'] !!}] From {!! $item['from'] !!}: {!! $item['body'] !!}
 @endif

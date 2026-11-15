@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Contracts\GroundRules;
+use HeiHallo\McpKit\Events\GapFollowedUp;
 use HeiHallo\McpKit\Events\GapReported;
 use HeiHallo\McpKit\Events\GapStatusChanged;
 use HeiHallo\McpKit\Gaps\Gap;
@@ -473,4 +474,228 @@ it('lets privileged staff file a gap as someone else\'s report, so the answer go
     $gap = app(GapStore::class)->openMatching(Gap::key('cannot correct Norwegian movement texts'));
 
     expect(array_column($gap->reporters, 'name'))->toBe(['Benjamin Christensen']);
+});
+
+/*
+ * Follow-ups. A retest or a new example had nowhere to go: the reporter was
+ * told the gap was already theirs, and a privileged one wrote it over the
+ * resolution of the open gap, where the next note replaced it and the list
+ * never showed it.
+ */
+
+test('a reporter adds to their own gap, and each note is kept beside the last', function () {
+    Event::fake([GapFollowedUp::class]);
+    $staff = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($staff)->tool(ReportGapTool::class, gapArguments(['confirm' => true]));
+
+    $id = (string) app(GapStore::class)->list()[0]->id;
+
+    $preview = AcmeServer::actingAs($staff)->tool(ReportGapTool::class, ['gap' => $id, 'note' => 'Retested on Friday: still one study at a time.']);
+
+    expect($preview)->toBePreview('Follow up on a gap')
+        ->and(app(GapStore::class)->find($id)->followUps)->toBe([]);
+
+    expect(AcmeServer::actingAs($staff)->tool(ReportGapTool::class, [
+        'gap' => $id,
+        'note' => 'Retested on Friday: still one study at a time.',
+        'confirm' => true,
+    ]))->toHaveExecuted();
+
+    expect(AcmeServer::actingAs($staff)->tool(ReportGapTool::class, [
+        'gap' => $id,
+        'note' => 'It also loses the payment plan.',
+        'confirm' => true,
+    ]))->toHaveExecuted();
+
+    $gap = app(GapStore::class)->find($id);
+
+    expect(array_column($gap->followUps, 'text'))->toBe(['Retested on Friday: still one study at a time.', 'It also loses the payment plan.'])
+        ->and(array_column($gap->followUps, 'name'))->toBe(['Kari Nordmann', 'Kari Nordmann'])
+        ->and($gap->status)->toBe(Gap::OPEN)
+        ->and($gap->resolution)->toBeNull()
+        ->and($gap->reports)->toBe(1);
+
+    Event::assertDispatchedTimes(GapFollowedUp::class, 2);
+});
+
+test('reporting your own gap again with something to say adds it as a follow-up', function () {
+    $staff = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($staff)->tool(ReportGapTool::class, gapArguments(['confirm' => true]));
+
+    expect(AcmeServer::actingAs($staff)->tool(ReportGapTool::class, gapArguments([
+        'note' => 'Happened again with a second signup.',
+        'confirm' => true,
+    ])))->toHaveExecuted();
+
+    $gaps = app(GapStore::class)->list();
+
+    expect($gaps)->toHaveCount(1)
+        ->and($gaps[0]->reports)->toBe(1)
+        ->and($gaps[0]->reporters)->toHaveCount(1)
+        ->and(array_column($gaps[0]->followUps, 'text'))->toBe(['Happened again with a second signup.']);
+});
+
+test('a colleague who did not report a gap neither writes on it nor reads it', function () {
+    $reporter = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($reporter)->tool(ReportGapTool::class, gapArguments(['confirm' => true]));
+
+    $id = (string) app(GapStore::class)->list()[0]->id;
+    $other = actingWith(acmeUser(['staff', 'things'], 'staff', ['name' => 'Ola Nordmann']), ['acme:things:read']);
+
+    AcmeServer::actingAs($other)
+        ->tool(ReportGapTool::class, ['gap' => $id, 'note' => 'Me too.', 'confirm' => true])
+        ->assertHasErrors();
+
+    AcmeServer::actingAs($other)
+        ->tool(ReportGapTool::class, ['gap' => $id])
+        ->assertHasErrors()
+        ->assertDontSee('Flytte en påmelding');
+
+    expect(app(GapStore::class)->find($id)->followUps)->toBe([]);
+});
+
+test('words written on an open gap as its resolution are kept as a follow-up instead', function () {
+    $admin = actingWith(acmeAdmin(), ['acme:*'], 'laptop');
+    $gap = app(GapStore::class)->put(new Gap(
+        key: 'cannot-do-the-thing',
+        title: 'cannot do the thing',
+        need: 'Doing the thing.',
+        missing: 'No tool for it.',
+        reporters: [['name' => 'Kari Nordmann', 'at' => now()->toIso8601String(), 'note' => '']],
+    ));
+
+    foreach (['Ranking is still wrong with arm support.', 'One-leg and two-leg hops return the same list.'] as $text) {
+        expect(AcmeServer::actingAs($admin)->tool(ReportGapTool::class, [
+            'gap' => (string) $gap->id,
+            'status' => 'open',
+            'resolution' => $text,
+            'confirm' => true,
+        ]))->toHaveExecuted();
+    }
+
+    $after = app(GapStore::class)->find($gap->id);
+
+    expect($after->resolution)->toBeNull()
+        ->and($after->status)->toBe(Gap::OPEN)
+        ->and(array_column($after->followUps, 'text'))->toBe(['Ranking is still wrong with arm support.', 'One-leg and two-leg hops return the same list.']);
+});
+
+test('the same follow-up sent twice is added once, and a runaway one is refused', function () {
+    $staff = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($staff)->tool(ReportGapTool::class, gapArguments(['confirm' => true]));
+
+    $id = (string) app(GapStore::class)->list()[0]->id;
+    $note = ['gap' => $id, 'note' => 'Retested: unchanged.', 'confirm' => true];
+
+    expect(AcmeServer::actingAs($staff)->tool(ReportGapTool::class, $note))->toHaveExecuted();
+
+    AcmeServer::actingAs($staff)->tool(ReportGapTool::class, $note)->assertHasErrors();
+
+    AcmeServer::actingAs($staff)
+        ->tool(ReportGapTool::class, ['gap' => $id, 'note' => str_repeat('a', Gap::FOLLOW_UP_MAX + 1), 'confirm' => true])
+        ->assertHasErrors();
+
+    expect(app(GapStore::class)->find($id)->followUps)->toHaveCount(1);
+});
+
+test('a gap is read in full by its id, by the person who reported it', function () {
+    $staff = actingWith(acmeUser(), ['acme:things:read']);
+
+    AcmeServer::actingAs($staff)->tool(ReportGapTool::class, gapArguments(['note' => 'Third time this week.', 'confirm' => true]));
+
+    $id = (string) app(GapStore::class)->list()[0]->id;
+
+    AcmeServer::actingAs($staff)->tool(ReportGapTool::class, ['gap' => $id, 'note' => 'Retested: unchanged.', 'confirm' => true]);
+
+    $before = app(GapStore::class)->find($id);
+
+    AcmeServer::actingAs($staff)
+        ->tool(ReportGapTool::class, ['gap' => $id])
+        ->assertOk()
+        ->assertSee('Retested: unchanged.')
+        ->assertSee('cannot move a signup between studies')
+        // What colleagues said when they reported it is for the builders.
+        ->assertDontSee('Third time this week.');
+
+    AcmeServer::actingAs(actingWith(acmeAdmin(), ['acme:things:read']))
+        ->tool(ReportGapTool::class, ['gap' => $id])
+        ->assertOk()
+        ->assertSee('Third time this week.');
+
+    expect(app(GapStore::class)->find($id))->toEqual($before);
+});
+
+test('the list shows the follow-ups under the gap, and a note left in the resolution of an open one', function () {
+    $store = app(GapStore::class);
+    $admin = actingWith(acmeAdmin(), ['acme:things:read']);
+
+    $gap = $store->put((new Gap(
+        key: 'cannot-do-the-thing',
+        title: 'cannot do the thing',
+        need: 'Doing the thing.',
+        missing: 'No tool for it.',
+        reporters: [['name' => 'Kari Nordmann', 'at' => now()->toIso8601String(), 'note' => '']],
+        // How a follow-up was stored before there was anywhere to put one.
+        resolution: 'An older note, written over the resolution.',
+    ))->followedUp('Kari Nordmann', 'Retested: the arm-support variant still ranks second.'));
+
+    $closed = $store->put((new Gap(
+        key: 'no-export',
+        title: 'no export',
+        need: 'Exporting.',
+        missing: 'No export.',
+    ))->settled(Gap::DONE, 'Built: export_things.', 'Ada Admin')->followedUp('Kari Nordmann', 'Confirmed working after the deploy.'));
+
+    AcmeServer::actingAs($admin)
+        ->resource(GapsResource::class)
+        ->assertSee('Retested: the arm-support variant still ranks second.')
+        ->assertSee('An older note, written over the resolution.')
+        ->assertSee('last follow-up '.now()->format('Y-m-d'))
+        ->assertSee('Confirmed working after the deploy.');
+
+    expect($store->find($gap->id)->followUps)->toHaveCount(1)
+        ->and($store->find($closed->id)->status)->toBe(Gap::DONE);
+});
+
+test('deciding and merging a gap keep what was written on it', function () {
+    $store = app(GapStore::class);
+    $admin = actingWith(acmeAdmin(), ['acme:*'], 'laptop');
+
+    $survivor = $store->put((new Gap(
+        key: 'no-way-to-read-a-whole-study',
+        title: 'no way to read a whole study',
+        need: 'Lese et helt studium.',
+        missing: 'One page per call.',
+        reporters: [['name' => 'Kari Nordmann', 'at' => now()->toIso8601String(), 'note' => '']],
+    ))->followedUp('Kari Nordmann', 'On the survivor.'));
+
+    $duplicate = $store->put((new Gap(
+        key: 'reading-a-study-takes-hundreds-of-calls',
+        title: 'reading a study takes hundreds of calls',
+        need: 'Lese et helt studium.',
+        missing: 'Same thing, said differently.',
+        reporters: [['name' => 'Per Hansen', 'at' => now()->toIso8601String(), 'note' => '']],
+    ))->followedUp('Per Hansen', 'On the duplicate.'));
+
+    AcmeServer::actingAs($admin)->tool(ReportGapTool::class, [
+        'gap' => (string) $duplicate->id,
+        'merge_into' => (string) $survivor->id,
+        'confirm' => true,
+    ])->assertOk();
+
+    AcmeServer::actingAs($admin)->tool(ReportGapTool::class, [
+        'gap' => (string) $survivor->id,
+        'status' => 'done',
+        'resolution' => 'read_study reads it in one call.',
+        'confirm' => true,
+    ])->assertOk();
+
+    $after = $store->find($survivor->id);
+
+    expect($after->status)->toBe(Gap::DONE)
+        ->and(collect($after->followUps)->pluck('text')->sort()->values()->all())->toBe(['On the duplicate.', 'On the survivor.']);
 });

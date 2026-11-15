@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Contracts\TaskStore;
+use HeiHallo\McpKit\Events\GapFollowedUp;
 use HeiHallo\McpKit\Events\GapStatusChanged;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Learning\Task;
@@ -229,4 +230,33 @@ test('sends a message from the page to named people or everyone, and shows how f
 
     expect(Message::query()->pluck('to_people')->filter()->first())->toBe(['Kari Kollega'])
         ->and(Message::query()->where('to_everyone', true)->count())->toBe(1);
+});
+
+test('a follow-up from the page is kept on the gap and leaves it undecided', function () {
+    Event::fake([GapFollowedUp::class]);
+    bootUsageUi();
+    $admin = acmeAdmin();
+    $this->actingAs($admin);
+
+    $gap = aGap();
+
+    Livewire::test(UsagePage::class)
+        ->call('startFollowingUp', (string) $gap->id)
+        ->set('followUp', '   ')
+        ->call('writeFollowUp')
+        ->assertHasErrors('followUp')
+        ->set('followUp', 'Which module was it, and how many bookings?')
+        ->call('writeFollowUp')
+        ->assertHasNoErrors()
+        ->assertSet('followingUp', null)
+        ->assertSee('Which module was it, and how many bookings?');
+
+    $after = app(GapStore::class)->find($gap->id);
+
+    expect($after->status)->toBe(Gap::OPEN)
+        ->and($after->resolution)->toBeNull()
+        ->and($after->followUps)->toHaveCount(1)
+        ->and($after->followUps[0]['name'])->toBe($admin->name);
+
+    Event::assertDispatched(GapFollowedUp::class);
 });
