@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.31.5 — 2026-11-15
+
+- **Two tool calls at once no longer fail on a waiting message.** When a message was waiting and an assistant called two tools in parallel, both went to record that the message rode along, both found no receipt and both inserted one; the second hit the unique index and that tool call failed (seen in production on 2026-11-15). `markShown()` is now one upsert keyed on the message and the person, which makes the receipt or counts it up and yields to no other conflict. `message_delivered` had the same shape and gets the same fix.
+- **Connected apps folds the permissions away.** Each connected assistant now shows a closed "What it may do (N)" toggle instead of the full list, which ran to thirty lines for a full grant. One click opens it.
+
 ## v1.31.4 — 2026-11-09
 
 - **`request_upload` says to send a User-Agent.** An assistant wrote its own multipart POST with Python's urllib, and Cloudflare answered HTTP 403 "error code: 1010" before the request reached the app: urllib's default User-Agent is banned on every zone we run, and a WAF skip rule did not lift it. The description and the reply now say to use the curl line as given, or send a browser-like User-Agent from a client of your own, and the reply's `own_client` says that a 403 with 1010 means the client signature, not a bad link.

@@ -6,6 +6,7 @@ use HeiHallo\McpKit\Contracts\GapStore;
 use HeiHallo\McpKit\Gaps\Gap;
 use HeiHallo\McpKit\Messages\Messages;
 use HeiHallo\McpKit\Models\Message;
+use HeiHallo\McpKit\Models\MessageReceipt;
 use HeiHallo\McpKit\Testing\Mcp;
 use HeiHallo\McpKit\Tests\Fixtures\Mcp\Tools\ListThingsTool;
 use HeiHallo\McpKit\Tools\ToolAppearances;
@@ -211,4 +212,44 @@ it('reaches the developer as "dev" or by the configured name, whatever the accou
     $whoami = collect(Mcp::call($sender, '/mcp/acme', 'whoami', [])->json('result.content'))->pluck('text')->implode("\n");
 
     expect($whoami)->toContain('Anders Heim')->toContain('"dev"');
+});
+
+it('counts a showing when another call recorded the same message at the same moment', function () {
+    $kari = acmeUser(attributes: ['name' => 'Kari Kollega', 'email' => 'kari@example.com']);
+    $sender = acmeToken(acmeUser(attributes: ['name' => 'Siri Sender']), ['acme:things:read']);
+    $karis = acmeToken($kari, ['acme:things:read']);
+    confirmSend($sender, ['to' => ['kari@example.com'], 'body' => 'Kurset er klart for gjennomgang.']);
+    $key = 'message:'.Message::query()->sole()->id;
+
+    // The other call, landing between "is there a receipt?" and "save it":
+    // looking first and inserting after hit the unique index here and
+    // failed the tool call (seen in production with two calls in parallel).
+    MessageReceipt::creating(function () use ($key): void {
+        DB::table('mcp_message_receipts')->insertOrIgnore(['message_key' => $key, 'recipient' => 'Kari Kollega', 'shown' => 1, 'created_at' => now(), 'updated_at' => now()]);
+    });
+
+    expect(firstBlock($karis))->toContain('Kurset er klart for gjennomgang.')
+        ->and(firstBlock($karis))->toContain('Kurset er klart for gjennomgang.')
+        ->and(MessageReceipt::query()->where('message_key', $key)->sole()->shown)->toBe(2);
+
+    MessageReceipt::flushEventListeners();
+});
+
+it('counts a showing on a receipt that is already there, and confirms delivery on it without a second row', function () {
+    $kari = acmeUser(attributes: ['name' => 'Kari Kollega', 'email' => 'kari@example.com']);
+    $sender = acmeToken(acmeUser(attributes: ['name' => 'Siri Sender']), ['acme:things:read']);
+    $karis = acmeToken($kari, ['acme:things:read']);
+    confirmSend($sender, ['to' => ['kari@example.com'], 'body' => 'Kurset er klart for gjennomgang.']);
+    $key = 'message:'.Message::query()->sole()->id;
+
+    firstBlock($karis);
+    firstBlock($karis);
+    Mcp::call($karis, '/mcp/acme', 'message_delivered', ['ids' => [$key]])->assertSuccessful();
+    Mcp::call($karis, '/mcp/acme', 'message_delivered', ['ids' => [$key]])->assertSuccessful();
+
+    $receipt = MessageReceipt::query()->where('message_key', $key)->sole();
+
+    expect($receipt->shown)->toBe(2)
+        ->and($receipt->last_shown_at)->not->toBeNull()
+        ->and($receipt->delivered_at)->not->toBeNull();
 });

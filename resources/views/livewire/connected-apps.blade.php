@@ -30,11 +30,18 @@
                 </flux:button>
             </div>
 
-            <ul class="mt-3 space-y-1 text-sm text-zinc-700 dark:text-zinc-300">
-                @foreach ((array) $grant->abilities as $ability)
-                    <li>{{ $this->describe((string) $ability) }}</li>
-                @endforeach
-            </ul>
+            {{-- Closed by default: a full grant is thirty lines. --}}
+            <details class="group mt-3">
+                <summary class="flex cursor-pointer list-none items-center gap-1 text-sm text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 [&::-webkit-details-marker]:hidden">
+                    <flux:icon.chevron-right variant="micro" class="transition-transform group-open:rotate-90" />
+                    {{ __('What it may do (:count)', ['count' => count((array) $grant->abilities)]) }}
+                </summary>
+                <ul class="mt-2 space-y-1 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
+                    @foreach ((array) $grant->abilities as $ability)
+                        <li>{{ $this->describe((string) $ability) }}</li>
+                    @endforeach
+                </ul>
+            </details>
         </div>
     @empty
         <flux:text>{{ __('No assistants are connected to your account.') }}</flux:text>

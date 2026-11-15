@@ -16,6 +16,7 @@ use HeiHallo\McpKit\Principal;
 use HeiHallo\McpKit\Tools\AbilityProbe;
 use HeiHallo\McpKit\Tools\ToolAppearances;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use Throwable;
@@ -181,10 +182,16 @@ class Messages
     public function markShown(Principal $principal, array $keys): void
     {
         foreach ($keys as $key) {
-            $receipt = MessageReceipt::query()->firstOrNew(['message_key' => $key, 'recipient' => $principal->name]);
-            $receipt->shown = (int) $receipt->shown + 1;
-            $receipt->last_shown_at = now();
-            $receipt->save();
+            // Two tool calls at the same moment both carry the message, and
+            // both come here: looking for the row and then saving it let the
+            // second insert hit the unique index and fail the whole call. One
+            // upsert keyed on the message and the person makes the row or
+            // counts it up, and yields to no other conflict.
+            MessageReceipt::query()->upsert(
+                [['message_key' => $key, 'recipient' => $principal->name, 'shown' => 1, 'last_shown_at' => now()]],
+                ['message_key', 'recipient'],
+                ['shown' => $this->plusOne('shown'), 'last_shown_at'],
+            );
         }
     }
 
@@ -207,9 +214,12 @@ class Messages
                 continue;
             }
 
-            MessageReceipt::query()->updateOrCreate(
-                ['message_key' => $key, 'recipient' => $principal->name],
-                ['delivered_at' => now()],
+            // An upsert for the same reason as markShown(): two confirmations
+            // at once must not both try to make the row.
+            MessageReceipt::query()->upsert(
+                [['message_key' => $key, 'recipient' => $principal->name, 'delivered_at' => now()]],
+                ['message_key', 'recipient'],
+                ['delivered_at'],
             );
 
             if (str_starts_with($key, 'gap:') && ($gap = app(GapStore::class)->find(explode(':', $key)[1])) !== null) {
@@ -413,5 +423,13 @@ class Messages
     protected function gapKey(Gap $gap): string
     {
         return 'gap:'.$gap->id.':'.($gap->resolvedAt?->getTimestamp() ?? 0);
+    }
+
+    /** The stored value plus one, for the update half of an upsert. */
+    private function plusOne(string $column): Expression
+    {
+        $grammar = MessageReceipt::query()->getQuery()->getGrammar();
+
+        return new Expression($grammar->wrap((new MessageReceipt)->getTable().'.'.$column).' + 1');
     }
 }

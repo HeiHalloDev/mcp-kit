@@ -315,7 +315,11 @@ test('the sign-ins a person made are listed under the steps, with a way to end e
     Livewire::test(ConnectedApps::class, ['embedded' => true])
         ->assertSee('Connected apps')
         ->assertSee('Claude')
-        ->assertSee('Disconnect');
+        ->assertSee('Disconnect')
+        // The list of what it may do sits behind a closed toggle, with the count on it.
+        ->assertSeeHtml('<details')
+        ->assertDontSeeHtml('<details open')
+        ->assertSee('What it may do (1)');
 });
 
 test('with oauth off, there is nothing to switch between: the tokens, then what to ask', function () {
