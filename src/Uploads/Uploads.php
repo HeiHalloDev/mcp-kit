@@ -36,13 +36,30 @@ class Uploads
             'owner_type' => $principal->tokenable::class,
             'owner_id' => (string) $principal->id(),
             'name' => $file->getClientOriginalName() ?: $handle,
-            'mime' => $file->getClientMimeType(),
+            'mime' => $this->mimeOf($file),
             'size' => $file->getSize() ?: 0,
             'checksum' => hash_file('sha256', $file->getRealPath()),
             'disk' => $disk,
             'path' => $path,
             'expires_at' => now()->addDays($this->ttlDays()),
         ]);
+    }
+
+    /**
+     * The type of an uploaded file. The client's word stands unless it says
+     * nothing: curl on macOS sends a .webp, and anything else its table
+     * lacks, as application/octet-stream. Then the file's own bytes decide,
+     * so the upload is not refused for a type it actually has.
+     */
+    public function mimeOf(UploadedFile $file): string
+    {
+        $claimed = mb_strtolower(trim((string) $file->getClientMimeType()));
+
+        if ($claimed !== '' && $claimed !== 'application/octet-stream') {
+            return $claimed;
+        }
+
+        return $file->getMimeType() ?: 'application/octet-stream';
     }
 
     /**

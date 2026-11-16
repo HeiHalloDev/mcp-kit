@@ -204,5 +204,18 @@
     "Write the message.": "Write the message.",
     "Name the people, or send it to everyone.": "Name the people, or send it to everyone.",
     "Sent. It reaches them on their next tool calls.": "Sent. It reaches them on their next tool calls.",
-    "What it may do (:count)": "What it may do (:count)"
+    "What it may do (:count)": "What it may do (:count)",
+    "uploading…": "uploading…",
+    "uploaded": "uploaded",
+    "not uploaded.": "not uploaded.",
+    "not uploaded. Check the connection and pick it again.": "not uploaded. Check the connection and pick it again.",
+    "Upload files": "Upload files",
+    "Upload files to :app": "Upload files to :app",
+    "Pick the files your assistant asked for, then go back to the chat and say they are uploaded.": "Pick the files your assistant asked for, then go back to the chat and say they are uploaded.",
+    "Upload": "Upload",
+    "Up to :size MB per file.": "Up to :size MB per file.",
+    "Accepted: :types.": "Accepted: :types.",
+    "This link works until :time (:zone).": "This link works until :time (:zone).",
+    "Anyone with the link can upload in your name until then, so do not share it.": "Anyone with the link can upload in your name until then, so do not share it.",
+    "They are kept for :count day.|They are kept for :count days.": "They are kept for :count day.|They are kept for :count days."
 }

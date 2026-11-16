@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.33.0 — 2026-11-16
+
+- **An upload is typed by its own bytes when the client says nothing.** curl on macOS has no `.webp` in its table and sends such a file as `application/octet-stream`, so an app that lists `image/webp` in `uploads.mimes` refused a real WebP image (reported from production on 2026-11-11; the way round was `;type=image/webp` on the curl line). Now a file that arrives as `application/octet-stream`, or with no type at all, gets the type its content has, both for the allow-list and on the staged upload. A type the client does name is still taken at its word, and a text file called `.webp` is still refused.
+- **An upload link opens in a browser.** A person whose assistant has no shell (Claude or ChatGPT in the browser, a phone) had to run curl in their own terminal to get a file to it. The link from `request_upload` now answers a GET with a page that has a file picker: the person picks the files, the page posts each one to the same link and shows the handle, and the assistant reads them with `list_uploads`. The same signature, token lookup and access gate as the POST, so the page adds no way in; an expired or altered link shows no form. `request_upload` says so in its description and in a new `browser` field in the reply.
+- The page uses the frame of the sign-in pages, so `oauth.layout` applies to it too. New route `mcp-kit.uploads.link.form`, new view `mcp-kit::uploads.link`, and its strings are in `lang/en.json`.
+
 ## v1.32.0 — 2026-11-16
 
 - **A gap takes follow-ups.** A retest, a new example or a question back had nowhere to go. A reporter who filed the same thing again was told it was already theirs, and a privileged one wrote it into the resolution of the open gap, where each note replaced the last and `list_gaps` never showed it: three follow-ups on a search gap sat unread for two days (seen in production on 2026-11-15). Now `report_gap` with `gap` (the id) and `note` adds a dated follow-up beside the report, for the people who reported the gap and for privileged staff. The status and the resolution stay as they are. Reporting your own open gap again with a `note` does the same, and so does `status` "open" with a `resolution` on a gap that is already open, since that is the call assistants had learned.

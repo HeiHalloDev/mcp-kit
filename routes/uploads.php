@@ -31,3 +31,16 @@ Route::post((string) config('mcp-kit.uploads.link_route', '/mcp/uploads/link'), 
         EnsureMcpAccess::class,
     ]))
     ->name('mcp-kit.uploads.link');
+
+/*
+ * The same link opened in a browser shows a file picker that posts back to
+ * it: for a person whose assistant has no shell to run curl from. Same
+ * signature, same token lookup, same gate — the page adds no way in.
+ */
+Route::get((string) config('mcp-kit.uploads.link_route', '/mcp/uploads/link'), [UploadController::class, 'form'])
+    ->middleware(array_filter([
+        AuthenticateUploadLink::class,
+        config('mcp-kit.rate_limit.per_minute') ? 'throttle:mcp-kit' : null,
+        EnsureMcpAccess::class,
+    ]))
+    ->name('mcp-kit.uploads.link.form');

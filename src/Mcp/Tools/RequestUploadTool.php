@@ -29,7 +29,7 @@ class RequestUploadTool extends Tool
 {
     protected string $name = 'request_upload';
 
-    protected string $description = 'A short-lived link to upload a local file without the bearer token — for when your token sits in the connector settings and you cannot send it. POST the file to the link as multipart field `file` (the reply gives a curl line to copy), then pass the returned `up_…` handle as `upload` to a tool that takes files. One link takes several files until it expires. Needs a way to send an HTTP request from where the file is, such as a shell. Use the curl line as given; if you write your own client, send a browser-like User-Agent header, because Cloudflare blocks Python urllib\'s default one (HTTP 403, error code 1010).';
+    protected string $description = 'A short-lived link to upload a local file without the bearer token — for when your token sits in the connector settings and you cannot send it. POST the file to the link as multipart field `file` (the reply gives a curl line to copy), then pass the returned `up_…` handle as `upload` to a tool that takes files. One link takes several files until it expires. No shell where the file is? Give the person the link: opened in a browser it is a page where they pick the files, and list_uploads then shows what arrived. Use the curl line as given; if you write your own client, send a browser-like User-Agent header, because Cloudflare blocks Python urllib\'s default one (HTTP 403, error code 1010).';
 
     /**
      * @var array<string, mixed>
@@ -71,6 +71,7 @@ class RequestUploadTool extends Tool
             'method' => 'POST',
             'field' => 'file',
             'curl' => "curl -sS -H 'Accept: application/json' -F 'file=@/path/to/file' '{$url}'",
+            'browser' => 'No shell where the file is? Give the person this link to open in their browser: it shows a page where they pick the files. When they say it is done, call list_uploads for the handles.',
             'own_client' => 'Use the curl line as given. Writing your own request instead? Send a browser-like User-Agent header: Cloudflare blocks Python urllib\'s default one, and an HTTP 403 with "error code: 1010" means exactly that, not a bad link.',
             'expires_at' => $expires->toIso8601String(),
             'max_kb' => (int) config('mcp-kit.uploads.max_kb', 51200),

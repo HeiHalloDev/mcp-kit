@@ -9,6 +9,7 @@ use HeiHallo\McpKit\Events\FileStaged;
 use HeiHallo\McpKit\Uploads\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 /**
  * The upload endpoint next to the MCP routes: same bearer token, same
@@ -19,6 +20,25 @@ use Illuminate\Http\Request;
  */
 class UploadController
 {
+    /**
+     * The same link opened in a browser: a page with a file picker, for a
+     * person whose assistant has no shell to run curl from. It posts to the
+     * link it was opened on, so nothing here widens what the link allows.
+     */
+    public function form(Request $request, Uploads $uploads): View
+    {
+        $mimes = (array) config('mcp-kit.uploads.mimes', []);
+
+        return view('mcp-kit::uploads.link', [
+            // The link exactly as it was opened: the signature covers the query string as sent.
+            'action' => $request->url().'?'.$request->server->get('QUERY_STRING'),
+            'expiresAt' => $request->query('expires') ? now()->setTimestamp((int) $request->query('expires')) : null,
+            'maxKb' => (int) config('mcp-kit.uploads.max_kb', 51200),
+            'mimes' => $mimes,
+            'ttlDays' => $uploads->ttlDays(),
+        ]);
+    }
+
     public function __invoke(Request $request, Uploads $uploads, PrincipalResolver $principals): JsonResponse
     {
         $principal = $principals->resolve($request->user());
@@ -41,8 +61,10 @@ class UploadController
 
         $mimes = (array) config('mcp-kit.uploads.mimes', []);
 
-        if ($mimes !== [] && ! in_array($file->getClientMimeType(), $mimes, true)) {
-            return response()->json(['error' => sprintf('`%s` is not accepted here. This app takes: %s. Nothing was stored.', $file->getClientMimeType(), implode(', ', $mimes))], 422);
+        $mime = $uploads->mimeOf($file);
+
+        if ($mimes !== [] && ! in_array($mime, $mimes, true)) {
+            return response()->json(['error' => sprintf('`%s` is not accepted here. This app takes: %s. Nothing was stored.', $mime, implode(', ', $mimes))], 422);
         }
 
         $upload = $uploads->stage($principal, $file);

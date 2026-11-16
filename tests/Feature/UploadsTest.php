@@ -308,3 +308,64 @@ test('request_upload tells an assistant writing its own client to send a User-Ag
     expect($reply['own_client'])->toContain('User-Agent')->toContain('1010')
         ->and($tool['description'])->toContain('User-Agent');
 });
+
+test('a file sent as application/octet-stream is typed by its own bytes', function () {
+    bootUploads();
+    config()->set('mcp-kit.uploads.mimes', ['image/webp', 'image/png']);
+    $token = acmeToken(acmeUser(), ['acme:things:read']);
+
+    // curl on macOS has no .webp in its table and sends application/octet-stream.
+    $path = tempnam(sys_get_temp_dir(), 'webp');
+    file_put_contents($path, base64_decode('UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA=='));
+    $webp = new UploadedFile($path, 'skjerm.webp', 'application/octet-stream', null, true);
+
+    $handle = postUpload($token, $webp)->assertCreated()->assertJsonPath('mime', 'image/webp')->json('upload');
+
+    expect(Upload::query()->where('handle', $handle)->sole()->mime)->toBe('image/webp');
+
+    // The bytes decide both ways: a text file called .webp is still not an image.
+    $path = tempnam(sys_get_temp_dir(), 'txt');
+    file_put_contents($path, 'just some text');
+
+    postUpload($token, new UploadedFile($path, 'falsk.webp', 'application/octet-stream', null, true))
+        ->assertStatus(422)
+        ->assertJsonPath('error', fn (string $e) => str_contains($e, 'text/plain'));
+});
+
+test('a type the client names is taken at its word', function () {
+    bootUploads();
+    config()->set('mcp-kit.uploads.mimes', ['image/png']);
+
+    postUpload(acmeToken(acmeUser(), ['acme:things:read']), UploadedFile::fake()->createWithContent('figur.png', 'PNG BYTES'))
+        ->assertCreated()
+        ->assertJsonPath('mime', 'image/png');
+});
+
+test('an upload link opened in a browser is a page that posts back to the same link', function () {
+    bootUploads();
+    config()->set('mcp-kit.uploads.mimes', ['image/png']);
+    $token = acmeToken(acmeUser(), ['acme:things:read', 'acme:things:write']);
+    $link = uploadLink($token);
+
+    $this->get($link)
+        ->assertOk()
+        ->assertSee('type="file"', false)
+        ->assertSee('accept="image/png"', false)
+        ->assertSee(e($link), false);
+
+    // What the page does: the same POST, the same handle.
+    postToLink($link, UploadedFile::fake()->createWithContent('figur.png', 'PNG BYTES'))->assertCreated();
+
+    $reply = json_decode((string) Mcp::call($token, '/mcp/acme', 'request_upload')->json('result.content.0.text'), true);
+    expect($reply['browser'])->toContain('browser')->toContain('list_uploads');
+});
+
+test('the browser page keeps the link\'s lock: expired or changed shows no form', function () {
+    bootUploads();
+    $link = uploadLink(acmeToken(acmeUser(), ['acme:things:read']));
+
+    $this->get($link.'x')->assertForbidden()->assertDontSee('type="file"', false);
+
+    $this->travel(31)->minutes();
+    $this->get($link)->assertForbidden()->assertDontSee('type="file"', false);
+});
