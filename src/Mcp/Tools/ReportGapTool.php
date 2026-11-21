@@ -384,26 +384,16 @@ class ReportGapTool extends StaffTool
             return Response::error('Say what was decided: a gap closed without a reason tells the person who reported it nothing.');
         }
 
-        $closing = in_array($status, [Gap::DONE, Gap::DECLINED], true);
+        $words = $resolution === '' ? (string) $gap->resolution : $resolution;
 
-        $moved = new Gap(
-            key: $gap->key,
-            title: $gap->title,
-            need: $gap->need,
-            missing: $gap->missing,
-            server: $gap->server,
-            tool: $gap->tool,
-            blocking: $gap->blocking,
-            status: $status,
-            reporters: $gap->reporters,
-            reports: $gap->reports,
-            resolution: $resolution === '' ? $gap->resolution : $resolution,
-            resolvedBy: $closing ? $principal->name : $gap->resolvedBy,
-            resolvedAt: $closing ? now() : $gap->resolvedAt,
-            reportedAt: $gap->reportedAt,
-            id: $gap->id,
-            followUps: $gap->followUps,
-        );
+        // Planned is a decision as much as done is, so it goes through the
+        // same door: it carries who decided and when, the reporters hear it
+        // once (and a rewording once more), and the one deciding is not told
+        // their own answer. Only a move back to open, or a plan with no words
+        // yet, is built by hand.
+        $moved = $status !== Gap::OPEN && trim($words) !== ''
+            ? $gap->settled($status, $words, $principal->name)
+            : $this->movedByHand($gap, $status, $words, $principal);
 
         return $this->previewOrExecute(
             $request,
@@ -422,6 +412,30 @@ class ReportGapTool extends StaffTool
                 return ['gap' => $saved->toArray()];
             },
             'Move a gap',
+        );
+    }
+
+    protected function movedByHand(Gap $gap, string $status, string $words, Principal $principal): Gap
+    {
+        $settling = $status !== Gap::OPEN;
+
+        return new Gap(
+            key: $gap->key,
+            title: $gap->title,
+            need: $gap->need,
+            missing: $gap->missing,
+            server: $gap->server,
+            tool: $gap->tool,
+            blocking: $gap->blocking,
+            status: $status,
+            reporters: $gap->reporters,
+            reports: $gap->reports,
+            resolution: $words === '' ? null : $words,
+            resolvedBy: $settling ? $principal->name : $gap->resolvedBy,
+            resolvedAt: $settling ? now() : $gap->resolvedAt,
+            reportedAt: $gap->reportedAt,
+            id: $gap->id,
+            followUps: $gap->followUps,
         );
     }
 

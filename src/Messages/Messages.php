@@ -451,7 +451,12 @@ class Messages
 
     protected function gapKey(Gap $gap): string
     {
-        return 'gap:'.$gap->id.':'.($gap->resolvedAt?->getTimestamp() ?? 0);
+        // A settled gap always carries when it was settled; a row from before
+        // planned did falls back to when it was filed, never to a constant,
+        // so the next rewording still makes a new key.
+        $at = $gap->resolvedAt ?? $gap->reportedAt;
+
+        return 'gap:'.$gap->id.':'.($at?->getTimestamp() ?? 0);
     }
 
     /** The stored value plus one, for the update half of an upsert. */

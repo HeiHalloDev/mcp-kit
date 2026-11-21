@@ -113,6 +113,55 @@ it('brings the answer to a reported gap the same way, and only counts it heard o
         ->and($store->settledFor('Kari Kollega'))->toBe([]);
 });
 
+it('does not tell the one who settles a gap their own answer, and tells the other reporters who settled it', function () {
+    $karis = acmeToken(acmeUser(attributes: ['name' => 'Kari Kollega']), ['acme:things:read']);
+    $ada = acmeAdmin();
+    $adas = acmeToken($ada, ['acme:things:read']);
+    $gap = app(GapStore::class)->put(new Gap(key: 'export', title: 'cannot export things', need: 'Export', missing: 'An export', reports: 2, reporters: [
+        ['name' => 'Kari Kollega', 'at' => now()->toIso8601String(), 'note' => ''],
+        ['name' => $ada->name, 'at' => now()->toIso8601String(), 'note' => ''],
+    ]));
+
+    Mcp::call($adas, '/mcp/acme', 'report_gap', ['gap' => (string) $gap->id, 'status' => 'done', 'resolution' => 'Bygget: export_things.', 'confirm' => true])->assertSuccessful();
+
+    expect(firstBlock($adas))->not->toContain('MESSAGE FOR')
+        ->and(app(GapStore::class)->settledFor($ada->name))->toBe([])
+        ->and(firstBlock($karis))->toContain('Bygget: export_things.')->toContain('done by '.$ada->name);
+});
+
+it('names who planned a gap and keys the plan by when it was made, so a rewording is news once more', function () {
+    $karis = acmeToken(acmeUser(attributes: ['name' => 'Kari Kollega']), ['acme:things:read']);
+    $ada = acmeAdmin();
+    $adas = acmeToken($ada, ['acme:things:read']);
+    $store = app(GapStore::class);
+    $gap = $store->put(new Gap(key: 'export', title: 'cannot export things', need: 'Export', missing: 'An export', reporters: [
+        ['name' => 'Kari Kollega', 'at' => now()->toIso8601String(), 'note' => ''],
+    ]));
+
+    Mcp::call($adas, '/mcp/acme', 'report_gap', ['gap' => (string) $gap->id, 'status' => 'planned', 'resolution' => 'Next week.', 'confirm' => true])->assertSuccessful();
+
+    $planned = $store->find($gap->id);
+    expect($planned->resolvedBy)->toBe($ada->name)
+        ->and($planned->resolvedAt)->not->toBeNull();
+
+    $block = firstBlock($karis);
+    preg_match('/\[(gap:[^\]]+)\]/', $block, $first);
+    expect($block)->toContain('planned by '.$ada->name)
+        ->and($first[1])->toBe('gap:'.$gap->id.':'.$planned->resolvedAt->getTimestamp())
+        ->and($first[1])->not->toEndWith(':0');
+
+    Mcp::call($karis, '/mcp/acme', 'message_delivered', ['ids' => [$first[1]]])->assertSuccessful();
+    expect(firstBlock($karis))->not->toContain('MESSAGE FOR');
+
+    $this->travel(5)->minutes();
+    Mcp::call($adas, '/mcp/acme', 'report_gap', ['gap' => (string) $gap->id, 'status' => 'planned', 'resolution' => 'The week after.', 'confirm' => true])->assertSuccessful();
+
+    $again = firstBlock($karis);
+    preg_match('/\[(gap:[^\]]+)\]/', $again, $second);
+    expect($again)->toContain('The week after.')
+        ->and($second[1])->not->toBe($first[1]);
+});
+
 it('tells a sign-in connection about tools that arrived after it connected, never a pasted token', function () {
     config()->set('mcp-kit.oauth.enabled', true);
     $kari = acmeUser(attributes: ['name' => 'Kari Kollega']);

@@ -100,7 +100,9 @@ final class Gap
      * that changes status without a reason tells them less than silence did.
      *
      * Everybody who reported it is marked unheard again: planned and done
-     * are two separate pieces of news, and each is owed once.
+     * are two separate pieces of news, and each is owed once. The one who
+     * settles it is the exception: they wrote the answer, so it is not news
+     * to them, and telling them would nag them until they confirmed it.
      */
     public function settled(string $status, string $resolution, string $by): self
     {
@@ -121,8 +123,12 @@ final class Gap
             tool: $this->tool,
             blocking: $this->blocking,
             status: $status,
-            reporters: array_map(static function (array $reporter): array {
+            reporters: array_map(static function (array $reporter) use ($by): array {
                 unset($reporter['heard']);
+
+                if (($reporter['name'] ?? null) === $by) {
+                    $reporter['heard'] = true;
+                }
 
                 return $reporter;
             }, $this->reporters),
