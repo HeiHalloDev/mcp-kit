@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.34.0 — 2026-11-27
+
+- **National id numbers are redacted in the audit trail.** AFPT Flex's `update_student` takes a student's fødselsnummer as `ssn`, and the sanitizer redacted credentials only, so the number was stored in plain text in `activity_log` and the `mcp` log channel, on the preview and again on confirm. `ssn`, `personnummer`, `fodselsnummer`, `fødselsnummer` and `national_id` are now stored as `[REDACTED]`, at any depth. The whole key must match, in any case: `ssn_on_file` is kept. Rows written before this release still hold the numbers; an app that ran such a tool has to clean its own `activity_log` and log files.
+- **`mcp-kit.redact_keys`** adds an app's own names to the built-in list, for a tool that takes sensitive data under another name.
+- The unit tests in `tests/Unit` were not in `phpunit.xml` and never ran; they do now, on the package TestCase.
+
 ## v1.33.0 — 2026-11-16
 
 - **An upload is typed by its own bytes when the client says nothing.** curl on macOS has no `.webp` in its table and sends such a file as `application/octet-stream`, so an app that lists `image/webp` in `uploads.mimes` refused a real WebP image (reported from production on 2026-11-11; the way round was `;type=image/webp` on the curl line). Now a file that arrives as `application/octet-stream`, or with no type at all, gets the type its content has, both for the allow-list and on the staged upload. A type the client does name is still taken at its word, and a text file called `.webp` is still refused.

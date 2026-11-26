@@ -117,7 +117,7 @@ Every replaceable piece is a contract bound from a config key. Point the key at 
 | `Links` | `NullLinks`; also `RouteLinks` | `links`, `links_map` | tool results should carry admin page links |
 | `UserDescriber` | `AutoDescriber` | `describer`, `describer_options` | `me` should mention inboxes, shifts, anything app-specific |
 | `GroundRules` | `SectionedGroundRules` | `ground_rules.{class,intro,sections,remove}` | add sections, drop one, or render from a database |
-| `AuditWriter` | `ActivityLogAuditWriter`; also `NullAuditWriter` | `audit`, `activity` | calls should also go somewhere else |
+| `AuditWriter` | `ActivityLogAuditWriter`; also `NullAuditWriter` | `audit`, `activity`, `redact_keys` | calls should also go somewhere else |
 | `ResolvesActivitySource` | `NullSourceResolver` | `activity.source_resolver` (`McpKit::resolveSourceUsing()`) | activity rows should name the product |
 | `AbilityCatalogue` | `ConfigAbilityCatalogue` | `abilities`, `catalogue` | you prefer PHP constants |
 | `PresetResolver` | `ConfigPresetResolver` | `presets`, `token_presets` | other presets (`'analyst' => ['grant' => ['reports:read']]`) |
@@ -132,6 +132,8 @@ Events at every hook point: `TokenMinted`, `TokenRevoked`, `AccessDenied`, `Abil
 ## Activity log
 
 The kit standardises on spatie/laravel-activitylog and adds three columns to its table: `source` (the product), `channel` (web, mcp, api, cli, chat, system) and `token_name`. They are filled on every row as it is created, only where still null, whatever model the app uses. Tool calls land in the `mcp` log: `event` is read, previewed, executed, denied or failed; `description` is the confirmed action or the tool name; `properties` carry tool, server, arguments, result, duration, `call_id`, client. `mcp-kit:prune` removes rows older than `activity.retain_days`; schedule it daily.
+
+Arguments and results are sanitized before any writer sees them, on the preview and again on confirm: long strings are capped, big arrays counted, and some keys stored as `[REDACTED]`. Built in are credentials (`password`, `token`, `secret`, `key`, `api_key`, `bearer`, ...) and national id numbers (`ssn`, `personnummer`, `fodselsnummer`, `fødselsnummer`, `national_id`). Add your own in `mcp-kit.redact_keys`; they join the built-in list. The whole key must match, in any case and at any depth: `ssn` is redacted, `ssn_on_file` is not. A tool that takes sensitive data under another name needs that name here, or it is stored as sent.
 
 ## Optional UI
 

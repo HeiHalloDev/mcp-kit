@@ -651,6 +651,12 @@ return [
         'source_resolver' => NullSourceResolver::class,
     ],
 
+    // Argument and result keys the audit trail stores as [REDACTED], on top
+    // of the built-in ones (credentials, and national id numbers: ssn,
+    // personnummer, fodselsnummer, fødselsnummer, national_id). The whole
+    // key must match, in any case, at any depth.
+    'redact_keys' => [],
+
     /*
     |--------------------------------------------------------------------------
     | Onboarding (the getting_started prompt)

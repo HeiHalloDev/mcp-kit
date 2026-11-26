@@ -29,6 +29,46 @@ test('long strings are capped and big arrays counted rather than stored', functi
         'ids' => range(1, 80),
     ], maxLength: 200, maxItems: 50);
 
-    expect(strlen($clean['note']))->toBeLessThanOrEqual(201)
+    expect($clean['note'])->toBe(str_repeat('a', 200).'...')
         ->and($clean['ids'])->toBe('[array:80]');
+});
+
+/*
+ * A Norwegian national id number (fødselsnummer) is eleven digits. Tools
+ * take it as an argument (Flex's update_student takes `ssn`), and the audit
+ * trail stores arguments — so the number must never reach it.
+ */
+function elevenDigits(): string
+{
+    return str_repeat('0', 6).str_repeat('9', 5);
+}
+
+test('national id numbers are redacted under every name they go by', function (string $key) {
+    $clean = Sanitizer::arguments([$key => elevenDigits(), 'name' => 'Kari']);
+
+    expect($clean[$key])->toBe('[REDACTED]')
+        ->and($clean['name'])->toBe('Kari');
+})->with(['ssn', 'SSN', 'personnummer', 'fodselsnummer', 'fødselsnummer', 'Fødselsnummer', 'national_id']);
+
+test('a national id number nested in an object is redacted too', function () {
+    $clean = Sanitizer::arguments(['student' => ['ssn' => elevenDigits(), 'email' => 'kari@example.test']]);
+
+    expect($clean['student']['ssn'])->toBe('[REDACTED]')
+        ->and($clean['student']['email'])->toBe('kari@example.test');
+});
+
+test('an app can add its own keys to redact, on top of the built-in ones', function () {
+    config(['mcp-kit.redact_keys' => ['Birth_Number']]);
+
+    $clean = Sanitizer::arguments(['birth_number' => elevenDigits(), 'ssn' => elevenDigits(), 'note' => 'keep']);
+
+    expect($clean['birth_number'])->toBe('[REDACTED]')
+        ->and($clean['ssn'])->toBe('[REDACTED]')
+        ->and($clean['note'])->toBe('keep');
+});
+
+test('keys that only contain a redacted name are kept', function () {
+    $clean = Sanitizer::arguments(['ssn_on_file' => true, 'has_national_id' => false]);
+
+    expect($clean)->toBe(['ssn_on_file' => true, 'has_national_id' => false]);
 });
